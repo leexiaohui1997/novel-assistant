@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# 启用严格模式：任何命令失败都会立即退出
+set -e
+
+# 类型检查
+echo "🔍 运行类型检查..."
+pnpm run type-check
+
+# 代码检查和格式化
+echo "✨ 运行 lint-staged..."
+npx lint-staged
+
+echo "✅ Pre-commit 检查通过！"
