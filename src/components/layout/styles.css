@@ -1,0 +1,79 @@
+/* Layout 布局样式 */
+
+/* Layout 容器 */
+.layout-container {
+  --gap: 16px;
+  --header-height: 56px;
+  --sidebar-width: 220px;
+  --bg: #fff;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 1000px;
+}
+
+/* Header 样式 */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background-color: var(--bg);
+  display: flex;
+  align-items: center;
+  z-index: 100;
+}
+
+.header-left {
+  width: var(--sidebar-width);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin: 0 var(--gap);
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: default;
+}
+
+.header-right {
+  flex: 1;
+  height: 100%;
+}
+
+/* 主内容区域（Sidebar + Main） */
+.main-wrapper {
+  display: flex;
+  margin-top: var(--header-height);
+  min-height: calc(100vh - var(--header-height));
+  padding: var(--gap);
+}
+
+/* Sidebar 样式 */
+.sidebar {
+  position: fixed;
+  top: calc(var(--header-height) + var(--gap));
+  left: var(--gap);
+  width: var(--sidebar-width);
+  max-height: calc(100vh - var(--header-height) - var(--gap) * 2);
+  background-color: var(--bg);
+  border-radius: 8px;
+  overflow-y: auto;
+}
+.sidebar-inner {
+  padding: 16px;
+}
+
+/* Main Content 样式 */
+.main-content {
+  flex: 1;
+  margin-left: calc(var(--sidebar-width) + var(--gap) * 2);
+  margin-right: var(--gap);
+}
