@@ -12,7 +12,14 @@ import './styles/dialog.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider
+      locale={zhCN}
+      theme={{
+        token: {
+          colorPrimary: '#ff6b35',
+        },
+      }}
+    >
       <Provider store={store}>
         <BrowserRouter>
           <App />
