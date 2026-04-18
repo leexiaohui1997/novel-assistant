@@ -15,4 +15,10 @@ export interface MenuItem {
 /**
  * 默认菜单配置
  */
-export const DEFAULT_MENU_ITEMS: MenuItem[] = []
+export const DEFAULT_MENU_ITEMS: MenuItem[] = [
+  {
+    key: 'novels',
+    label: '作品管理',
+    path: '/novels',
+  },
+]

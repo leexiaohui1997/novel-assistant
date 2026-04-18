@@ -74,6 +74,5 @@
 /* Main Content 样式 */
 .main-content {
   flex: 1;
-  margin-left: calc(var(--sidebar-width) + var(--gap) * 2);
-  margin-right: var(--gap);
+  margin-left: calc(var(--sidebar-width) + var(--gap));
 }

@@ -1,0 +1,32 @@
+.ant-modal {
+  top: 0 !important;
+  margin: 0 !important;
+}
+.ant-modal-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ant-modal-container {
+  padding: 0 !important;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+.ant-modal-header {
+  --ant-modal-header-padding: 16px 24px;
+  --ant-modal-header-border-bottom: 1px solid #eeeeee;
+  --ant-modal-header-margin-bottom: 0;
+}
+.ant-modal-footer {
+  --ant-modal-footer-border-top: 1px solid #eeeeee;
+  --ant-modal-footer-padding: 16px 24px;
+  --ant-modal-footer-margin-top: 0;
+}
+.ant-modal-body {
+  flex: 1;
+  overflow: auto;
+}
+.ant-modal-body > *:first-child {
+  padding: 16px 24px;
+}

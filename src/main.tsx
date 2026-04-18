@@ -8,15 +8,16 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { store } from './store'
 import './styles/global.css'
+import './styles/dialog.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <BrowserRouter>
-        <ConfigProvider locale={zhCN}>
+    <ConfigProvider locale={zhCN}>
+      <Provider store={store}>
+        <BrowserRouter>
           <App />
-        </ConfigProvider>
-      </BrowserRouter>
-    </Provider>
+        </BrowserRouter>
+      </Provider>
+    </ConfigProvider>
   </React.StrictMode>,
 )

@@ -19,6 +19,7 @@
     "type-check": "tsc -b --noEmit"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.1",
     "@reduxjs/toolkit": "^2.0.1",
     "@tauri-apps/api": "^2.0.0",
     "antd": "^6.3.5",

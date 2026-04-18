@@ -1,0 +1,16 @@
+.novels-page {
+  padding: 24px;
+  border-radius: 8px;
+  background-color: var(--white);
+}
+
+.novels-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.novels-content {
+  min-height: 400px;
+}
