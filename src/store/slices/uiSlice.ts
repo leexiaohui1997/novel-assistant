@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
+import { MenuItem, DEFAULT_MENU_ITEMS } from '@/config'
+
 type UITheme = 'light' | 'dark'
 
 /**
@@ -13,12 +15,18 @@ interface UIState {
   sidebarCollapsed: boolean
   /** 当前页面标识 */
   currentPage: string
+  /** 菜单配置数据 */
+  menuItems: MenuItem[]
+  /** 当前激活的菜单项 key */
+  activeMenuKey: string
 }
 
 const initialState: UIState = {
   theme: 'light',
   sidebarCollapsed: false,
   currentPage: 'home',
+  menuItems: DEFAULT_MENU_ITEMS,
+  activeMenuKey: 'home',
 }
 
 const uiSlice = createSlice({
@@ -48,8 +56,25 @@ const uiSlice = createSlice({
     setCurrentPage: (state, action: PayloadAction<string>) => {
       state.currentPage = action.payload
     },
+    /**
+     * 设置菜单配置
+     * @param state - 当前 UI 状态
+     * @param action - 包含菜单配置的 payload
+     */
+    setMenuItems: (state, action: PayloadAction<MenuItem[]>) => {
+      state.menuItems = action.payload
+    },
+    /**
+     * 设置当前激活的菜单项
+     * @param state - 当前 UI 状态
+     * @param action - 包含菜单 key 的 payload
+     */
+    setActiveMenuKey: (state, action: PayloadAction<string>) => {
+      state.activeMenuKey = action.payload
+    },
   },
 })
 
-export const { setTheme, toggleSidebar, setCurrentPage } = uiSlice.actions
+export const { setTheme, toggleSidebar, setCurrentPage, setMenuItems, setActiveMenuKey } =
+  uiSlice.actions
 export default uiSlice.reducer

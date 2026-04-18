@@ -29,7 +29,8 @@ lerna-debug.log*
 .env.*.local
 
 # 编辑器配置
-.lingma/
+.lingma/rules/*
+!.lingma/rules/use-utils.md
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json

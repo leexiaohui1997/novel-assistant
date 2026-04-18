@@ -1,0 +1,61 @@
+# 工具函数索引
+
+本文档列出项目中所有可用的工具函数，供 AI 助手参考使用。
+
+## 数组工具 (array.ts)
+
+### deepFindArr
+
+在嵌套数组结构中深度查找满足条件的第一个元素
+文件：`src/utils/array.ts`
+
+### deepFindArrWithPath
+
+在嵌套数组结构中深度查找，并返回从根到目标元素的完整路径
+文件：`src/utils/array.ts`
+
+---
+
+## 日志工具 (logger.ts)
+
+### logger.debug
+
+输出调试级别日志
+文件：`src/utils/logger.ts`
+
+### logger.info
+
+输出信息级别日志
+文件：`src/utils/logger.ts`
+
+### logger.warn
+
+输出警告级别日志
+文件：`src/utils/logger.ts`
+
+### logger.error
+
+输出错误级别日志
+文件：`src/utils/logger.ts`
+
+---
+
+## 常量定义 (constants.ts)
+
+### APP_NAME
+
+应用名称常量
+文件：`src/utils/constants.ts`
+
+### APP_VERSION
+
+应用版本常量
+文件：`src/utils/constants.ts`
+
+---
+
+**使用说明：**
+
+- 需要导入对应文件才能使用这些函数
+- 所有工具函数都位于 `src/utils/` 目录下
+- 新增工具函数时请同步更新此文档
