@@ -4,13 +4,14 @@
 use tracing_subscriber::{self, EnvFilter};
 
 fn main() {
-    // 加载应用配置
-    let _config = novel_assistant_lib::config::AppConfig::load();
-    
+    // 初始化应用配置
+    novel_assistant_lib::config::env::AppConfig::load();
+
     // 初始化日志系统
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
-    
-    novel_assistant_lib::run()
+
+    // 运行异步主函数
+    tauri::async_runtime::block_on(novel_assistant_lib::run());
 }

@@ -57,6 +57,9 @@
     ],
     "*.{css,json}": [
       "prettier --write"
+    ],
+    "src-tauri/**/*.rs": [
+      "bash -c 'cd src-tauri && cargo fmt'"
     ]
   }
 }

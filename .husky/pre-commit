@@ -5,8 +5,13 @@
 set -e
 
 # 类型检查
-echo "🔍 运行类型检查..."
+echo "🔍 运行 TypeScript 类型检查..."
 pnpm run type-check
+
+# Rust 代码检查
+echo "🦀 运行 Rust 编译检查..."
+cd src-tauri && cargo check --quiet
+cd ..
 
 # 代码检查和格式化
 echo "✨ 运行 lint-staged..."

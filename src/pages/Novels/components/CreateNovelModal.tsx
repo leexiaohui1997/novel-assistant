@@ -1,5 +1,18 @@
-import { Button, Col, Form, Input, Modal, Radio, Row, Select, Space, Typography } from 'antd'
+import {
+  Button,
+  Col,
+  Form,
+  Input,
+  Modal,
+  Radio,
+  Row,
+  Select,
+  Space,
+  Typography,
+  message,
+} from 'antd'
 
+import { createNovel } from '@/services/novelService'
 import { logger } from '@/utils/logger'
 
 const { TextArea } = Input
@@ -8,20 +21,20 @@ const { Text } = Typography
 interface CreateNovelModalProps {
   open: boolean
   onClose: () => void
+  onSuccess?: () => void
 }
 
 interface NovelFormValues {
-  bookName: string
-  targetReader: 'male' | 'female'
-  tags: string[]
+  title: string
+  target_reader: 'male' | 'female'
+  tag_ids: number[]
   description: string
 }
 
-const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose }) => {
+const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose, onSuccess }) => {
   const [form] = Form.useForm<NovelFormValues>()
 
   const handleCancel = () => {
-    form.resetFields()
     onClose()
   }
 
@@ -29,9 +42,21 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose }) =>
     try {
       const values = await form.validateFields()
       logger.debug('创建作品表单数据:', values)
-      handleCancel()
+
+      // 调用后端 API
+      await createNovel({
+        title: values.title,
+        target_reader: values.target_reader,
+        tag_ids: values.tag_ids || [],
+        description: values.description,
+      })
+
+      message.success('作品创建成功')
+      onSuccess?.()
+      onClose()
     } catch (error) {
-      logger.error('表单验证失败:', error)
+      logger.error('创建作品失败:', error)
+      message.error('创建作品失败，请重试')
     }
   }
 
@@ -40,6 +65,7 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose }) =>
       title="创建作品"
       open={open}
       onCancel={handleCancel}
+      afterClose={() => form.resetFields()}
       width={800}
       footer={[
         <Button key="cancel" onClick={handleCancel}>
@@ -78,7 +104,7 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose }) =>
             {/* 书本名称 */}
             <Form.Item
               label="书本名称"
-              name="bookName"
+              name="title"
               rules={[
                 { required: true, message: '请输入作品名称' },
                 { max: 15, message: '作品名称不能超过15个字' },
@@ -90,7 +116,7 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose }) =>
             {/* 目标读者 */}
             <Form.Item
               label="目标读者"
-              name="targetReader"
+              name="target_reader"
               rules={[{ required: true, message: '请选择目标读者' }]}
             >
               <Radio.Group>
@@ -102,7 +128,7 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose }) =>
             </Form.Item>
 
             {/* 作品标签 */}
-            <Form.Item label="作品标签" name="tags">
+            <Form.Item label="作品标签" name="tag_ids">
               <Select mode="multiple" placeholder="请选择作品标签" />
             </Form.Item>
 
