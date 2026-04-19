@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod config;
 pub mod database;
+pub mod logging;
 
 use commands::novel_commands::{create_novel, get_novels};
 use database::pool::init_pool;
