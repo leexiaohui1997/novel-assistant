@@ -16,14 +16,6 @@ pub struct Novel {
     pub updated_at: DateTime<Utc>,
 }
 
-/// 标签实体模型
-/// 对应数据库中的 tags 表，存储系统内所有的作品标签
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Tag {
-    pub id: i64,
-    pub name: String,
-}
-
 /// 创建小说请求参数
 /// 用于接收前端创建新小说时提交的表单数据
 #[derive(Debug, Clone, Serialize, Deserialize)]

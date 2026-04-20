@@ -1,18 +1,9 @@
-import {
-  Button,
-  Col,
-  Form,
-  Input,
-  Modal,
-  Radio,
-  Row,
-  Select,
-  Space,
-  Typography,
-  message,
-} from 'antd'
+import { Button, Col, Form, Input, Modal, Radio, Row, Space, Typography, message } from 'antd'
+
+import TagSelector from './TagSelector'
 
 import { createNovel } from '@/services/novelService'
+import { type TargetAudience } from '@/services/tagService'
 import { logger } from '@/utils/logger'
 
 const { TextArea } = Input
@@ -26,7 +17,7 @@ interface CreateNovelModalProps {
 
 interface NovelFormValues {
   title: string
-  target_reader: 'male' | 'female'
+  target_reader: Exclude<TargetAudience, 'both'>
   tag_ids: number[]
   description: string
 }
@@ -76,12 +67,18 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose, onSu
         </Button>,
       ]}
     >
-      <Form form={form} layout="horizontal" labelCol={{ flex: '100px' }} wrapperCol={{ flex: 1 }}>
+      <Form
+        form={form}
+        layout="horizontal"
+        labelCol={{ flex: '100px' }}
+        wrapperCol={{ flex: 1 }}
+        classNames={{ content: 'w-0' }}
+      >
         <Row>
           <Col flex="120px" style={{ marginRight: '8px' }}>
             {/* 封面占位 */}
             <Form.Item label={null} colon={false}>
-              <Space direction="vertical" align="center">
+              <Space orientation="vertical" align="center">
                 <div
                   style={{
                     width: 120,
@@ -100,7 +97,7 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose, onSu
             </Form.Item>
           </Col>
 
-          <Col flex={1}>
+          <Col flex={1} className="w-0">
             {/* 书本名称 */}
             <Form.Item
               label="书本名称"
@@ -128,8 +125,17 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose, onSu
             </Form.Item>
 
             {/* 作品标签 */}
-            <Form.Item label="作品标签" name="tag_ids">
-              <Select mode="multiple" placeholder="请选择作品标签" />
+            <Form.Item
+              noStyle
+              shouldUpdate={(prevValues, currentValues) =>
+                prevValues.target_reader !== currentValues.target_reader
+              }
+            >
+              {() => (
+                <Form.Item label="作品标签" name="tag_ids" shouldUpdate>
+                  <TagSelector targetAudience={form.getFieldValue('target_reader')} />
+                </Form.Item>
+              )}
             </Form.Item>
 
             {/* 作品简介 */}

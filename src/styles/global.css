@@ -1,6 +1,15 @@
+/* Tailwind CSS 导入 */
+@import 'tailwindcss';
+
+@theme {
+  --spacing: 4px;
+
+  --color-brand: #ff6b35;
+}
+
 :root {
   /* 主色调变量 */
-  --primary-color: #ff6b35;
+  --primary-color: var(--color-brand);
 
   /* 文字颜色变量 */
   --text-color: #333333;
@@ -56,4 +65,8 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover-bg);
+}
+
+@utility text-cut {
+  @apply whitespace-nowrap overflow-hidden text-ellipsis;
 }

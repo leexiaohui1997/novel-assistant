@@ -26,6 +26,8 @@
 .ant-modal-body {
   flex: 1;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 .ant-modal-body > *:first-child {
   padding: 16px 24px;
