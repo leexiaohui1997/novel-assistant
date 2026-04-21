@@ -43,5 +43,11 @@
   "eslint.enable": true,
 
   // 显示 ESLint 状态栏图标
-  "eslint.showStatus": true
+  "eslint.showStatus": true,
+
+  // Tailwind CSS IntelliSense 配置
+  "tailwindCSS.experimental.classRegex": [
+    "classNames\\s*=\\s*\\{[^}]*\\}",
+    "[\"'`]([^\"'`]*)[\"'`]"
+  ]
 }

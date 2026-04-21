@@ -13,7 +13,7 @@ import './styles/dialog.css'
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ConfigProvider
-      locale={zhCN}
+      locale={zhCN.default}
       theme={{
         token: {
           colorPrimary: '#ff6b35',

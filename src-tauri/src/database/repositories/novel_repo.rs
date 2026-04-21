@@ -5,11 +5,16 @@ use uuid::Uuid;
 
 use crate::database::error::DbError;
 use crate::database::models::novel::{NewNovel, Novel};
+use crate::utils::pagination::{query_with_pagination, PaginatedResult, PaginationParams};
 
 #[async_trait]
 pub trait NovelRepository {
     async fn create(&self, novel: &NewNovel) -> Result<Novel, DbError>;
     async fn find_all(&self) -> Result<Vec<Novel>, DbError>;
+    async fn find_with_pagination(
+        &self,
+        params: &PaginationParams,
+    ) -> Result<PaginatedResult<Novel>, DbError>;
 }
 
 pub struct SqliteNovelRepository {
@@ -75,5 +80,21 @@ impl NovelRepository for SqliteNovelRepository {
             .await?;
 
         Ok(novels)
+    }
+
+    /// 分页查询小说列表
+    ///
+    /// 使用通用分页工具函数，按创建时间倒序排列。
+    async fn find_with_pagination(
+        &self,
+        params: &PaginationParams,
+    ) -> Result<PaginatedResult<Novel>, DbError> {
+        query_with_pagination::<Novel>(
+            &self.pool,
+            params,
+            "SELECT COUNT(*) FROM novels",
+            "SELECT * FROM novels ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        )
+        .await
     }
 }

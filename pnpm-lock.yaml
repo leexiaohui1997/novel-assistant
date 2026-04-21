@@ -18,7 +18,7 @@ importers:
         specifier: ^2.0.0
         version: 2.10.1
       antd:
-        specifier: ^6.3.5
+        specifier: ^6.3.6
         version: 6.3.6(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       loglevel:
         specifier: ^1.9.1

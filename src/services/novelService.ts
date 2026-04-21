@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 
+import { PaginatedResult } from '@/types/common'
 import { logger } from '@/utils/logger'
 
 export interface Tag {
@@ -44,7 +45,7 @@ export async function createNovel(params: CreateNovelParams): Promise<Novel> {
 }
 
 /**
- * 获取所有小说
+ * 获取所有小说（旧接口，保留兼容）
  */
 export async function getNovels(): Promise<Novel[]> {
   try {
@@ -56,6 +57,29 @@ export async function getNovels(): Promise<Novel[]> {
     return result
   } catch (error) {
     logger.error('获取小说列表失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 分页获取小说列表
+ */
+export async function getNovelsWithPagination(
+  page: number,
+  pageSize: number,
+): Promise<PaginatedResult<Novel>> {
+  try {
+    logger.debug('调用分页获取小说列表 API:', { page, pageSize })
+
+    const result = await invoke<PaginatedResult<Novel>>('get_novels_with_pagination', {
+      page,
+      pageSize,
+    })
+
+    logger.debug('获取到小说列表:', result.data.length, '条，总数:', result.total)
+    return result
+  } catch (error) {
+    logger.error('分页获取小说列表失败:', error)
     throw error
   }
 }

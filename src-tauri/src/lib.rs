@@ -7,7 +7,7 @@ pub mod utils;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use commands::novel_commands::{create_novel, get_novels};
+use commands::novel_commands::{create_novel, get_novels, get_novels_with_pagination};
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
@@ -48,6 +48,7 @@ pub async fn run() {
         .invoke_handler(tauri::generate_handler![
             create_novel,
             get_novels,
+            get_novels_with_pagination,
             get_tags_by_audience,
             get_tags_by_ids
         ])
