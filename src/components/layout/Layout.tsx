@@ -15,11 +15,12 @@ const Layout: React.FC = () => {
   const currentMatch = matches[matches.length - 1]
   const handle = currentMatch?.handle as RouteHandle | undefined
   const hideSidebar = handle?.hideSidebar ?? false
+  const layoutClassNames = handle?.layoutClassNames ?? {}
 
   return (
     <div className={`layout-container${hideSidebar ? ' layout-container--no-sidebar' : ''}`}>
       <Header />
-      <div className="main-wrapper">
+      <div className={`main-wrapper ${layoutClassNames.wrapper}`}>
         {!hideSidebar && <Sidebar />}
         <main className="main-content">
           <Suspense fallback={<PageLoading />}>

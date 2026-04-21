@@ -16,6 +16,10 @@ export interface RouteHandle {
   requiresAuth?: boolean
   /** 是否隐藏侧边栏 */
   hideSidebar?: boolean
+  /** 布局类名 */
+  layoutClassNames?: {
+    wrapper?: string
+  }
 }
 
 /**
@@ -53,6 +57,9 @@ export const ROUTES_CONFIG: RouteObject[] = [
         handle: {
           title: '创作详情',
           hideSidebar: true,
+          layoutClassNames: {
+            wrapper: 'p-0!',
+          },
         } satisfies RouteHandle,
       },
     ],

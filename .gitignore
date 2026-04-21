@@ -40,6 +40,7 @@ lerna-debug.log*
 *.sw?
 
 # Tauri 相关
+src-tauri/.cargo/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/.env
