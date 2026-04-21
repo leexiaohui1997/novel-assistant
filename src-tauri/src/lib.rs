@@ -7,17 +7,20 @@ pub mod utils;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
 use commands::novel_commands::{create_novel, get_novels, get_novels_with_pagination};
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
-    NovelRepository, SqliteNovelRepository, SqliteTagRepository, TagRepository,
+    CreationStateRepository, NovelRepository, SqliteCreationStateRepository, SqliteNovelRepository,
+    SqliteTagRepository, TagRepository,
 };
 use tauri::Builder;
 
 pub struct AppState {
     pub novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
+    pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
 }
 
 pub async fn run() {
@@ -36,11 +39,13 @@ pub async fn run() {
     // 创建仓储实例
     let novel_repo = SqliteNovelRepository::new(pool.clone());
     let tag_repo = SqliteTagRepository::new(pool.clone());
+    let creation_state_repo = SqliteCreationStateRepository::new(pool.clone());
 
     // 创建应用状态
     let state = AppState {
         novel_repo: Arc::new(RwLock::new(Box::new(novel_repo))),
         tag_repo: Arc::new(RwLock::new(Box::new(tag_repo))),
+        creation_state_repo: Arc::new(RwLock::new(Box::new(creation_state_repo))),
     };
 
     Builder::default()
@@ -50,7 +55,9 @@ pub async fn run() {
             get_novels,
             get_novels_with_pagination,
             get_tags_by_audience,
-            get_tags_by_ids
+            get_tags_by_ids,
+            get_creation_state,
+            upsert_creation_state
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");
