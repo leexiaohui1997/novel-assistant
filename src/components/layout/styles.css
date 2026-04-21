@@ -76,3 +76,8 @@
   flex: 1;
   margin-left: calc(var(--sidebar-width) + var(--gap));
 }
+
+/* 无侧边栏时 */
+.layout-container--no-sidebar .main-content {
+  margin-left: 0;
+}

@@ -1,5 +1,6 @@
 import { Button, Divider, Space } from 'antd'
 import { Fragment } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import type { Novel } from '@/services/novelService'
 
@@ -12,6 +13,8 @@ interface NovelItemProps {
  * 用于展示单个小说的基本信息
  */
 const NovelItem: React.FC<NovelItemProps> = ({ novel }) => {
+  const navigate = useNavigate()
+
   return (
     <div className="p-4! bg-gray-50 rounded-md">
       <div className="flex gap-4">
@@ -37,7 +40,11 @@ const NovelItem: React.FC<NovelItemProps> = ({ novel }) => {
             </Space>
 
             <Space>
-              <Button type="primary" shape="round">
+              <Button
+                type="primary"
+                shape="round"
+                onClick={() => navigate(`/creation/${novel.id}`)}
+              >
                 开始创作
               </Button>
             </Space>
