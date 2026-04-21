@@ -15,21 +15,6 @@ const { Title } = Typography
 const Novels: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  /**
-   * 获取小说列表数据（适配 List 组件接口）
-   */
-  const fetchNovelList = async (page: number, pageSize: number) => {
-    try {
-      // 调用后端分页接口
-      return getNovelsWithPagination(page, pageSize)
-    } catch {
-      return {
-        data: [],
-        total: 0,
-      }
-    }
-  }
-
   const handleCreate = () => setIsModalOpen(true)
 
   const handleModalClose = () => setIsModalOpen(false)
@@ -52,7 +37,7 @@ const Novels: React.FC = () => {
 
       <div className="novels-content">
         <List<Novel>
-          fetchList={fetchNovelList}
+          fetchList={getNovelsWithPagination}
           renderItem={(novel) => <NovelItem novel={novel} />}
           pageSize={10}
           classNames={{

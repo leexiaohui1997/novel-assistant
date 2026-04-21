@@ -175,7 +175,9 @@ const List = <T,>({
 
       <Spin spinning={loading}>
         {data.length === 0 ? (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <div className="p-6!">
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          </div>
         ) : (
           <div className={classNames?.list}>
             {data.map((item, index) => (
