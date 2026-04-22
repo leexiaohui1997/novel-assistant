@@ -5,6 +5,9 @@ pub enum DbError {
     #[error("数据库连接失败: {0}")]
     ConnectionFailed(#[from] sqlx::Error),
 
+    #[error("业务错误: {0}")]
+    Business(String),
+
     #[error("无法获取应用数据目录")]
     DataDirNotFound,
 
