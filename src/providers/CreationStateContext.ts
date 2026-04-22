@@ -2,6 +2,7 @@ import { createContext } from 'react'
 import { UIMatch } from 'react-router-dom'
 
 import { CreationState } from '@/services/creationStateService'
+import { Novel } from '@/services/novelService'
 
 /**
  * 获取指定 key 的状态值
@@ -22,6 +23,10 @@ export interface SetState {
 export interface CreationStateContextType {
   /** 小说 ID */
   novelId: string
+  /** 小说信息 */
+  novelInfo: Novel
+  /** 刷新小说信息（更新后重新拉取） */
+  refreshNovelInfo: () => Promise<void>
   /** 当前状态 */
   state: CreationState
   /** 获取指定 key 的状态值 */

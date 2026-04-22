@@ -28,10 +28,10 @@ export const TAG_TYPE_LABELS: Record<TagType, string> = {
 export interface Tag {
   id: number
   name: string
-  tag_type: TagType
-  target_audience: TargetAudience
+  tagType: TagType
+  targetAudience: TargetAudience
   description?: string
-  created_at: string
+  createdAt: string
 }
 
 /**

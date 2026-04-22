@@ -56,7 +56,7 @@ const CreationDetailContent: React.FC = () => {
       </div>
 
       {/* 内容区域 */}
-      <div className="flex-1 w-0">
+      <div className="flex-1 w-0 overflow-auto">
         <Outlet />
       </div>
     </div>

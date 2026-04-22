@@ -7,6 +7,7 @@ use uuid::Uuid;
 /// 对应数据库中的 creation_states 表
 /// 当前阶段仅存储 novel_id 作为标识，后续可根据需要添加具体状态字段
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct CreationState {
     pub id: i64,
     pub novel_id: Uuid,

@@ -34,6 +34,7 @@ string_enum! {
 /// 标签实体模型
 /// 对应数据库中的 tags 表，存储系统内所有的作品标签
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Tag {
     pub id: i64,
     pub name: String,

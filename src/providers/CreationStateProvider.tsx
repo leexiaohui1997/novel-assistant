@@ -12,6 +12,7 @@ import {
   upsertCreationState,
   type CreationState,
 } from '@/services/creationStateService'
+import { getNovelById, Novel } from '@/services/novelService'
 import { logger } from '@/utils/logger'
 
 /**
@@ -36,22 +37,32 @@ export const CreationStateProvider: React.FC<CreationStateProviderProps> = ({
   const [loading, setLoading] = useState(true)
   const matches = useMatches()
   const currentMatch = useMemo(() => matches[matches.length - 1], [matches])
+  const [novelInfo, setNovelInfo] = useState<Novel>()
 
-  // 初始化状态
+  /**
+   * 刷新小说信息（更新后重新拉取）
+   */
+  const refreshNovelInfo = useCallback(async () => {
+    const record = await getNovelById(novelId, { withTags: true })
+    setNovelInfo(record)
+  }, [novelId])
+
   useEffect(() => {
+    // 初始化状态
     const initState = async () => {
-      try {
-        const record = await getCreationState(novelId)
-        setStateValue(record || getDefaultCreationState())
-      } catch (error) {
-        logger.error('获取创作状态记录失败:', error)
-      } finally {
-        setLoading(false)
-      }
+      const record = await getCreationState(novelId)
+      setStateValue(record || getDefaultCreationState())
     }
 
-    initState()
-  }, [novelId])
+    // 初始化小说信息
+    const initNovelInfo = async () => {
+      await refreshNovelInfo()
+    }
+
+    Promise.all([initState(), initNovelInfo()]).then(() => {
+      setLoading(false)
+    })
+  }, [novelId, refreshNovelInfo])
 
   // 同步状态到数据库（防抖 500ms）
   useEffect(() => {
@@ -98,13 +109,15 @@ export const CreationStateProvider: React.FC<CreationStateProviderProps> = ({
   const contextValue: CreationStateContextType = useMemo(
     () => ({
       novelId,
+      novelInfo: novelInfo as Novel,
+      refreshNovelInfo,
       state,
       getState,
       setState,
       matches,
       currentMatch,
     }),
-    [novelId, state, getState, setState, matches, currentMatch],
+    [novelId, novelInfo, refreshNovelInfo, state, getState, setState, matches, currentMatch],
   )
 
   if (loading) {

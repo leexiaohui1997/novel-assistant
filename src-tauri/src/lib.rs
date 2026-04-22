@@ -8,7 +8,9 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
-use commands::novel_commands::{create_novel, get_novels, get_novels_with_pagination};
+use commands::novel_commands::{
+    create_novel, get_novel_by_id, get_novels, get_novels_with_pagination, update_novel,
+};
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
@@ -52,8 +54,10 @@ pub async fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             create_novel,
+            get_novel_by_id,
             get_novels,
             get_novels_with_pagination,
+            update_novel,
             get_tags_by_audience,
             get_tags_by_ids,
             get_creation_state,
