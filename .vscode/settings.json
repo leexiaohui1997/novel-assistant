@@ -47,7 +47,8 @@
 
   // Tailwind CSS IntelliSense 配置
   "tailwindCSS.experimental.classRegex": [
-    "classNames\\s*=\\s*\\{[^}]*\\}",
-    "[\"'`]([^\"'`]*)[\"'`]"
+    "[cC]lass[nN]ames?\\s*=\\s*\\{?\\s*[\"'`]([^\"'`]*)[\"'`]",
+    "[cC]lass[nN]ames?\\s*:\\s*\\{\\s*[^:]+:\\s*[\"'`]([^\"'`]*)[\"'`]",
+    "[cC]lass[nN]ames?\\s*=\\s*\\{\\s*\\{\\s*[^:]+:\\s*[\"'`]([^\"'`]*)[\"'`]"
   ]
 }
