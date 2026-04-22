@@ -60,16 +60,16 @@ jobs:
         run: |
           mkdir -p release
           if [ "${{ matrix.platform }}" == "windows-latest" ]; then
-            cp src-tauri/target/${{ matrix.target }}/release/novel-assistant.exe release/
+            cp src-tauri/target/${{ matrix.target }}/release/novel-assistant.exe release/novel-assistant-${{ matrix.target }}.exe
           else
-            cp src-tauri/target/${{ matrix.target }}/release/novel-assistant release/
+            cp src-tauri/target/${{ matrix.target }}/release/novel-assistant release/novel-assistant-${{ matrix.target }}
           fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: novel-assistant-${{ matrix.target }}
-          path: release/*
+          path: release/novel-assistant-${{ matrix.target }}*
 
   create-release:
     needs: build-tauri
@@ -85,7 +85,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/**/*
+          files: |
+            artifacts/novel-assistant-aarch64-apple-darwin/*
+            artifacts/novel-assistant-x86_64-apple-darwin/*
+            artifacts/novel-assistant-x86_64-pc-windows-msvc/*
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           token: ${{ secrets.GITHUB_TOKEN }}
