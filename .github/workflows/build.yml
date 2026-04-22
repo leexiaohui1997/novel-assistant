@@ -56,6 +56,7 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Create release assets
+        shell: bash
         run: |
           mkdir -p release
           if [ "${{ matrix.platform }}" == "windows-latest" ]; then
