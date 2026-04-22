@@ -1,9 +1,11 @@
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, useMemo } from 'react'
+import { useMatches } from 'react-router-dom'
 
 import { CreationStateContext } from './CreationStateContext'
 
 import type { CreationStateContextType, GetState, SetState } from './CreationStateContext'
 
+import PageLoading from '@/components/PageLoading'
 import {
   getCreationState,
   getDefaultCreationState,
@@ -31,6 +33,9 @@ export const CreationStateProvider: React.FC<CreationStateProviderProps> = ({
   children,
 }) => {
   const [state, setStateValue] = useState<CreationState>(getDefaultCreationState())
+  const [loading, setLoading] = useState(true)
+  const matches = useMatches()
+  const currentMatch = useMemo(() => matches[matches.length - 1], [matches])
 
   // 初始化状态
   useEffect(() => {
@@ -40,6 +45,8 @@ export const CreationStateProvider: React.FC<CreationStateProviderProps> = ({
         setStateValue(record || getDefaultCreationState())
       } catch (error) {
         logger.error('获取创作状态记录失败:', error)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -88,10 +95,20 @@ export const CreationStateProvider: React.FC<CreationStateProviderProps> = ({
     [],
   )
 
-  const contextValue: CreationStateContextType = {
-    state,
-    getState,
-    setState,
+  const contextValue: CreationStateContextType = useMemo(
+    () => ({
+      novelId,
+      state,
+      getState,
+      setState,
+      matches,
+      currentMatch,
+    }),
+    [novelId, state, getState, setState, matches, currentMatch],
+  )
+
+  if (loading) {
+    return <PageLoading />
   }
 
   return (

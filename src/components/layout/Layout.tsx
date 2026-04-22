@@ -1,19 +1,15 @@
 import { Suspense } from 'react'
-import { Outlet, useMatches } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 
 import Header from './Header'
 import Sidebar from './Sidebar'
 
-import type { RouteHandle } from '@/config'
-
 import PageLoading from '@/components/PageLoading'
-
+import { useRouteMeta } from '@/hooks/useRouteMeta'
 import './styles.css'
 
 const Layout: React.FC = () => {
-  const matches = useMatches()
-  const currentMatch = matches[matches.length - 1]
-  const handle = currentMatch?.handle as RouteHandle | undefined
+  const handle = useRouteMeta()
   const hideSidebar = handle?.hideSidebar ?? false
   const layoutClassNames = handle?.layoutClassNames ?? {}
 

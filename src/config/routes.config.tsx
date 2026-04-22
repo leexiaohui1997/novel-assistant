@@ -61,6 +61,22 @@ export const ROUTES_CONFIG: RouteObject[] = [
             wrapper: 'p-0!',
           },
         } satisfies RouteHandle,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="./basic" replace />,
+          },
+          {
+            id: 'creation-basic',
+            path: 'basic',
+            element: lazyElement(() => import('@/pages/CreationDetail/pages/basic')),
+          },
+          {
+            id: 'creation-article',
+            path: 'article',
+            element: lazyElement(() => import('@/pages/CreationDetail/pages/article')),
+          },
+        ],
       },
     ],
   },
