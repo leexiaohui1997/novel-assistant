@@ -1,0 +1,87 @@
+name: Build Tauri App
+
+on:
+  push:
+    tags: ['release-*']
+  workflow_dispatch:
+
+jobs:
+  build-tauri:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            target: 'aarch64-apple-darwin'
+          - platform: 'macos-latest'
+            target: 'x86_64-apple-darwin'
+          - platform: 'windows-latest'
+            target: 'x86_64-pc-windows-msvc'
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+          cache: 'pnpm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install dependencies (frontend)
+        run: pnpm install
+
+      - name: Install dependencies (backend)
+        working-directory: src-tauri
+        run: cargo fetch
+
+      - name: Build frontend
+        env:
+          VITE_APP_TITLE: 小说创作助手
+        run: pnpm run build
+
+      - name: Build Tauri application
+        working-directory: src-tauri
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Create release assets
+        run: |
+          mkdir -p release
+          if [ "${{ matrix.platform }}" == "windows-latest" ]; then
+            cp src-tauri/target/${{ matrix.target }}/release/novel-assistant.exe release/
+          else
+            cp src-tauri/target/${{ matrix.target }}/release/novel-assistant release/
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: novel-assistant-${{ matrix.target }}
+          path: release/*
+
+  create-release:
+    needs: build-tauri
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
