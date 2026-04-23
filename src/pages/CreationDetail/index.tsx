@@ -44,9 +44,9 @@ const CreationDetailContent: React.FC = () => {
   )
 
   return (
-    <div className="h-full flex">
+    <div className="ml-10!">
       {/* Tab栏 */}
-      <div className="w-10 flex flex-col justify-between bg-neutral-50">
+      <div className="w-10 h-[calc(100vh-56px)] flex flex-col justify-between bg-neutral-50 fixed left-0">
         <div className="py-4! flex items-center justify-center">
           <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate(-1)}></Button>
         </div>
@@ -56,7 +56,7 @@ const CreationDetailContent: React.FC = () => {
       </div>
 
       {/* 内容区域 */}
-      <div className="flex-1 w-0 overflow-auto">
+      <div>
         <Outlet />
       </div>
     </div>

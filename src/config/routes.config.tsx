@@ -58,7 +58,7 @@ export const ROUTES_CONFIG: RouteObject[] = [
           title: '创作详情',
           hideSidebar: true,
           layoutClassNames: {
-            wrapper: 'p-0!',
+            wrapper: 'p-0! overflow-hidden',
           },
         } satisfies RouteHandle,
         children: [

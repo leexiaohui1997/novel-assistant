@@ -1,7 +1,68 @@
-import React from 'react'
+import { Button, Select, Space, message } from 'antd'
+import { useEffect, useMemo, useState } from 'react'
+
+import ChapterTable from './ChapterTable'
+
+import { useCreationState } from '@/hooks/useCreationState'
+import {
+  DEFAULT_VOLUME_SEQUENCE,
+  type Volume,
+  getVolumes,
+  resolveVolumesWithDefault,
+} from '@/services/chapterService'
+import { logger } from '@/utils/logger'
+import { numToCn } from '@/utils/number'
 
 const ChapterManagement: React.FC = () => {
-  return <div></div>
+  const { novelId } = useCreationState()
+  const [messageApi, contextHolder] = message.useMessage()
+
+  const [volumes, setVolumes] = useState<Volume[]>([])
+  const [selectedSequence, setSelectedSequence] = useState<number>(DEFAULT_VOLUME_SEQUENCE)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const list = await getVolumes(novelId)
+        const resolved = resolveVolumesWithDefault(list, novelId)
+        setVolumes(resolved)
+        // 默认选中第一个分卷的 sequence
+        setSelectedSequence(resolved[0].sequence)
+      } catch (e) {
+        logger.error('加载分卷列表失败:', e)
+        messageApi.error('加载分卷列表失败')
+      }
+    }
+    load()
+  }, [novelId, messageApi])
+
+  const options = useMemo(
+    () =>
+      volumes.map((v) => ({
+        value: v.sequence,
+        label: `第${numToCn(v.sequence)}卷：${v.name}`,
+      })),
+    [volumes],
+  )
+
+  return (
+    <>
+      {contextHolder}
+      <div className="flex items-center justify-between mb-4!">
+        <Select
+          className="min-w-60"
+          value={selectedSequence}
+          options={options}
+          onChange={setSelectedSequence}
+        />
+        <Space>
+          <Button>编辑分卷</Button>
+          <Button type="primary">新建章节</Button>
+        </Space>
+      </div>
+      <ChapterTable volumeSequence={selectedSequence} />
+    </>
+  )
 }
 
 export default ChapterManagement

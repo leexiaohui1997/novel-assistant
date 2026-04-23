@@ -8,7 +8,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use commands::chapter_commands::{
-    create_chapter, create_volume, delete_chapter, delete_volume, update_chapter, update_volume,
+    batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
+    get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
 };
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
 use commands::novel_commands::{
@@ -67,9 +68,12 @@ pub async fn run() {
             create_volume,
             update_volume,
             delete_volume,
+            get_volumes,
+            batch_update_volumes,
             create_chapter,
             update_chapter,
             delete_chapter,
+            get_chapters_with_pagination,
             get_tags_by_audience,
             get_tags_by_ids,
             get_creation_state,
