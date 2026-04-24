@@ -70,3 +70,15 @@ body {
 @utility text-cut {
   @apply whitespace-nowrap overflow-hidden text-ellipsis;
 }
+
+@layer components {
+  .show-count-on-focus {
+    .ant-input-show-count-suffix {
+      visibility: hidden;
+    }
+
+    .ant-input:focus + .ant-input-suffix .ant-input-show-count-suffix {
+      visibility: visible;
+    }
+  }
+}

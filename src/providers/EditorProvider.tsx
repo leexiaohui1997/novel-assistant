@@ -1,5 +1,5 @@
 import { HistoryOutlined, LeftOutlined } from '@ant-design/icons'
-import { Button, Modal, Tooltip } from 'antd'
+import { Button, Input, Modal, Tooltip } from 'antd'
 import { useCallback, useMemo, useState } from 'react'
 
 import { EditorContext } from './EditorContext'
@@ -43,7 +43,27 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({ no
       }}
     >
       <div className="flex-1 w-full h-0 max-w-240 mx-auto! overflow-auto p-0!">
-        <div className="min-h-full p-16! pb-21! bg-white rounded-xl">编辑区域（待实现）</div>
+        <div className="min-h-full p-16! pb-21! bg-white rounded-xl flex flex-col">
+          {/* 头部 */}
+          <div className="flex items-center mb-8! gap-6">
+            {/* 标题 */}
+            <Input
+              variant="borderless"
+              placeholder="请输入标题"
+              size="large"
+              maxLength={30}
+              showCount
+              className="show-count-on-focus"
+              classNames={{
+                count: 'text-sm',
+                input: 'text-xl!',
+              }}
+            />
+          </div>
+
+          {/* 正文 */}
+          <div className="flex-1"></div>
+        </div>
       </div>
     </Modal>
   )
