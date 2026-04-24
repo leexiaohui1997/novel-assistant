@@ -7,6 +7,7 @@ import { CREATION_TABS } from './config'
 
 import { useCreationState } from '@/hooks/useCreationState'
 import { CreationStateProvider } from '@/providers/CreationStateProvider'
+import { EditorProvider } from '@/providers/EditorProvider'
 
 interface CreationDetailProps {
   novelId: string
@@ -66,7 +67,9 @@ const CreationDetailContent: React.FC = () => {
 const CreationDetail: React.FC<CreationDetailProps> = ({ novelId }) => {
   return (
     <CreationStateProvider novelId={novelId}>
-      <CreationDetailContent />
+      <EditorProvider>
+        <CreationDetailContent />
+      </EditorProvider>
     </CreationStateProvider>
   )
 }

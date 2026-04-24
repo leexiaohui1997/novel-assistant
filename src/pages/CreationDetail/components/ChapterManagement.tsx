@@ -1,9 +1,10 @@
 import { Button, Select, Space, message } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import ChapterTable from './ChapterTable'
 
 import { useCreationState } from '@/hooks/useCreationState'
+import { useEditor } from '@/hooks/useEditor'
 import {
   DEFAULT_VOLUME_SEQUENCE,
   type Volume,
@@ -14,7 +15,8 @@ import { logger } from '@/utils/logger'
 import { numToCn } from '@/utils/number'
 
 const ChapterManagement: React.FC = () => {
-  const { novelId } = useCreationState()
+  const { novelId, novelInfo } = useCreationState()
+  const editor = useEditor()
   const [messageApi, contextHolder] = message.useMessage()
 
   const [volumes, setVolumes] = useState<Volume[]>([])
@@ -45,6 +47,11 @@ const ChapterManagement: React.FC = () => {
     [volumes],
   )
 
+  /** 新建章节 */
+  const handleCreateChapter = useCallback(() => {
+    editor.open({ novel: novelInfo })
+  }, [editor, novelInfo])
+
   return (
     <>
       {contextHolder}
@@ -57,7 +64,9 @@ const ChapterManagement: React.FC = () => {
         />
         <Space>
           <Button>编辑分卷</Button>
-          <Button type="primary">新建章节</Button>
+          <Button type="primary" onClick={handleCreateChapter}>
+            新建章节
+          </Button>
         </Space>
       </div>
       <ChapterTable volumeSequence={selectedSequence} />
