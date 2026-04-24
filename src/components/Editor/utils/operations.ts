@@ -8,6 +8,7 @@
 import { createParagraph, findParagraphIndex } from './document'
 
 import type { Paragraph } from './document'
+import type { EditorSelection, Point } from './selection'
 
 /** 删除方向 */
 export type DeleteDirection = 'backward' | 'forward'
@@ -124,4 +125,79 @@ export function mergeNodes(doc: Paragraph[], nodeId: string): Paragraph[] {
   const merged = { ...prev, text: prev.text + curr.text }
 
   return [...doc.slice(0, idx - 1), merged, ...doc.slice(idx + 1)]
+}
+
+/** deleteRange 的结果 */
+export interface DeleteRangeResult {
+  doc: Paragraph[]
+  nextSelection: EditorSelection
+}
+
+/**
+ * 删除选区覆盖的文本，返回折叠后的光标位置
+ *
+ * 三种情况：
+ * - collapsed 选区 → 不做任何操作，返回原文档
+ * - 段内选区 → 删除选中部分文本
+ * - 跨段选区 → 首段保留前半 + 末段保留后半，中间段落全部删除
+ *
+ * @param doc - 文档段落数组
+ * @param sel - 编辑器选区
+ * @returns 删除结果（新文档 + 折叠光标），collapsed 时返回 null
+ *
+ * @example
+ * // 段内选区：'你好世界' 选 '好世' → '你界'
+ * deleteRange(doc, { anchor: { nodeId: 'p1', offset: 1 }, focus: { nodeId: 'p1', offset: 3 } })
+ *
+ * // 跨段选区：'你好' + '美丽' + '世界' 选 '好…世' → '你界'
+ * deleteRange(doc, { anchor: { nodeId: 'p1', offset: 1 }, focus: { nodeId: 'p3', offset: 1 } })
+ */
+export function deleteRange(doc: Paragraph[], sel: EditorSelection): DeleteRangeResult | null {
+  const { start, end } = normalizeSelection(doc, sel)
+  if (start.nodeId === end.nodeId && start.offset === end.offset) return null
+
+  const startIdx = findParagraphIndex(doc, start.nodeId)
+  const endIdx = findParagraphIndex(doc, end.nodeId)
+  if (startIdx === -1 || endIdx === -1) return null
+
+  // 段内选区：裁剪文本
+  if (startIdx === endIdx) {
+    const paragraph = doc[startIdx]
+    const newText = paragraph.text.slice(0, start.offset) + paragraph.text.slice(end.offset)
+    return {
+      doc: doc.map((p, i) => (i === startIdx ? { ...p, text: newText } : p)),
+      nextSelection: { anchor: start, focus: start },
+    }
+  }
+
+  // 跨段选区：首段前半 + 末段后半，中间段落删除
+  const head = doc[startIdx].text.slice(0, start.offset)
+  const tail = doc[endIdx].text.slice(end.offset)
+  const merged = { ...doc[startIdx], text: head + tail }
+
+  return {
+    doc: [...doc.slice(0, startIdx), merged, ...doc.slice(endIdx + 1)],
+    nextSelection: { anchor: start, focus: start },
+  }
+}
+
+/**
+ * 规范化选区方向，确保 start ≤ end（文档序）
+ *
+ * 同一段落内比较 offset，跨段落比较段落索引。
+ *
+ * @param doc - 文档段落数组
+ * @param sel - 编辑器选区
+ * @returns 有序的 { start, end }
+ */
+function normalizeSelection(doc: Paragraph[], sel: EditorSelection): { start: Point; end: Point } {
+  const anchorIdx = findParagraphIndex(doc, sel.anchor.nodeId)
+  const focusIdx = findParagraphIndex(doc, sel.focus.nodeId)
+
+  const anchorBefore =
+    anchorIdx < focusIdx || (anchorIdx === focusIdx && sel.anchor.offset <= sel.focus.offset)
+
+  return anchorBefore
+    ? { start: sel.anchor, end: sel.focus }
+    : { start: sel.focus, end: sel.anchor }
 }

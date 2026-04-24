@@ -7,7 +7,8 @@
  */
 
 import { findParagraphIndex } from './document'
-import { deleteText, insertText, mergeNodes, splitNode } from './operations'
+import { deleteRange, deleteText, insertText, mergeNodes, splitNode } from './operations'
+import { isCollapsed } from './selection'
 
 import type { Paragraph } from './document'
 import type { EditorSelection } from './selection'
@@ -22,9 +23,10 @@ export interface InputResult {
  * 根据 inputType 分发到对应操作函数
  *
  * 每个 handler 返回新文档和下一次光标位置，或 null 表示不处理。
+ * 非 collapsed 选区时先折叠（删除选中内容），再执行对应操作。
  *
  * @param doc - 当前文档
- * @param sel - 当前光标位置
+ * @param sel - 当前选区
  * @param inputType - InputEvent.inputType
  * @param data - InputEvent.data（可为 null）
  * @returns 操作结果，null 表示不处理
@@ -36,44 +38,84 @@ export function dispatchInput(
   data: string | null,
 ): InputResult | null {
   const handlers: Record<string, () => InputResult | null> = {
-    insertText: () => ({
-      doc: insertText(doc, sel.nodeId, sel.offset, data ?? ''),
-      nextSelection: { nodeId: sel.nodeId, offset: sel.offset + (data?.length ?? 0) },
-    }),
+    insertText: () => handleInsertText(doc, sel, data ?? ''),
 
     insertParagraph: () => handleSplit(doc, sel),
     insertLineBreak: () => handleSplit(doc, sel),
 
     deleteContentBackward: () => handleDeleteBackward(doc, sel),
-    deleteContentForward: () => ({
-      doc: deleteText(doc, sel.nodeId, sel.offset, 'forward'),
-      nextSelection: sel,
-    }),
+    deleteContentForward: () => handleDeleteForward(doc, sel),
+    deleteContent: () => handleDeleteContent(doc, sel),
   }
 
   return handlers[inputType]?.() ?? null
 }
 
-/** 拆分段落并定位到新段首 */
-function handleSplit(doc: Paragraph[], sel: EditorSelection): InputResult {
-  const newDoc = splitNode(doc, sel.nodeId, sel.offset)
-  const idx = findParagraphIndex(doc, sel.nodeId)
-  return { doc: newDoc, nextSelection: { nodeId: newDoc[idx + 1].id, offset: 0 } }
+/** 插入文本：非 collapsed 先折叠，再在光标处插入 */
+function handleInsertText(doc: Paragraph[], sel: EditorSelection, text: string): InputResult {
+  if (!isCollapsed(sel)) {
+    const result = deleteRange(doc, sel)
+    if (result) return handleInsertText(result.doc, result.nextSelection, text)
+  }
+
+  const { nodeId, offset } = sel.anchor
+  return {
+    doc: insertText(doc, nodeId, offset, text),
+    nextSelection: {
+      anchor: { nodeId, offset: offset + text.length },
+      focus: { nodeId, offset: offset + text.length },
+    },
+  }
 }
 
-/** Backspace：段首合并上一段，否则删除前一个字符 */
+/** 拆分段落并定位到新段首 */
+function handleSplit(doc: Paragraph[], sel: EditorSelection): InputResult {
+  if (!isCollapsed(sel)) {
+    const result = deleteRange(doc, sel)
+    if (result) return handleSplit(result.doc, result.nextSelection)
+  }
+
+  const { nodeId, offset } = sel.anchor
+  const newDoc = splitNode(doc, nodeId, offset)
+  const idx = findParagraphIndex(doc, nodeId)
+  const nextNodeId = newDoc[idx + 1].id
+  const nextPoint = { nodeId: nextNodeId, offset: 0 }
+  return { doc: newDoc, nextSelection: { anchor: nextPoint, focus: nextPoint } }
+}
+
+/** Backspace：非 collapsed 折叠，段首合并上一段，否则删除前一个字符 */
 function handleDeleteBackward(doc: Paragraph[], sel: EditorSelection): InputResult | null {
-  if (sel.offset === 0) {
-    const newDoc = mergeNodes(doc, sel.nodeId)
+  if (!isCollapsed(sel)) return handleDeleteContent(doc, sel)
+
+  const { nodeId, offset } = sel.anchor
+  if (offset === 0) {
+    const newDoc = mergeNodes(doc, nodeId)
     if (newDoc === doc) return null // 第一段，无法合并
-    const idx = findParagraphIndex(doc, sel.nodeId)
-    return {
-      doc: newDoc,
-      nextSelection: { nodeId: newDoc[idx - 1].id, offset: doc[idx - 1].text.length },
-    }
+    const idx = findParagraphIndex(doc, nodeId)
+    const prevPoint = { nodeId: newDoc[idx - 1].id, offset: doc[idx - 1].text.length }
+    return { doc: newDoc, nextSelection: { anchor: prevPoint, focus: prevPoint } }
   }
+
+  const prevPoint = { nodeId, offset: offset - 1 }
   return {
-    doc: deleteText(doc, sel.nodeId, sel.offset, 'backward'),
-    nextSelection: { nodeId: sel.nodeId, offset: sel.offset - 1 },
+    doc: deleteText(doc, nodeId, offset, 'backward'),
+    nextSelection: { anchor: prevPoint, focus: prevPoint },
   }
+}
+
+/** Delete：非 collapsed 折叠，否则删除后一个字符 */
+function handleDeleteForward(doc: Paragraph[], sel: EditorSelection): InputResult | null {
+  if (!isCollapsed(sel)) return handleDeleteContent(doc, sel)
+
+  const { nodeId, offset } = sel.anchor
+  const point = { nodeId, offset }
+  return {
+    doc: deleteText(doc, nodeId, offset, 'forward'),
+    nextSelection: { anchor: point, focus: point },
+  }
+}
+
+/** 选区删除（deleteContent inputType，或 Backspace/Delete 在有选区时） */
+function handleDeleteContent(doc: Paragraph[], sel: EditorSelection): InputResult | null {
+  return deleteRange(doc, sel)
 }
