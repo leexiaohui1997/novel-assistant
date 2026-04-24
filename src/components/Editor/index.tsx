@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+import { useShortcuts } from './hooks/useShortcuts'
 import { dispatchInput } from './utils/dispatch'
 import { parseDocument } from './utils/document'
+import { createHistory, pushUndo } from './utils/history'
 import { getSelectionFromDOM, setDOMSelection } from './utils/selection'
 
-import type { Paragraph } from './utils/document'
+import type { HistoryState } from './utils/history'
 import type { EditorSelection } from './utils/selection'
 
-import { getShortcutText } from '@/utils/keyboard'
 import { logger } from '@/utils/logger'
 
 interface EditorProps {
@@ -17,8 +18,19 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({ value = '', className = '' }) => {
   const editorRef = useRef<HTMLDivElement>(null)
-  const [document, setDocument] = useState<Paragraph[]>(() => parseDocument(value))
+  const [history, setHistory] = useState<HistoryState>(() => {
+    const doc = parseDocument(value)
+    return createHistory({
+      doc,
+      selection: {
+        anchor: { nodeId: doc[0].id, offset: 0 },
+        focus: { nodeId: doc[0].id, offset: 0 },
+      },
+    })
+  })
   const pendingSelectionRef = useRef<EditorSelection | null>(null)
+
+  const document = history.present.doc
 
   // React 渲染后恢复光标
   useEffect(() => {
@@ -42,7 +54,7 @@ const Editor: React.FC<EditorProps> = ({ value = '', className = '' }) => {
       const result = dispatchInput(document, sel, inputType, data)
 
       if (result) {
-        setDocument(result.doc)
+        setHistory((prev) => pushUndo(prev, { doc: result.doc, selection: result.nextSelection }))
         pendingSelectionRef.current = result.nextSelection
       } else {
         logger.debug('不支持的 inputType:', inputType)
@@ -53,9 +65,7 @@ const Editor: React.FC<EditorProps> = ({ value = '', className = '' }) => {
     return () => el.removeEventListener('beforeinput', handler)
   }, [document])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    logger.debug(getShortcutText(e))
-  }
+  const handleKeyDown = useShortcuts({ setHistory, pendingSelectionRef })
 
   const renderedContent = useMemo(() => {
     return document.map((p) => (
