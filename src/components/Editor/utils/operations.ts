@@ -190,7 +190,10 @@ export function deleteRange(doc: Paragraph[], sel: EditorSelection): DeleteRange
  * @param sel - 编辑器选区
  * @returns 有序的 { start, end }
  */
-function normalizeSelection(doc: Paragraph[], sel: EditorSelection): { start: Point; end: Point } {
+export function normalizeSelection(
+  doc: Paragraph[],
+  sel: EditorSelection,
+): { start: Point; end: Point } {
   const anchorIdx = findParagraphIndex(doc, sel.anchor.nodeId)
   const focusIdx = findParagraphIndex(doc, sel.focus.nodeId)
 

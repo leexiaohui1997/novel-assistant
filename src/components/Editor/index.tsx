@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+import { useClipboard } from './hooks/useClipboard'
 import { useShortcuts } from './hooks/useShortcuts'
 import { dispatchInput } from './utils/dispatch'
 import { parseDocument } from './utils/document'
@@ -65,11 +66,13 @@ const Editor: React.FC<EditorProps> = ({ value = '', className = '' }) => {
     return () => el.removeEventListener('beforeinput', handler)
   }, [document])
 
+  useClipboard({ editorRef, document, setHistory, pendingSelectionRef })
+
   const handleKeyDown = useShortcuts({ setHistory, pendingSelectionRef })
 
   const renderedContent = useMemo(() => {
     return document.map((p) => (
-      <p key={p.id} data-node-id={p.id}>
+      <p key={p.id} className="indent-[2em]" data-node-id={p.id}>
         {p.text || <br />}
       </p>
     ))
@@ -78,7 +81,7 @@ const Editor: React.FC<EditorProps> = ({ value = '', className = '' }) => {
   return (
     <div
       ref={editorRef}
-      className={`${className} outline-none`}
+      className={`${className} outline-none p-2!`}
       contentEditable
       suppressContentEditableWarning
       onKeyDown={handleKeyDown}
