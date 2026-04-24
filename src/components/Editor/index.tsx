@@ -1,4 +1,11 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+
+import { dispatchInput } from './utils/dispatch'
+import { parseDocument } from './utils/document'
+import { getSelectionFromDOM, setDOMSelection } from './utils/selection'
+
+import type { Paragraph } from './utils/document'
+import type { EditorSelection } from './utils/selection'
 
 import { getShortcutText } from '@/utils/keyboard'
 import { logger } from '@/utils/logger'
@@ -8,30 +15,62 @@ interface EditorProps {
   className?: string
 }
 
-const Editor: React.FC<EditorProps> = ({ value = '222', className = '' }) => {
-  const [innerValue] = useState(value)
-  const contentParts = useMemo(() => innerValue.split('\n'), [innerValue])
+const Editor: React.FC<EditorProps> = ({ value = '', className = '' }) => {
+  const editorRef = useRef<HTMLDivElement>(null)
+  const [document, setDocument] = useState<Paragraph[]>(() => parseDocument(value))
+  const pendingSelectionRef = useRef<EditorSelection | null>(null)
 
-  const handleBeforeInput = useCallback((e: React.InputEvent) => {
-    e.preventDefault()
-    const selection = window.getSelection()
-    console.log({ e, selection })
-  }, [])
+  // React 渲染后恢复光标
+  useEffect(() => {
+    if (pendingSelectionRef.current && editorRef.current) {
+      setDOMSelection(editorRef.current, pendingSelectionRef.current)
+      pendingSelectionRef.current = null
+    }
+  })
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  // 监听原生 beforeinput 事件（React 合成事件丢失 inputType）
+  useEffect(() => {
+    const el = editorRef.current
+    if (!el) return
+
+    const handler = (e: InputEvent) => {
+      e.preventDefault()
+      const sel = getSelectionFromDOM(el)
+      if (!sel) return
+
+      const { inputType, data } = e
+      const result = dispatchInput(document, sel, inputType, data)
+
+      if (result) {
+        setDocument(result.doc)
+        pendingSelectionRef.current = result.nextSelection
+      } else {
+        logger.debug('不支持的 inputType:', inputType)
+      }
+    }
+
+    el.addEventListener('beforeinput', handler)
+    return () => el.removeEventListener('beforeinput', handler)
+  }, [document])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     logger.debug(getShortcutText(e))
-  }, [])
+  }
 
   const renderedContent = useMemo(() => {
-    return contentParts.map((part, index) => <p key={index}>{part}</p>)
-  }, [contentParts])
+    return document.map((p) => (
+      <p key={p.id} data-node-id={p.id}>
+        {p.text || <br />}
+      </p>
+    ))
+  }, [document])
 
   return (
     <div
+      ref={editorRef}
       className={`${className} outline-none`}
       contentEditable
       suppressContentEditableWarning
-      onBeforeInput={handleBeforeInput}
       onKeyDown={handleKeyDown}
     >
       {renderedContent}
