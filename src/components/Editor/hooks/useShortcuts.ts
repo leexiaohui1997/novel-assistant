@@ -6,7 +6,6 @@ import type { HistoryState } from '../utils/history'
 import type { EditorSelection } from '../utils/selection'
 
 import { getShortcutText } from '@/utils/keyboard'
-import { logger } from '@/utils/logger'
 
 interface UseShortcutsOptions {
   setHistory: React.Dispatch<React.SetStateAction<HistoryState>>
@@ -57,7 +56,6 @@ export function useShortcuts({ setHistory, pendingSelectionRef }: UseShortcutsOp
         action()
         return
       }
-      logger.debug(shortcut)
     },
     [shortcutMap],
   )

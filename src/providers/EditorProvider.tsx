@@ -64,7 +64,7 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({ no
           </div>
 
           {/* 正文 */}
-          <Editor className="flex-1" />
+          <Editor className="flex-1" placeholder="请输入正文" />
         </div>
       </div>
     </Modal>
