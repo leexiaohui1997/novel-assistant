@@ -91,7 +91,7 @@ function syncTags() {
     .filter(Boolean)
 
   // 获取本地 tags
-  const localTags = exec("git tag --list 'release-v*'", { ignoreError: true })
+  const localTags = exec('git tag --list "release-v*"', { ignoreError: true })
     .split('\n')
     .filter(Boolean)
 
@@ -140,7 +140,7 @@ function parseVersion(tag) {
 function findMaxVersion() {
   info('查找最大版本号...')
 
-  const tags = exec("git tag --list 'release-v*'", { ignoreError: true })
+  const tags = exec('git tag --list "release-v*"', { ignoreError: true })
     .split('\n')
     .filter(Boolean)
 
