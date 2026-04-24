@@ -6,6 +6,8 @@ import { EditorContext } from './EditorContext'
 
 import type { EditorContextType, EditorOpenOptions } from './EditorContext'
 
+import Editor from '@/components/Editor'
+
 /** 编辑器 Provider 属性 */
 interface EditorProviderProps {
   children: React.ReactNode
@@ -62,7 +64,7 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({ no
           </div>
 
           {/* 正文 */}
-          <div className="flex-1"></div>
+          <Editor className="flex-1" />
         </div>
       </div>
     </Modal>

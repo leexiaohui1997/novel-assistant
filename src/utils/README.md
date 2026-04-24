@@ -63,6 +63,15 @@
 
 ---
 
+## 键盘工具 (keyboard.ts)
+
+### getShortcutText
+
+从键盘事件中提取快捷键组合文本（如 "Ctrl + C"）
+文件：`src/utils/keyboard.ts`
+
+---
+
 **使用说明：**
 
 - 需要导入对应文件才能使用这些函数
