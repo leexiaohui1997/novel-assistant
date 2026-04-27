@@ -1,13 +1,16 @@
+import { Card } from 'antd'
 import React from 'react'
 
 import BasicInfoCard from '../components/BasicInfoCard'
-import ChapterCard from '../components/ChapterCard'
+import ChapterManagement from '../components/ChapterManagement'
 
 const CreationDetailBasic: React.FC = () => {
   return (
     <div className="p-6! flex flex-col gap-4">
       <BasicInfoCard />
-      <ChapterCard />
+      <Card title="章节管理">
+        <ChapterManagement />
+      </Card>
     </div>
   )
 }

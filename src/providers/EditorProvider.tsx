@@ -9,12 +9,30 @@ import type { EditorContextType, EditorOpenOptions } from './EditorContext'
 import Editor from '@/components/Editor'
 import {
   DEFAULT_VOLUME_SEQUENCE,
+  getChaptersWithPagination,
   getVolumes,
   resolveVolumesWithDefault,
   type Volume,
 } from '@/services/chapterService'
 import { logger } from '@/utils/logger'
 import { numToCn } from '@/utils/number'
+
+/**
+ * 查询指定分卷下「下一章」的序号（末章 sequence + 1，无章节则为 1）
+ *
+ * @param novelId - 小说 ID
+ * @param volumeId - 分卷 ID
+ * @returns 下一章的 sequence
+ */
+const fetchNextChapterSequence = async (novelId: string, volumeId: number): Promise<number> => {
+  const result = await getChaptersWithPagination(novelId, 1, 1, {
+    volumeId,
+    sortField: 'sequence',
+    sortOrder: 'desc',
+  })
+  const last = result.data[0]
+  return last ? last.sequence + 1 : 1
+}
 
 /** 编辑器 Provider 属性 */
 interface EditorProviderProps {
@@ -49,9 +67,20 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
   const [selectedSequence, setSelectedSequence] = useState<number>(
     sequence ?? DEFAULT_VOLUME_SEQUENCE,
   )
+  // 新建模式下异步查询得到的下一章序号
+  const [nextSequence, setNextSequence] = useState<number | null>(null)
 
   // 编辑态：禁用选择器（存在 chapter 则视为编辑已有章节）
   const isEdit = Boolean(chapter)
+
+  // 当前选中分卷对应的分卷 ID（volumeId）
+  const selectedVolumeId = useMemo(
+    () => volumes.find((v) => v.sequence === selectedSequence)?.id,
+    [volumes, selectedSequence],
+  )
+
+  // 最终展示的章节序号：编辑态回显 chapter.sequence，新建态使用异步查询结果
+  const chapterSequence = isEdit ? (chapter?.sequence ?? null) : nextSequence
 
   // 加载分卷列表
   useEffect(() => {
@@ -73,6 +102,27 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
     }
   }, [novel.id, sequence])
 
+  // 新建模式下：基于选中分卷查询末章 + 1；编辑模式由派生值处理，无需此副作用
+  useEffect(() => {
+    if (isEdit || !selectedVolumeId) {
+      return
+    }
+    let cancelled = false
+    const run = async () => {
+      try {
+        const next = await fetchNextChapterSequence(novel.id, selectedVolumeId)
+        if (!cancelled) setNextSequence(next)
+      } catch (e) {
+        logger.error('加载下一章序号失败:', e)
+        if (!cancelled) setNextSequence(null)
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [isEdit, novel.id, selectedVolumeId])
+
   const volumeOptions = useMemo(
     () =>
       volumes.map((v) => ({
@@ -84,7 +134,7 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
 
   const title = (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-1 items-center gap-3">
         <Button color="default" variant="filled" icon={<LeftOutlined />} onClick={onClose} />
         <span className="text-base font-medium">{novel.title}</span>
         <Select
@@ -95,13 +145,21 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
           onChange={setSelectedSequence}
           loading={volumes.length === 0}
         />
+        <div className="w-20">
+          <Input
+            readOnly
+            className="font-normal"
+            value={chapterSequence === null ? '' : `第 ${chapterSequence} 章`}
+            placeholder="加载中..."
+          />
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <Tooltip title="历史记录" placement="bottom" mouseEnterDelay={1} color="white">
           <Button type="text" icon={<HistoryOutlined />} />
         </Tooltip>
         <Button type="primary" shape="round">
-          下一步
+          保存
         </Button>
       </div>
     </div>
