@@ -67,8 +67,8 @@ const ChapterManagement: React.FC = () => {
 
   /** 新建章节 */
   const handleCreateChapter = useCallback(() => {
-    editor.open({ novel: novelInfo })
-  }, [editor, novelInfo])
+    editor.open({ novel: novelInfo, sequence: selectedSequence })
+  }, [editor, novelInfo, selectedSequence])
 
   return (
     <>

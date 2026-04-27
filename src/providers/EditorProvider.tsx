@@ -1,25 +1,100 @@
 import { HistoryOutlined, LeftOutlined } from '@ant-design/icons'
-import { Button, Input, Modal, Tooltip } from 'antd'
-import { useCallback, useMemo, useState } from 'react'
+import { Button, Input, Modal, Select, Tooltip } from 'antd'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { EditorContext } from './EditorContext'
 
 import type { EditorContextType, EditorOpenOptions } from './EditorContext'
 
 import Editor from '@/components/Editor'
+import {
+  DEFAULT_VOLUME_SEQUENCE,
+  getVolumes,
+  resolveVolumesWithDefault,
+  type Volume,
+} from '@/services/chapterService'
+import { logger } from '@/utils/logger'
+import { numToCn } from '@/utils/number'
 
 /** 编辑器 Provider 属性 */
 interface EditorProviderProps {
   children: React.ReactNode
 }
 
+/**
+ * 解析选择器初始选中的分卷 sequence
+ *
+ * 优先级：preferSequence（在列表中存在） > 列表首项 sequence > DEFAULT_VOLUME_SEQUENCE
+ *
+ * @param volumes - 规整后的分卷列表
+ * @param preferSequence - 调用方期望的 sequence（可选）
+ * @returns 最终用于选择器的 sequence
+ */
+const resolveInitialSequence = (volumes: Volume[], preferSequence?: number): number => {
+  if (volumes.length === 0) return DEFAULT_VOLUME_SEQUENCE
+  if (preferSequence && volumes.some((v) => v.sequence === preferSequence)) {
+    return preferSequence
+  }
+  return volumes[0].sequence
+}
+
 /** 全屏编辑器弹窗 */
-const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({ novel, onClose }) => {
+const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
+  novel,
+  chapter,
+  sequence,
+  onClose,
+}) => {
+  const [volumes, setVolumes] = useState<Volume[]>([])
+  const [selectedSequence, setSelectedSequence] = useState<number>(
+    sequence ?? DEFAULT_VOLUME_SEQUENCE,
+  )
+
+  // 编辑态：禁用选择器（存在 chapter 则视为编辑已有章节）
+  const isEdit = Boolean(chapter)
+
+  // 加载分卷列表
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const list = await getVolumes(novel.id)
+        if (cancelled) return
+        const resolved = resolveVolumesWithDefault(list, novel.id)
+        setVolumes(resolved)
+        setSelectedSequence(resolveInitialSequence(resolved, sequence))
+      } catch (e) {
+        logger.error('编辑器加载分卷列表失败:', e)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [novel.id, sequence])
+
+  const volumeOptions = useMemo(
+    () =>
+      volumes.map((v) => ({
+        value: v.sequence,
+        label: `第${numToCn(v.sequence)}卷：${v.name}`,
+      })),
+    [volumes],
+  )
+
   const title = (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <Button color="default" variant="filled" icon={<LeftOutlined />} onClick={onClose} />
         <span className="text-base font-medium">{novel.title}</span>
+        <Select
+          className="min-w-50 font-normal"
+          value={selectedSequence}
+          options={volumeOptions}
+          disabled={isEdit}
+          onChange={setSelectedSequence}
+          loading={volumes.length === 0}
+        />
       </div>
       <div className="flex items-center gap-2">
         <Tooltip title="历史记录" placement="bottom" mouseEnterDelay={1} color="white">
