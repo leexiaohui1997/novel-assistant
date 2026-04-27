@@ -1,9 +1,11 @@
 import { Menu, type MenuProps } from 'antd'
-import { useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { last } from 'lodash-es'
+import { useEffect, useMemo } from 'react'
+import { useNavigate, useLocation, useMatches } from 'react-router-dom'
 
 import type { MenuItem } from '@/config'
 
+import { useRouteMeta } from '@/hooks/useRouteMeta'
 import { useAppSelector, useAppDispatch } from '@/store/hooks'
 import { setActiveMenuKey } from '@/store/slices/uiSlice'
 import { deepFindArr } from '@/utils/array'
@@ -25,7 +27,13 @@ const Sidebar: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useAppDispatch()
-  const { menuItems, activeMenuKey } = useAppSelector((state) => state.ui)
+  const { menuItems } = useAppSelector((state) => state.ui)
+  const matches = useMatches()
+  const routeMeta = useRouteMeta()
+
+  const activeMenuKey = useMemo(() => {
+    return routeMeta.activeMenuKey || last(matches)?.id || ''
+  }, [matches, routeMeta])
 
   // 监听路由变化，同步菜单高亮状态
   useEffect(() => {
@@ -38,9 +46,8 @@ const Sidebar: React.FC = () => {
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     // 查找对应的菜单项获取路径
     const foundItem = deepFindArr<MenuItem>(menuItems, (item) => item.key === key)
-    if (foundItem) {
+    if (foundItem?.path) {
       navigate(foundItem.path)
-      dispatch(setActiveMenuKey(key))
     }
   }
 

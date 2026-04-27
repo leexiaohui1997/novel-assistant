@@ -18,7 +18,7 @@ const Layout: React.FC = () => {
       <Header />
       <div className={`main-wrapper ${layoutClassNames.wrapper}`}>
         {!hideSidebar && <Sidebar />}
-        <main className="main-content">
+        <main className="main-content flex flex-col">
           <Suspense fallback={<PageLoading />}>
             <Outlet />
           </Suspense>

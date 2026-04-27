@@ -20,6 +20,7 @@ export interface RouteHandle {
   layoutClassNames?: {
     wrapper?: string
   }
+  activeMenuKey?: string
 }
 
 /**
@@ -45,6 +46,7 @@ export const ROUTES_CONFIG: RouteObject[] = [
         element: <Navigate to="/novels" replace />,
       },
       {
+        id: 'novels',
         path: '/novels',
         element: lazyElement(() => import('@/pages/Novels')),
         handle: {
@@ -75,6 +77,28 @@ export const ROUTES_CONFIG: RouteObject[] = [
             id: 'creation-article',
             path: 'article',
             element: lazyElement(() => import('@/pages/CreationDetail/pages/article')),
+          },
+        ],
+      },
+      {
+        path: '/ai/settings',
+        element: lazyElement(() => import('@/pages/AI/Settings')),
+        handle: {
+          title: 'AI助手 - 设置',
+          activeMenuKey: 'ai-settings',
+        } satisfies RouteHandle,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="./models" replace />,
+          },
+          {
+            id: 'ai-settings-models',
+            path: 'models',
+            element: lazyElement(() => import('@/pages/AI/Settings/Models')),
+            handle: {
+              title: 'AI助手 - 模型管理',
+            } satisfies RouteHandle,
           },
         ],
       },
