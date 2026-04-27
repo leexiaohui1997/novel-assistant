@@ -17,6 +17,42 @@ pub struct Chapter {
     pub updated_at: DateTime<Utc>,
 }
 
+/// 章节接口响应 DTO
+///
+/// 在数据库 `Chapter` 基础上扩展接口层字段（如 `deletable`），
+/// 仅用于 API 返回，不参与数据库映射。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChapterResponse {
+    pub id: Uuid,
+    pub novel_id: Uuid,
+    pub title: String,
+    pub content: String,
+    pub word_count: i64,
+    pub sequence: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    /// 是否可删除（仅分卷下最后一个非草稿章节为 true）
+    pub deletable: bool,
+}
+
+impl ChapterResponse {
+    /// 基于数据库 `Chapter` 和 `deletable` 标识构造响应 DTO。
+    pub fn from_chapter(chapter: Chapter, deletable: bool) -> Self {
+        Self {
+            id: chapter.id,
+            novel_id: chapter.novel_id,
+            title: chapter.title,
+            content: chapter.content,
+            word_count: chapter.word_count,
+            sequence: chapter.sequence,
+            created_at: chapter.created_at,
+            updated_at: chapter.updated_at,
+            deletable,
+        }
+    }
+}
+
 /// 分卷实体模型
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "camelCase")]

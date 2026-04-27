@@ -2,10 +2,27 @@ use tauri::State;
 use uuid::Uuid;
 
 use crate::database::models::chapter::{
-    Chapter, ChapterQuery, NewChapter, NewVolume, UpdateChapter, UpdateVolume, Volume, VolumeUpsert,
+    Chapter, ChapterQuery, ChapterResponse, NewChapter, NewVolume, UpdateChapter, UpdateVolume,
+    Volume, VolumeUpsert,
 };
 use crate::utils::pagination::{PaginatedResult, PaginationParams};
 use crate::AppState;
+
+/// 将数据库 `Chapter` 列表转换为接口层 `ChapterResponse` 列表。
+///
+/// `max_sequence` 为 `None` 时，所有章节的 `deletable` 均为 `false`。
+fn build_chapter_responses(
+    chapters: Vec<Chapter>,
+    max_sequence: Option<i64>,
+) -> Vec<ChapterResponse> {
+    chapters
+        .into_iter()
+        .map(|c| {
+            let deletable = max_sequence.is_some_and(|max| c.sequence >= 0 && c.sequence == max);
+            ChapterResponse::from_chapter(c, deletable)
+        })
+        .collect()
+}
 
 #[tauri::command]
 pub async fn create_volume(
@@ -113,6 +130,9 @@ pub async fn batch_update_volumes(
 }
 
 /// 分页查询章节。
+///
+/// 返回接口层 DTO `ChapterResponse`，在数据库字段基础上扩展 `deletable` 标识：
+/// 仅当章节为所属分卷下的最后一个非草稿章节时为 `true`。
 #[tauri::command]
 pub async fn get_chapters_with_pagination(
     state: State<'_, AppState>,
@@ -120,11 +140,26 @@ pub async fn get_chapters_with_pagination(
     page: i64,
     page_size: i64,
     query: ChapterQuery,
-) -> Result<PaginatedResult<Chapter>, String> {
+) -> Result<PaginatedResult<ChapterResponse>, String> {
     let novel_uuid = Uuid::parse_str(&novel_id).map_err(|e| e.to_string())?;
     let pagination = PaginationParams { page, page_size };
     let repo = state.chapter_repo.read().await;
-    repo.get_chapters_with_pagination(novel_uuid, &query, &pagination)
+    let page_result = repo
+        .get_chapters_with_pagination(novel_uuid, &query, &pagination)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    // 草稿模式或未指定 volume_id 时无需计算 deletable
+    let max_sequence = match (query.is_draft, query.volume_id) {
+        (false, Some(vid)) => repo
+            .get_max_sequence_in_volume(novel_uuid, vid)
+            .await
+            .map_err(|e| e.to_string())?,
+        _ => None,
+    };
+
+    Ok(PaginatedResult {
+        data: build_chapter_responses(page_result.data, max_sequence),
+        total: page_result.total,
+    })
 }

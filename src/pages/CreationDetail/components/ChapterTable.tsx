@@ -46,6 +46,13 @@ const mapAntdOrder = (order: 'ascend' | 'descend' | null | undefined): SortOrder
 /** Antd Table 默认排序方向（仅用于列定义的 defaultSortOrder） */
 type AntdOrder = 'ascend' | 'descend'
 
+/** 从未知错误中提取可展示的错误消息 */
+const resolveErrorMessage = (err: unknown, fallback: string): string => {
+  if (typeof err === 'string' && err.trim()) return err
+  if (err instanceof Error && err.message) return err.message
+  return fallback
+}
+
 const PAGE_SIZE = 10
 
 const ChapterTable: React.FC<ChapterTableProps> = ({
@@ -125,7 +132,7 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
         await loadData()
       } catch (e) {
         logger.error('删除章节失败:', e)
-        messageApi.error('删除失败，请重试')
+        messageApi.error(resolveErrorMessage(e, '删除失败，请重试'))
       }
     },
     [novelId, loadData, messageApi],
@@ -180,18 +187,20 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
             <Button type="link" size="small">
               编辑
             </Button>
-            <Popconfirm
-              title="确认删除该章节？"
-              description="删除后不可恢复，请谨慎操作。"
-              okText="删除"
-              okButtonProps={{ danger: true }}
-              cancelText="取消"
-              onConfirm={() => handleDelete(record.id)}
-            >
-              <Button type="link" size="small" danger>
-                删除
-              </Button>
-            </Popconfirm>
+            {record.deletable && (
+              <Popconfirm
+                title="确认删除该章节？"
+                description="删除后不可恢复，请谨慎操作。"
+                okText="删除"
+                okButtonProps={{ danger: true }}
+                cancelText="取消"
+                onConfirm={() => handleDelete(record.id)}
+              >
+                <Button type="link" size="small" danger>
+                  删除
+                </Button>
+              </Popconfirm>
+            )}
           </Space>
         ),
       },

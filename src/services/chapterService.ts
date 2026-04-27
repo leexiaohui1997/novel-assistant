@@ -13,6 +13,8 @@ export interface Chapter {
   sequence: number
   createdAt: string
   updatedAt: string
+  /** 是否可删除（仅分卷下最后一个非草稿章节为 true） */
+  deletable: boolean
 }
 
 /** 简化分卷实体 */
