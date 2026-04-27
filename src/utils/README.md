@@ -72,6 +72,20 @@
 
 ---
 
+## 日期工具 (date.ts)
+
+### formatDateTime
+
+将 ISO 字符串 / Date / 时间戳格式化为日期时间字符串（默认 `YYYY-MM-DD HH:mm:ss`），无效值返回兜底
+文件：`src/utils/date.ts`
+
+### formatDate
+
+将 ISO 字符串 / Date / 时间戳格式化为日期字符串（`YYYY-MM-DD`）
+文件：`src/utils/date.ts`
+
+---
+
 **使用说明：**
 
 - 需要导入对应文件才能使用这些函数

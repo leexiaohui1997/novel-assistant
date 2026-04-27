@@ -47,12 +47,16 @@ pub struct UpdateVolume {
 }
 
 /// 创建章节请求
+///
+/// `sequence` 省略（或 `None`）时，后端写入 -1 视为草稿；
+/// 传入 `>=0` 则直接作为正式章节序号落库。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NewChapter {
     pub title: String,
     pub content: String,
     pub volume_id: Option<i64>,
+    pub sequence: Option<i64>,
 }
 
 /// 更新章节请求

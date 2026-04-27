@@ -49,6 +49,26 @@ export interface VolumeUpsert {
   sequence: number
 }
 
+/** 创建章节请求 payload */
+export interface NewChapterPayload {
+  title: string
+  content: string
+  /** 分卷 ID（可选，未传表示无分卷关联） */
+  volumeId?: number
+  /** 章节序号（可选）：未传时后端落库为草稿（sequence=-1），传入则作为正式章节序号 */
+  sequence?: number
+}
+
+/** 更新章节请求 payload */
+export interface UpdateChapterPayload {
+  title: string
+  content: string
+  /** 章节序号（可选） */
+  sequence?: number
+  /** 分卷 ID（可选） */
+  volumeId?: number
+}
+
 /**
  * 分页查询章节
  */
@@ -88,6 +108,51 @@ export async function deleteChapter(novelId: string, chapterId: string): Promise
     logger.debug('章节删除成功')
   } catch (error) {
     logger.error('删除章节失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 创建章节
+ *
+ * @param novelId - 所属小说 ID
+ * @param payload - 章节数据（标题、正文、所属分卷 ID）
+ * @returns 创建成功的章节
+ */
+export async function createChapter(novelId: string, payload: NewChapterPayload): Promise<Chapter> {
+  try {
+    logger.debug('调用创建章节 API:', { novelId, payload })
+
+    const result = await invoke<Chapter>('create_chapter', { novelId, payload })
+
+    logger.debug('章节创建成功:', result.id)
+    return result
+  } catch (error) {
+    logger.error('创建章节失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 更新章节
+ *
+ * @param chapterId - 章节 ID
+ * @param payload - 更新数据（标题、正文、序号、分卷 ID）
+ * @returns 更新后的章节
+ */
+export async function updateChapter(
+  chapterId: string,
+  payload: UpdateChapterPayload,
+): Promise<Chapter> {
+  try {
+    logger.debug('调用更新章节 API:', { chapterId, payload })
+
+    const result = await invoke<Chapter>('update_chapter', { chapterId, payload })
+
+    logger.debug('章节更新成功:', result.id)
+    return result
+  } catch (error) {
+    logger.error('更新章节失败:', error)
     throw error
   }
 }

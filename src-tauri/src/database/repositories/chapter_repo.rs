@@ -45,7 +45,10 @@ pub trait ChapterRepository {
 
     /// 创建章节。
     ///
-    /// 业务约束：章节初始序号固定为 -1（草稿）；正文写入时同步统计字数。
+    /// 业务约束：
+    /// - `payload.sequence` 为 `None` 时，序号默认写入 -1（草稿）；
+    /// - `payload.sequence` 为 `Some(n)`（n >= 0）时，直接按正式章节写入；
+    /// - 正文写入时同步统计字数。
     async fn create_chapter(
         &self,
         novel_id: Uuid,
@@ -530,7 +533,8 @@ impl ChapterRepository for SqliteChapterRepository {
         let now = Utc::now();
         let word_count = Self::count_words(&payload.content);
 
-        // 新建章节时，序号固定为 -1（草稿）。
+        // 未显式传入 sequence 时，按草稿（-1）落库；传入则直接作为正式章节序号。
+        let sequence = payload.sequence.unwrap_or(-1);
         let chapter = sqlx::query_as::<_, Chapter>(
             "INSERT INTO chapters (id, novel_id, title, content, word_count, sequence, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
@@ -541,7 +545,7 @@ impl ChapterRepository for SqliteChapterRepository {
         .bind(&payload.title)
         .bind(&payload.content)
         .bind(word_count)
-        .bind(-1_i64)
+        .bind(sequence)
         .bind(now)
         .bind(now)
         .fetch_one(tx.as_mut())

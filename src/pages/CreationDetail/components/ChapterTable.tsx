@@ -1,5 +1,5 @@
 import { Button, Popconfirm, Space, Table, message } from 'antd'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Ref, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import type { FilterValue, SorterResult } from 'antd/es/table/interface'
@@ -11,13 +11,26 @@ import {
   deleteChapter,
   getChaptersWithPagination,
 } from '@/services/chapterService'
+import { formatDateTime } from '@/utils/date'
 import { logger } from '@/utils/logger'
+
+/**
+ * ChapterTable 对外暴露的命令式方法
+ *
+ * 通过 `ref` 获取实例后调用，典型场景：父组件在新建 / 保存章节成功后手动刷新列表。
+ */
+export interface ChapterTableHandle {
+  /** 按当前分页 / 排序条件重新拉取一次列表数据 */
+  refresh: () => void
+}
 
 export interface ChapterTableProps {
   /** 分卷序号；草稿模式下忽略。默认 1 */
   volumeSequence?: number
   /** 是否草稿模式。默认 false */
   isDraft?: boolean
+  /** 组件实例 ref，用于外部命令式调用 */
+  ref?: Ref<ChapterTableHandle>
 }
 
 type SortField = NonNullable<ChapterQuery['sortField']>
@@ -35,7 +48,11 @@ type AntdOrder = 'ascend' | 'descend'
 
 const PAGE_SIZE = 10
 
-const ChapterTable: React.FC<ChapterTableProps> = ({ volumeSequence = 1, isDraft = false }) => {
+const ChapterTable: React.FC<ChapterTableProps> = ({
+  volumeSequence = 1,
+  isDraft = false,
+  ref,
+}) => {
   const { novelId } = useCreationState()
   const [messageApi, contextHolder] = message.useMessage()
 
@@ -73,6 +90,9 @@ const ChapterTable: React.FC<ChapterTableProps> = ({ volumeSequence = 1, isDraft
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
   }, [loadData])
+
+  /** 对外暴露命令式方法：refresh */
+  useImperativeHandle(ref, () => ({ refresh: loadData }), [loadData])
 
   /** 处理 Table 的分页 / 排序变化 */
   const handleTableChange = useCallback(
@@ -122,6 +142,7 @@ const ChapterTable: React.FC<ChapterTableProps> = ({ volumeSequence = 1, isDraft
       width: 120,
       sorter: true,
       defaultSortOrder: defaultOrder,
+      render: (value: number) => `第${value}章`,
     }
 
     const baseCols: ColumnsType<Chapter> = [
@@ -140,6 +161,7 @@ const ChapterTable: React.FC<ChapterTableProps> = ({ volumeSequence = 1, isDraft
         width: 180,
         sorter: true,
         defaultSortOrder: isDraft ? defaultOrder : undefined,
+        render: (value: string) => formatDateTime(value),
       },
       {
         title: '更新时间',
@@ -147,6 +169,7 @@ const ChapterTable: React.FC<ChapterTableProps> = ({ volumeSequence = 1, isDraft
         key: 'updatedAt',
         width: 180,
         sorter: true,
+        render: (value: string) => formatDateTime(value),
       },
       {
         title: '操作',

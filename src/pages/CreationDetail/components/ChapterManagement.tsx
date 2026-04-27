@@ -1,7 +1,7 @@
 import { Button, Select, Space, message } from 'antd'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import ChapterTable from './ChapterTable'
+import ChapterTable, { type ChapterTableHandle } from './ChapterTable'
 
 import { useCreationState } from '@/hooks/useCreationState'
 import { useEditor } from '@/hooks/useEditor'
@@ -22,6 +22,13 @@ const ChapterManagement: React.FC = () => {
 
   const [volumes, setVolumes] = useState<Volume[]>([])
   const [selectedSequence, setSelectedSequence] = useState<number>(DEFAULT_VOLUME_SEQUENCE)
+  /** ChapterTable 实例 ref，用于外部命令式触发刷新 */
+  const chapterTableRef = useRef<ChapterTableHandle>(null)
+
+  /** 编辑器保存成功后的回调：触发列表刷新 */
+  const handleChapterSaved = useCallback(() => {
+    chapterTableRef.current?.refresh()
+  }, [])
 
   /** 保存成功后：用最新列表覆盖本地；若原选中 sequence 已被删除则回落到首卷 */
   const handleSaved = useCallback(
@@ -67,8 +74,12 @@ const ChapterManagement: React.FC = () => {
 
   /** 新建章节 */
   const handleCreateChapter = useCallback(() => {
-    editor.open({ novel: novelInfo, sequence: selectedSequence })
-  }, [editor, novelInfo, selectedSequence])
+    editor.open({
+      novel: novelInfo,
+      sequence: selectedSequence,
+      onSubmit: handleChapterSaved,
+    })
+  }, [editor, novelInfo, selectedSequence, handleChapterSaved])
 
   return (
     <>
@@ -88,7 +99,7 @@ const ChapterManagement: React.FC = () => {
           </Button>
         </Space>
       </div>
-      <ChapterTable volumeSequence={selectedSequence} />
+      <ChapterTable ref={chapterTableRef} volumeSequence={selectedSequence} />
     </>
   )
 }
