@@ -5,6 +5,7 @@ import ChapterTable from './ChapterTable'
 
 import { useCreationState } from '@/hooks/useCreationState'
 import { useEditor } from '@/hooks/useEditor'
+import { useEditVolumeModal } from '@/hooks/useEditVolumeModal'
 import {
   DEFAULT_VOLUME_SEQUENCE,
   type Volume,
@@ -21,6 +22,23 @@ const ChapterManagement: React.FC = () => {
 
   const [volumes, setVolumes] = useState<Volume[]>([])
   const [selectedSequence, setSelectedSequence] = useState<number>(DEFAULT_VOLUME_SEQUENCE)
+
+  /** 保存成功后：用最新列表覆盖本地；若原选中 sequence 已被删除则回落到首卷 */
+  const handleSaved = useCallback(
+    (next: Volume[]) => {
+      const resolved = resolveVolumesWithDefault(next, novelId)
+      setVolumes(resolved)
+      setSelectedSequence((prev) =>
+        resolved.some((v) => v.sequence === prev) ? prev : resolved[0].sequence,
+      )
+    },
+    [novelId],
+  )
+
+  const [editVolumeContext, editVolumeActions] = useEditVolumeModal({
+    novelId,
+    onSaved: handleSaved,
+  })
 
   useEffect(() => {
     const load = async () => {
@@ -55,6 +73,7 @@ const ChapterManagement: React.FC = () => {
   return (
     <>
       {contextHolder}
+      {editVolumeContext}
       <div className="flex items-center justify-between mb-4!">
         <Select
           className="min-w-60"
@@ -63,7 +82,7 @@ const ChapterManagement: React.FC = () => {
           onChange={setSelectedSequence}
         />
         <Space>
-          <Button>编辑分卷</Button>
+          <Button onClick={editVolumeActions.open}>编辑分卷</Button>
           <Button type="primary" onClick={handleCreateChapter}>
             新建章节
           </Button>

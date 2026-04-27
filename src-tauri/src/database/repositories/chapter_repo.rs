@@ -326,6 +326,42 @@ impl SqliteChapterRepository {
         Ok(())
     }
 
+    /// 事务内查询小说下 sequence 最小的分卷 id（用于首卷孤儿归属）。
+    async fn find_first_volume_id_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        novel_id: Uuid,
+    ) -> Result<Option<i64>, DbError> {
+        let row: Option<(i64,)> = sqlx::query_as(
+            "SELECT id FROM volumes WHERE novel_id = ?1 ORDER BY sequence ASC LIMIT 1",
+        )
+        .bind(novel_id)
+        .fetch_optional(tx.as_mut())
+        .await?;
+        Ok(row.map(|(id,)| id))
+    }
+
+    /// 事务内将孤儿章节（非草稿且无 volume_chapters 关联）批量归属到指定分卷。
+    ///
+    /// 用于"小说首次创建真实分卷"场景，确保历史数据一致性。
+    async fn link_orphan_chapters_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        novel_id: Uuid,
+        volume_id: i64,
+    ) -> Result<(), DbError> {
+        sqlx::query(
+            "INSERT INTO volume_chapters (novel_id, volume_id, chapter_id)
+             SELECT ?1, ?2, c.id
+             FROM chapters c
+             LEFT JOIN volume_chapters vc ON vc.chapter_id = c.id
+             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND vc.chapter_id IS NULL",
+        )
+        .bind(novel_id)
+        .bind(volume_id)
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+
     /// 事务内执行单条分卷的新增或更新。
     async fn upsert_volume_in_tx(
         tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
@@ -458,6 +494,8 @@ impl ChapterRepository for SqliteChapterRepository {
         // 1) 收集当前小说下已有分卷 ID 集合，与请求列表中已标注 id 的做差集得到待删除集合
         let existing_ids = Self::collect_existing_volume_ids(&mut tx, novel_id).await?;
         let keep_ids: HashSet<i64> = payload.iter().filter_map(|v| v.id).collect();
+        // 记录"是否为首卷创建"场景：提交前无任何真实分卷
+        let is_first_volume_creation = existing_ids.is_empty() && !payload.is_empty();
 
         // 2) 删除不再保留的分卷（删除前校验无关联章节）
         for id in existing_ids.difference(&keep_ids) {
@@ -469,9 +507,16 @@ impl ChapterRepository for SqliteChapterRepository {
             Self::upsert_volume_in_tx(&mut tx, novel_id, item).await?;
         }
 
+        // 4) 首卷创建时，将孤儿章节（非草稿且无分卷关联）归属到 sequence 最小的新分卷
+        if is_first_volume_creation {
+            if let Some(first_id) = Self::find_first_volume_id_in_tx(&mut tx, novel_id).await? {
+                Self::link_orphan_chapters_in_tx(&mut tx, novel_id, first_id).await?;
+            }
+        }
+
         tx.commit().await?;
 
-        // 4) 返回更新后的完整分卷列表
+        // 5) 返回更新后的完整分卷列表
         self.get_volumes(novel_id).await
     }
 

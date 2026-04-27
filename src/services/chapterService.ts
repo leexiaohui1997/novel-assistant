@@ -15,12 +15,16 @@ export interface Chapter {
   updatedAt: string
 }
 
-/** 分卷实体 */
-export interface Volume {
+/** 简化分卷实体 */
+export interface SimpleVolume {
   id: number
-  novelId: string
   name: string
   sequence: number
+}
+
+/** 分卷实体 */
+export interface Volume extends SimpleVolume {
+  novelId: string
   createdAt: string
   updatedAt: string
 }
@@ -140,7 +144,7 @@ export const DEFAULT_VOLUME_NAME = '默认'
  * 当小说下无任何分卷时使用，用于前端下拉选择器等场景。
  * 虚拟分卷的 id 为 0（真实分卷不会占用 0），用于区分真实分卷。
  */
-function buildDefaultVolume(novelId: string): Volume {
+export function buildDefaultVolume(novelId: string): Volume {
   return {
     id: 0,
     novelId,
@@ -162,9 +166,12 @@ function buildDefaultVolume(novelId: string): Volume {
  * const volumes = await getVolumes(novelId)
  * const displayList = resolveVolumesWithDefault(volumes, novelId)
  */
-export function resolveVolumesWithDefault(list: Volume[], novelId: string): Volume[] {
+export function resolveVolumesWithDefault<T extends SimpleVolume | Volume>(
+  list: T[],
+  novelId: string,
+): T[] {
   if (list.length === 0) {
-    return [buildDefaultVolume(novelId)]
+    return [buildDefaultVolume(novelId) as T]
   }
   return list
 }
