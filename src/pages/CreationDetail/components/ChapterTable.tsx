@@ -5,6 +5,7 @@ import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import type { FilterValue, SorterResult } from 'antd/es/table/interface'
 
 import { useCreationState } from '@/hooks/useCreationState'
+import { useEditor } from '@/hooks/useEditor'
 import {
   type Chapter,
   type ChapterQuery,
@@ -60,7 +61,8 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
   isDraft = false,
   ref,
 }) => {
-  const { novelId } = useCreationState()
+  const { novelId, novelInfo } = useCreationState()
+  const editor = useEditor()
   const [messageApi, contextHolder] = message.useMessage()
 
   const [data, setData] = useState<Chapter[]>([])
@@ -121,6 +123,23 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
       setPage(pagination.current ?? 1)
     },
     [defaultSortField],
+  )
+
+  /** 编辑章节 */
+  const handleEdit = useCallback(
+    (record: Chapter) => {
+      if (!novelInfo) {
+        logger.warn('novelInfo 不存在，无法打开编辑器')
+        return
+      }
+      editor.open({
+        novel: novelInfo,
+        chapter: record,
+        sequence: isDraft ? undefined : volumeSequence,
+        onSubmit: loadData,
+      })
+    },
+    [editor, novelInfo, isDraft, volumeSequence, loadData],
   )
 
   /** 删除章节 */
@@ -184,7 +203,7 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
         width: 160,
         render: (_: unknown, record) => (
           <Space>
-            <Button type="link" size="small">
+            <Button type="link" size="small" onClick={() => handleEdit(record)}>
               编辑
             </Button>
             {record.deletable && (
@@ -207,7 +226,7 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
     ]
 
     return isDraft ? baseCols : [sequenceCol, ...baseCols]
-  }, [isDraft, handleDelete])
+  }, [isDraft, handleDelete, handleEdit])
 
   return (
     <>

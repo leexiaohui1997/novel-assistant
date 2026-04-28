@@ -202,12 +202,12 @@ interface UseSaveHandlerParams {
   title: string
   content: string
   volumeId?: number
-  /** 新建模式下的“下一章序号”；编辑模式下忽略 */
+  /** 新建模式下的"下一章序号"；编辑模式下忽略 */
   nextSequence: number | null
   messageApi: ReturnType<typeof message.useMessage>[0]
-  onSuccess: () => void
+  /** 保存成功后的回调 */
+  onSuccess: (savedChapter: Chapter) => void
 }
-
 /**
  * 保存处理 Hook：封装校验、调接口、反馈、loading 状态
  */
@@ -222,7 +222,7 @@ const useSaveHandler = (
     if (!validateForm(title, content, messageApi.warning)) return
     try {
       setSaving(true)
-      await saveChapter({
+      const savedChapter = await saveChapter({
         chapter,
         novelId,
         title: title.trim(),
@@ -231,7 +231,7 @@ const useSaveHandler = (
         sequence: chapter ? chapter.sequence : (nextSequence ?? undefined),
       })
       messageApi.success('保存成功')
-      onSuccess()
+      onSuccess(savedChapter)
     } catch (e) {
       logger.error('保存章节失败:', e)
       messageApi.error('保存失败，请重试')
@@ -278,16 +278,21 @@ const useChapterForm = (
   setTitle: React.Dispatch<React.SetStateAction<string>>
   setContent: React.Dispatch<React.SetStateAction<string>>
   isDirty: boolean
+  resetBaseline: () => void
 } => {
-  const initialTitle = chapter?.title ?? ''
-  const initialContent = chapter?.content ?? ''
+  const [initialTitle, setInitialTitle] = useState(chapter?.title ?? '')
+  const [initialContent, setInitialContent] = useState(chapter?.content ?? '')
   const [title, setTitle] = useState<string>(initialTitle)
   const [content, setContent] = useState<string>(initialContent)
   const isDirty = useMemo(
     () => title !== initialTitle || content !== initialContent,
     [title, content, initialTitle, initialContent],
   )
-  return { title, content, setTitle, setContent, isDirty }
+  const resetBaseline = useCallback(() => {
+    setInitialTitle(title)
+    setInitialContent(content)
+  }, [title, content])
+  return { title, content, setTitle, setContent, isDirty, resetBaseline }
 }
 
 /**
@@ -360,22 +365,21 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
 }
 
 /** 全屏编辑器弹窗 */
-const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
-  novel,
-  chapter,
-  sequence,
-  onSubmit,
-  onClose,
-}) => {
+const EditorModal: React.FC<
+  EditorOpenOptions & { onClose: () => void; onChapterCreated: (chapter: Chapter) => void }
+> = ({ novel, chapter: initialChapter, sequence, onSubmit, onClose, onChapterCreated }) => {
+  // 新建转编辑：首次保存成功后用后端返回的 chapter 更新引用
+  const [activeChapter, setActiveChapter] = useState(initialChapter)
+  const isEdit = Boolean(activeChapter)
+
   // 分卷列表与选中项
   const { volumes, selectedSequence, setSelectedSequence } = useLoadVolumes(novel.id, sequence)
-  // 编辑器表单：标题 / 正文 + 脏检测
-  const { title, content, setTitle, setContent, isDirty } = useChapterForm(chapter)
+  // 编辑器表单：标题 / 正文 + 脏检测 + 重置基准
+  const { title, content, setTitle, setContent, isDirty, resetBaseline } =
+    useChapterForm(activeChapter)
   // antd message / modal hooks
   const [messageApi, messageCtx] = message.useMessage()
   const [modal, modalCtx] = Modal.useModal()
-
-  const isEdit = Boolean(chapter)
 
   // 当前选中分卷对应的分卷 ID（用于保存章节时写入 volume_chapters 关联）
   const selectedVolumeId = useMemo(
@@ -385,7 +389,7 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
 
   // 新建模式下的下一章序号（按分卷 sequence 查询）
   const nextSequence = useNextSequence(isEdit, novel.id, selectedSequence)
-  const chapterSequence = computeChapterSequence(isEdit, chapter, nextSequence)
+  const chapterSequence = computeChapterSequence(isEdit, activeChapter, nextSequence)
 
   // 分卷选择器选项
   const volumeOptions = useMemo(
@@ -397,21 +401,29 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
     [volumes],
   )
 
-  const onSuccess = useCallback(() => {
-    onSubmit?.()
-    onClose()
-  }, [onSubmit, onClose])
+  const handleSaveSuccess = useCallback(
+    (savedChapter: Chapter) => {
+      // 新建模式首次保存：更新 chapter 引用，切换为编辑模式
+      if (!activeChapter) {
+        setActiveChapter(savedChapter)
+        onChapterCreated(savedChapter)
+      }
+      onSubmit?.()
+      resetBaseline()
+    },
+    [activeChapter, onChapterCreated, onSubmit, resetBaseline],
+  )
 
   // 保存处理
   const { saving, handleSave } = useSaveHandler({
-    chapter,
+    chapter: activeChapter,
     novelId: novel.id,
     title,
     content,
     volumeId: selectedVolumeId,
     nextSequence,
     messageApi,
-    onSuccess,
+    onSuccess: handleSaveSuccess,
   })
 
   // 关闭处理（带脏检测）
@@ -495,12 +507,19 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setOptions(null)
   }, [])
 
+  const handleChapterCreated = useCallback((_chapter: Chapter) => {
+    // 预留：新建章节创建成功后的扩展点
+    // 当前新建转编辑逻辑已在 EditorModal 内部处理
+  }, [])
+
   const contextValue: EditorContextType = useMemo(() => ({ open, close }), [open, close])
 
   return (
     <EditorContext.Provider value={contextValue}>
       {children}
-      {options && <EditorModal {...options} onClose={close} />}
+      {options && (
+        <EditorModal {...options} onClose={close} onChapterCreated={handleChapterCreated} />
+      )}
     </EditorContext.Provider>
   )
 }
