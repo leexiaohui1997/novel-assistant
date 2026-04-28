@@ -1,6 +1,18 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined, RobotOutlined } from '@ant-design/icons'
-import { Button, Card, Form, Input, Modal, Space, Switch, Table, Tag, message } from 'antd'
-import React, { useEffect, useState } from 'react'
+import { PlusOutlined } from '@ant-design/icons'
+import {
+  Button,
+  Card,
+  Form,
+  FormInstance,
+  Input,
+  message,
+  Modal,
+  Space,
+  Switch,
+  Table,
+  Tag,
+} from 'antd'
+import React, { useEffect, useRef, useState } from 'react'
 
 import type { ColumnsType } from 'antd/es/table'
 
@@ -36,14 +48,16 @@ const AddProviderModal: React.FC<{
   onClose: () => void
   onSuccess: () => void
 }> = ({ open, editingProvider, onClose, onSuccess }) => {
-  const [form] = Form.useForm<ProviderFormValues>()
+  const [messageApi, contextHolder] = message.useMessage()
   const [submitting, setSubmitting] = useState(false)
+  const formRef = useRef<FormInstance<ProviderFormValues>>(null)
 
   const isEdit = !!editingProvider
 
   const handleOk = async () => {
+    if (!formRef.current) return
     try {
-      const values = await form.validateFields()
+      const values = await formRef.current.validateFields()
       setSubmitting(true)
 
       const params = {
@@ -55,10 +69,10 @@ const AddProviderModal: React.FC<{
 
       if (isEdit && editingProvider) {
         await updateProvider(editingProvider.id, params)
-        message.success('供应商更新成功')
+        messageApi.success('供应商更新成功')
       } else {
         await createProvider(params)
-        message.success('供应商创建成功')
+        messageApi.success('供应商创建成功')
       }
 
       onSuccess()
@@ -66,7 +80,7 @@ const AddProviderModal: React.FC<{
     } catch (error) {
       if (error instanceof Error) {
         logger.error('供应商保存失败:', error)
-        message.error('供应商保存失败')
+        messageApi.error('供应商保存失败')
       }
     } finally {
       setSubmitting(false)
@@ -74,65 +88,71 @@ const AddProviderModal: React.FC<{
   }
 
   return (
-    <Modal
-      title={isEdit ? '编辑供应商' : '添加供应商'}
-      open={open}
-      onCancel={onClose}
-      afterClose={() => form.resetFields()}
-      confirmLoading={submitting}
-      footer={[
-        <Button key="cancel" onClick={onClose} disabled={submitting}>
-          取消
-        </Button>,
-        <Button key="submit" type="primary" loading={submitting} onClick={handleOk}>
-          确认
-        </Button>,
-      ]}
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={
-          editingProvider
-            ? {
-                name: editingProvider.name,
-                baseUrl: editingProvider.baseUrl,
-                apiKey: editingProvider.apiKey || '',
-                isEnabled: editingProvider.isEnabled,
-              }
-            : { isEnabled: true }
-        }
+    <>
+      {contextHolder}
+      <Modal
+        title={isEdit ? '编辑供应商' : '添加供应商'}
+        open={open}
+        onCancel={onClose}
+        afterClose={() => formRef.current?.resetFields()}
+        destroyOnHidden
+        confirmLoading={submitting}
+        footer={[
+          <Button key="cancel" onClick={onClose} disabled={submitting}>
+            取消
+          </Button>,
+          <Button key="submit" type="primary" loading={submitting} onClick={handleOk}>
+            确认
+          </Button>,
+        ]}
       >
-        <Form.Item
-          label="供应商名称"
-          name="name"
-          rules={[{ required: true, message: '请输入供应商名称' }]}
+        <Form
+          ref={formRef}
+          layout="vertical"
+          initialValues={
+            editingProvider
+              ? {
+                  name: editingProvider.name,
+                  baseUrl: editingProvider.baseUrl,
+                  apiKey: editingProvider.apiKey || '',
+                  isEnabled: editingProvider.isEnabled,
+                }
+              : { isEnabled: true }
+          }
         >
-          <Input placeholder="如 OpenAI、DeepSeek、Ollama" />
-        </Form.Item>
+          <Form.Item
+            label="供应商名称"
+            name="name"
+            rules={[{ required: true, message: '请输入供应商名称' }]}
+          >
+            <Input placeholder="如 OpenAI、DeepSeek、Ollama" />
+          </Form.Item>
 
-        <Form.Item
-          label="API 地址"
-          name="baseUrl"
-          rules={[{ required: true, message: '请输入 API 地址' }]}
-        >
-          <Input placeholder="如 https://api.openai.com/v1" />
-        </Form.Item>
+          <Form.Item
+            label="API 地址"
+            name="baseUrl"
+            rules={[{ required: true, message: '请输入 API 地址' }]}
+          >
+            <Input placeholder="如 https://api.openai.com/v1" />
+          </Form.Item>
 
-        <Form.Item label="API Key" name="apiKey">
-          <Input.Password placeholder="请输入 API Key" />
-        </Form.Item>
+          <Form.Item label="API Key" name="apiKey">
+            <Input.Password placeholder="请输入 API Key" />
+          </Form.Item>
 
-        <Form.Item label="启用状态" name="isEnabled" valuePropName="checked">
-          <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-        </Form.Item>
-      </Form>
-    </Modal>
+          <Form.Item label="启用状态" name="isEnabled" valuePropName="checked">
+            <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   )
 }
 
 /** 供应商管理页面 */
 const ProviderManage: React.FC = () => {
+  const [messageApi, contextHolder] = message.useMessage()
+  const [modalApi, contextHolderModal] = Modal.useModal()
   const [providers, setProviders] = useState<Provider[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -159,7 +179,7 @@ const ProviderManage: React.FC = () => {
       } catch (error) {
         if (!cancelled) {
           logger.error('获取供应商列表失败:', error)
-          message.error('获取供应商列表失败')
+          messageApi.error('获取供应商列表失败')
         }
       } finally {
         if (!cancelled) {
@@ -172,7 +192,7 @@ const ProviderManage: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [page, pageSize, refreshCounter])
+  }, [page, pageSize, refreshCounter, messageApi])
 
   const handleAdd = () => {
     setEditingProvider(null)
@@ -185,7 +205,7 @@ const ProviderManage: React.FC = () => {
   }
 
   const handleDelete = (provider: Provider) => {
-    Modal.confirm({
+    modalApi.confirm({
       title: '确认删除',
       content: `确定要删除供应商「${provider.name}」吗？该操作将同时删除其下所有模型。`,
       okText: '确认',
@@ -193,18 +213,18 @@ const ProviderManage: React.FC = () => {
       onOk: async () => {
         try {
           await deleteProvider(provider.id)
-          message.success('供应商删除成功')
+          messageApi.success('供应商删除成功')
           refreshList()
         } catch (error) {
           logger.error('删除供应商失败:', error)
-          message.error('删除供应商失败')
+          messageApi.error('删除供应商失败')
         }
       },
     })
   }
 
   const handleModelManage = () => {
-    message.info('暂未实现')
+    messageApi.info('暂未实现')
   }
 
   const handleModalClose = () => {
@@ -251,28 +271,17 @@ const ProviderManage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 220,
+      width: 200,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Button type="link" size="small" icon={<RobotOutlined />} onClick={handleModelManage}>
+          <Button type="link" size="small" onClick={handleModelManage}>
             模型管理
           </Button>
-          <Button
-            type="link"
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record)}
-          >
+          <Button type="link" size="small" onClick={() => handleEdit(record)}>
+            编辑
+          </Button>
+          <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
             删除
           </Button>
         </Space>
@@ -282,6 +291,8 @@ const ProviderManage: React.FC = () => {
 
   return (
     <>
+      {contextHolder}
+      {contextHolderModal}
       <Card
         title="供应商管理"
         extra={
