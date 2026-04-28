@@ -149,10 +149,10 @@ pub async fn get_chapters_with_pagination(
         .await
         .map_err(|e| e.to_string())?;
 
-    // 草稿模式或未指定 volume_id 时无需计算 deletable
-    let max_sequence = match (query.is_draft, query.volume_id) {
-        (false, Some(vid)) => repo
-            .get_max_sequence_in_volume(novel_uuid, vid)
+    // 草稿模式或未指定 volume_sequence 时无需计算 deletable
+    let max_sequence = match (query.is_draft, query.volume_sequence) {
+        (false, Some(vseq)) => repo
+            .get_max_sequence_in_volume(novel_uuid, vseq)
             .await
             .map_err(|e| e.to_string())?,
         _ => None,

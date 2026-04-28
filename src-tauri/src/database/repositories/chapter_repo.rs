@@ -79,14 +79,14 @@ pub trait ChapterRepository {
 
     /// 查询指定分卷下非草稿章节的最大 `sequence`。
     ///
-    /// 业务约束：
-    /// - `volume_id = 1`（默认分卷）：含关联到分卷 1 及无分卷关联的非草稿章节；
-    /// - `volume_id = N`（N != 1）：仅含关联到该分卷的非草稿章节；
+    /// 业务约束（`volume_sequence` 指分卷的业务序号，非主键 id）：
+    /// - `volume_sequence = 1`（首卷）：含关联到首卷及无分卷关联的非草稿章节；
+    /// - `volume_sequence = N`（N != 1）：仅含关联到该分卷的非草稿章节；
     /// - 若分卷下无任何非草稿章节，返回 `None`。
     async fn get_max_sequence_in_volume(
         &self,
         novel_id: Uuid,
-        volume_id: i64,
+        volume_sequence: i64,
     ) -> Result<Option<i64>, DbError>;
 }
 
@@ -166,21 +166,22 @@ impl SqliteChapterRepository {
         Ok(PaginatedResult { data, total })
     }
 
-    /// 查询默认分卷（序号=1）下的非草稿章节，同时包含无分卷关联的章节。
-    async fn query_default_volume_chapters(
+    /// 查询首卷（volume_sequence=1）下的非草稿章节，同时包含无分卷关联的章节。
+    async fn query_first_volume_chapters(
         &self,
         novel_id: Uuid,
         sort_col: &str,
         sort_dir: &str,
         pagination: &PaginationParams,
     ) -> Result<PaginatedResult<Chapter>, DbError> {
-        // 过滤条件：非草稿 且（关联到 volume 1 或 无任何 volume 关联）
+        // 过滤条件：非草稿 且（关联到首卷 或 无任何 volume 关联）
         let where_sql = "c.novel_id = ?1 AND c.sequence >= 0
-             AND (vc.volume_id = 1 OR vc.volume_id IS NULL)";
+             AND (v.sequence = 1 OR vc.volume_id IS NULL)";
 
         let count_sql = format!(
             "SELECT COUNT(*) FROM chapters c
              LEFT JOIN volume_chapters vc ON vc.chapter_id = c.id
+             LEFT JOIN volumes v ON v.id = vc.volume_id
              WHERE {}",
             where_sql
         );
@@ -192,6 +193,7 @@ impl SqliteChapterRepository {
         let data_sql = format!(
             "SELECT c.* FROM chapters c
              LEFT JOIN volume_chapters vc ON vc.chapter_id = c.id
+             LEFT JOIN volumes v ON v.id = vc.volume_id
              WHERE {}
              ORDER BY c.{} {} LIMIT ?2 OFFSET ?3",
             where_sql, sort_col, sort_dir
@@ -207,18 +209,18 @@ impl SqliteChapterRepository {
         Ok(PaginatedResult { data, total })
     }
 
-    /// 查询非草稿章节；有 `volume_id` 时按分卷过滤，无则查全部非草稿章节。
+    /// 查询非草稿章节；有 `volume_sequence` 时按分卷过滤，无则查全部非草稿章节。
     async fn query_non_draft_chapters(
         &self,
         novel_id: Uuid,
-        volume_id: Option<i64>,
+        volume_sequence: Option<i64>,
         sort_col: &str,
         sort_dir: &str,
         pagination: &PaginationParams,
     ) -> Result<PaginatedResult<Chapter>, DbError> {
-        match volume_id {
-            Some(vid) => {
-                self.query_by_volume(novel_id, vid, sort_col, sort_dir, pagination)
+        match volume_sequence {
+            Some(vseq) => {
+                self.query_by_volume_sequence(novel_id, vseq, sort_col, sort_dir, pagination)
                     .await
             }
             None => {
@@ -228,11 +230,11 @@ impl SqliteChapterRepository {
         }
     }
 
-    /// 按指定分卷查询非草稿章节。
-    async fn query_by_volume(
+    /// 按指定分卷序号查询非草稿章节。
+    async fn query_by_volume_sequence(
         &self,
         novel_id: Uuid,
-        volume_id: i64,
+        volume_sequence: i64,
         sort_col: &str,
         sort_dir: &str,
         pagination: &PaginationParams,
@@ -240,24 +242,26 @@ impl SqliteChapterRepository {
         let total: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM chapters c
              INNER JOIN volume_chapters vc ON vc.chapter_id = c.id
-             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND vc.volume_id = ?2",
+             INNER JOIN volumes v ON v.id = vc.volume_id
+             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND v.sequence = ?2",
         )
         .bind(novel_id)
-        .bind(volume_id)
+        .bind(volume_sequence)
         .fetch_one(&self.pool)
         .await?;
 
         let data_sql = format!(
             "SELECT c.* FROM chapters c
              INNER JOIN volume_chapters vc ON vc.chapter_id = c.id
-             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND vc.volume_id = ?2
+             INNER JOIN volumes v ON v.id = vc.volume_id
+             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND v.sequence = ?2
              ORDER BY c.{} {} LIMIT ?3 OFFSET ?4",
             sort_col, sort_dir
         );
         let offset = (pagination.page - 1) * pagination.page_size;
         let data = sqlx::query_as::<_, Chapter>(&data_sql)
             .bind(novel_id)
-            .bind(volume_id)
+            .bind(volume_sequence)
             .bind(pagination.page_size)
             .bind(offset)
             .fetch_all(&self.pool)
@@ -418,15 +422,16 @@ impl SqliteChapterRepository {
         Ok(())
     }
 
-    /// 查询默认分卷（volume_id=1）下的最大 sequence。
+    /// 查询首卷（volume_sequence=1）下的最大 sequence。
     ///
-    /// 包含：关联到分卷 1 的非草稿章节 + 无 `volume_chapters` 关联的非草稿章节。
-    async fn max_sequence_default_volume(&self, novel_id: Uuid) -> Result<Option<i64>, DbError> {
+    /// 包含：关联到首卷的非草稿章节 + 无 `volume_chapters` 关联的非草稿章节。
+    async fn max_sequence_first_volume(&self, novel_id: Uuid) -> Result<Option<i64>, DbError> {
         let row: Option<(Option<i64>,)> = sqlx::query_as(
             "SELECT MAX(c.sequence) FROM chapters c
              LEFT JOIN volume_chapters vc ON vc.chapter_id = c.id
+             LEFT JOIN volumes v ON v.id = vc.volume_id
              WHERE c.novel_id = ?1 AND c.sequence >= 0
-               AND (vc.volume_id = 1 OR vc.volume_id IS NULL)",
+               AND (v.sequence = 1 OR vc.volume_id IS NULL)",
         )
         .bind(novel_id)
         .fetch_optional(&self.pool)
@@ -435,19 +440,20 @@ impl SqliteChapterRepository {
         Ok(row.and_then(|(v,)| v))
     }
 
-    /// 查询指定（非默认）分卷下的最大 sequence。
-    async fn max_sequence_by_volume(
+    /// 查询指定（非首卷）分卷下的最大 sequence。
+    async fn max_sequence_by_volume_sequence(
         &self,
         novel_id: Uuid,
-        volume_id: i64,
+        volume_sequence: i64,
     ) -> Result<Option<i64>, DbError> {
         let row: Option<(Option<i64>,)> = sqlx::query_as(
             "SELECT MAX(c.sequence) FROM chapters c
              INNER JOIN volume_chapters vc ON vc.chapter_id = c.id
-             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND vc.volume_id = ?2",
+             INNER JOIN volumes v ON v.id = vc.volume_id
+             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND v.sequence = ?2",
         )
         .bind(novel_id)
-        .bind(volume_id)
+        .bind(volume_sequence)
         .fetch_optional(&self.pool)
         .await?;
 
@@ -476,18 +482,21 @@ impl SqliteChapterRepository {
         row.ok_or_else(|| DbError::Business("章节不存在".to_string()))
     }
 
-    /// 事务内查询指定分卷的最大 sequence（默认分卷含无关联章节）。
+    /// 事务内查询指定分卷的最大 sequence（首卷含无关联章节）。
+    ///
+    /// `volume_sequence` 为分卷的业务序号（非主键 id）。
     async fn max_sequence_in_volume_in_tx(
         tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
         novel_id: Uuid,
-        volume_id: i64,
+        volume_sequence: i64,
     ) -> Result<Option<i64>, DbError> {
-        if volume_id == 1 {
+        if volume_sequence == 1 {
             let row: Option<(Option<i64>,)> = sqlx::query_as(
                 "SELECT MAX(c.sequence) FROM chapters c
                  LEFT JOIN volume_chapters vc ON vc.chapter_id = c.id
+                 LEFT JOIN volumes v ON v.id = vc.volume_id
                  WHERE c.novel_id = ?1 AND c.sequence >= 0
-                   AND (vc.volume_id = 1 OR vc.volume_id IS NULL)",
+                   AND (v.sequence = 1 OR vc.volume_id IS NULL)",
             )
             .bind(novel_id)
             .fetch_optional(tx.as_mut())
@@ -498,13 +507,26 @@ impl SqliteChapterRepository {
         let row: Option<(Option<i64>,)> = sqlx::query_as(
             "SELECT MAX(c.sequence) FROM chapters c
              INNER JOIN volume_chapters vc ON vc.chapter_id = c.id
-             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND vc.volume_id = ?2",
+             INNER JOIN volumes v ON v.id = vc.volume_id
+             WHERE c.novel_id = ?1 AND c.sequence >= 0 AND v.sequence = ?2",
         )
         .bind(novel_id)
-        .bind(volume_id)
+        .bind(volume_sequence)
         .fetch_optional(tx.as_mut())
         .await?;
         Ok(row.and_then(|(v,)| v))
+    }
+
+    /// 事务内查询指定分卷的 `sequence`（业务序号）。
+    async fn fetch_volume_sequence_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        volume_id: i64,
+    ) -> Result<Option<i64>, DbError> {
+        let row: Option<(i64,)> = sqlx::query_as("SELECT sequence FROM volumes WHERE id = ?1")
+            .bind(volume_id)
+            .fetch_optional(tx.as_mut())
+            .await?;
+        Ok(row.map(|(s,)| s))
     }
 
     /// 事务内校验目标章节是否为所属分卷的末尾章节；非末尾则返回业务错误。
@@ -520,9 +542,16 @@ impl SqliteChapterRepository {
             return Err(DbError::Business("只能删除最后一个章节".to_string()));
         }
 
-        // 无分卷关联的章节归属默认分卷（id=1）
-        let effective_volume_id = volume_id.unwrap_or(1);
-        let max_seq = Self::max_sequence_in_volume_in_tx(tx, novel_id, effective_volume_id).await?;
+        // 无分卷关联的孤儿章节归属首卷（volume_sequence = 1）；
+        // 有关联时先反查该分卷的 sequence。
+        let effective_volume_sequence = match volume_id {
+            None => 1,
+            Some(vid) => Self::fetch_volume_sequence_in_tx(tx, vid)
+                .await?
+                .ok_or_else(|| DbError::Business("章节所属分卷不存在".to_string()))?,
+        };
+        let max_seq =
+            Self::max_sequence_in_volume_in_tx(tx, novel_id, effective_volume_sequence).await?;
 
         if max_seq != Some(sequence) {
             return Err(DbError::Business("只能删除最后一个章节".to_string()));
@@ -776,26 +805,33 @@ impl ChapterRepository for SqliteChapterRepository {
                 .await;
         }
 
-        // volume_id = 1 时，需同时包含无分卷关联的非草稿章节
-        if query.volume_id == Some(1) {
+        // volume_sequence = 1 时（首卷），需同时包含无分卷关联的非草稿章节
+        if query.volume_sequence == Some(1) {
             return self
-                .query_default_volume_chapters(novel_id, &sort_col, &sort_dir, pagination)
+                .query_first_volume_chapters(novel_id, &sort_col, &sort_dir, pagination)
                 .await;
         }
 
-        self.query_non_draft_chapters(novel_id, query.volume_id, &sort_col, &sort_dir, pagination)
-            .await
+        self.query_non_draft_chapters(
+            novel_id,
+            query.volume_sequence,
+            &sort_col,
+            &sort_dir,
+            pagination,
+        )
+        .await
     }
 
     async fn get_max_sequence_in_volume(
         &self,
         novel_id: Uuid,
-        volume_id: i64,
+        volume_sequence: i64,
     ) -> Result<Option<i64>, DbError> {
-        // volume_id = 1 是默认分卷：需包含无分卷关联的章节
-        if volume_id == 1 {
-            return self.max_sequence_default_volume(novel_id).await;
+        // volume_sequence = 1 是首卷：需包含无分卷关联的章节
+        if volume_sequence == 1 {
+            return self.max_sequence_first_volume(novel_id).await;
         }
-        self.max_sequence_by_volume(novel_id, volume_id).await
+        self.max_sequence_by_volume_sequence(novel_id, volume_sequence)
+            .await
     }
 }

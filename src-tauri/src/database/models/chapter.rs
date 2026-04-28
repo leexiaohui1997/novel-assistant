@@ -107,16 +107,16 @@ pub struct UpdateChapter {
 
 /// 分页查询章节请求
 ///
-/// 业务说明：
-/// - `is_draft = true`：仅查询草稿章节（sequence = -1），忽略 `volume_id`
-/// - `is_draft = false` + `volume_id = Some(1)`：查非草稿且（属于分卷 1 或无分卷关联）
-/// - `is_draft = false` + `volume_id = Some(N)`（N != 1）：查非草稿且属于该分卷
-/// - `is_draft = false` + `volume_id = None`：查所有非草稿章节
+/// 业务说明（`volume_sequence` 为分卷的业务序号，非主键 id）：
+/// - `is_draft = true`：仅查询草稿章节（sequence = -1），忽略 `volume_sequence`
+/// - `is_draft = false` + `volume_sequence = Some(1)`：查非草稿且（属于首卷或无分卷关联）
+/// - `is_draft = false` + `volume_sequence = Some(N)`（N != 1）：查非草稿且属于 sequence=N 的分卷
+/// - `is_draft = false` + `volume_sequence = None`：查所有非草稿章节
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ChapterQuery {
-    /// 分卷序号（非草稿模式下有效）
-    pub volume_id: Option<i64>,
+    /// 分卷业务序号（非草稿模式下有效）
+    pub volume_sequence: Option<i64>,
     /// 是否草稿模式
     #[serde(default)]
     pub is_draft: bool,

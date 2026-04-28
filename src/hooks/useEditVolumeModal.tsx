@@ -87,7 +87,7 @@ export const useEditVolumeModal = ({
       if (!latest.id) return false
       try {
         const res = await getChaptersWithPagination(novelId, 1, 1, {
-          volumeId: latest.sequence,
+          volumeSequence: latest.sequence,
           isDraft: false,
         })
         return res.total > 0

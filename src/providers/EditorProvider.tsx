@@ -29,7 +29,7 @@ import { numToCn } from '@/utils/number'
  */
 const fetchNextChapterSequence = async (novelId: string, volumeId: number): Promise<number> => {
   const result = await getChaptersWithPagination(novelId, 1, 1, {
-    volumeId,
+    volumeSequence: volumeId,
     sortField: 'sequence',
     sortOrder: 'desc',
   })

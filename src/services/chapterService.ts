@@ -33,8 +33,8 @@ export interface Volume extends SimpleVolume {
 
 /** 章节分页查询参数 */
 export interface ChapterQuery {
-  /** 分卷 ID；草稿模式下会被后端忽略 */
-  volumeId?: number
+  /** 分卷业务序号（非主键 id）；草稿模式下会被后端忽略 */
+  volumeSequence?: number
   /** 是否草稿模式 */
   isDraft?: boolean
   /** 排序字段：sequence / title / createdAt / updatedAt */

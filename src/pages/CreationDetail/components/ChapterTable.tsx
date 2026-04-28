@@ -78,7 +78,7 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
     try {
       const query: ChapterQuery = {
         isDraft,
-        volumeId: isDraft ? undefined : volumeSequence,
+        volumeSequence: isDraft ? undefined : volumeSequence,
         sortField,
         sortOrder,
       }
