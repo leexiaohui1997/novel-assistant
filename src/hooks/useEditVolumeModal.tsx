@@ -156,7 +156,7 @@ export const useEditVolumeModal = ({
     (v: SimpleVolume, idx: number) => {
       if (volumes.length <= 1) return { deletable: false, reason: '至少保留一卷' }
       if (idx !== volumes.length - 1) return { deletable: false, reason: '仅可删除最后一卷' }
-      if (v.id && latestHasChapters) {
+      if (v.id >= 0 && latestHasChapters) {
         return { deletable: false, reason: '该卷下存在章节，无法删除' }
       }
       return { deletable: true, reason: '' }

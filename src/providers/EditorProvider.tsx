@@ -24,12 +24,15 @@ import { numToCn } from '@/utils/number'
  * 查询指定分卷下「下一章」的序号（末章 sequence + 1，无章节则为 1）
  *
  * @param novelId - 小说 ID
- * @param volumeId - 分卷 ID
+ * @param volumeSequence - 分卷业务序号
  * @returns 下一章的 sequence
  */
-const fetchNextChapterSequence = async (novelId: string, volumeId: number): Promise<number> => {
+const fetchNextChapterSequence = async (
+  novelId: string,
+  volumeSequence: number,
+): Promise<number> => {
   const result = await getChaptersWithPagination(novelId, 1, 1, {
-    volumeSequence: volumeId,
+    volumeSequence,
     sortField: 'sequence',
     sortOrder: 'desc',
   })
@@ -167,16 +170,16 @@ const useLoadVolumes = (
 const useNextSequence = (
   isEdit: boolean,
   novelId: string,
-  selectedVolumeId: number | undefined,
+  selectedSequence: number | undefined,
 ): number | null => {
   const [nextSequence, setNextSequence] = useState<number | null>(null)
 
   useEffect(() => {
-    if (isEdit || !selectedVolumeId) return
+    if (isEdit || !selectedSequence) return
     let cancelled = false
     const run = async () => {
       try {
-        const next = await fetchNextChapterSequence(novelId, selectedVolumeId)
+        const next = await fetchNextChapterSequence(novelId, selectedSequence)
         if (!cancelled) setNextSequence(next)
       } catch (e) {
         logger.error('加载下一章序号失败:', e)
@@ -187,7 +190,7 @@ const useNextSequence = (
     return () => {
       cancelled = true
     }
-  }, [isEdit, novelId, selectedVolumeId])
+  }, [isEdit, novelId, selectedSequence])
 
   return nextSequence
 }
@@ -374,14 +377,14 @@ const EditorModal: React.FC<EditorOpenOptions & { onClose: () => void }> = ({
 
   const isEdit = Boolean(chapter)
 
-  // 当前选中分卷对应的分卷 ID
+  // 当前选中分卷对应的分卷 ID（用于保存章节时写入 volume_chapters 关联）
   const selectedVolumeId = useMemo(
     () => volumes.find((v) => v.sequence === selectedSequence)?.id,
     [volumes, selectedSequence],
   )
 
-  // 新建模式下的下一章序号
-  const nextSequence = useNextSequence(isEdit, novel.id, selectedVolumeId)
+  // 新建模式下的下一章序号（按分卷 sequence 查询）
+  const nextSequence = useNextSequence(isEdit, novel.id, selectedSequence)
   const chapterSequence = computeChapterSequence(isEdit, chapter, nextSequence)
 
   // 分卷选择器选项
