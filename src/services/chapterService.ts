@@ -242,3 +242,36 @@ export function resolveVolumesWithDefault<T extends SimpleVolume | Volume>(
   }
   return list
 }
+
+/** 章节历史版本实体（后端返回结构，字段 camelCase） */
+export interface ChapterVersion {
+  id: string
+  chapterId: string
+  title: string
+  content: string
+  wordCount: number
+  /** 该版本文章的更新时间（即快照时刻章节的 updatedAt） */
+  savedAt: string
+  /** 快照记录的插入时间 */
+  createdAt: string
+}
+
+/**
+ * 查询指定章节的全部历史版本（按 savedAt 倒序）
+ *
+ * @param chapterId - 章节 ID
+ * @returns 历史版本列表
+ */
+export async function getChapterVersions(chapterId: string): Promise<ChapterVersion[]> {
+  try {
+    logger.debug('调用查询章节历史版本 API:', chapterId)
+
+    const result = await invoke<ChapterVersion[]>('get_chapter_versions', { chapterId })
+
+    logger.debug('获取到章节历史版本:', result.length, '条')
+    return result
+  } catch (error) {
+    logger.error('查询章节历史版本失败:', error)
+    throw error
+  }
+}

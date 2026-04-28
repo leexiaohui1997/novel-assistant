@@ -9,6 +9,7 @@ use crate::database::error::DbError;
 use crate::database::models::chapter::{
     Chapter, ChapterQuery, NewChapter, NewVolume, UpdateChapter, UpdateVolume, Volume, VolumeUpsert,
 };
+use crate::database::repositories::chapter_version_repo::SqliteChapterVersionRepository;
 use crate::utils::pagination::{PaginatedResult, PaginationParams};
 
 #[async_trait]
@@ -558,6 +559,94 @@ impl SqliteChapterRepository {
         }
         Ok(())
     }
+
+    /// 事务内：按章节 ID 读取完整章节记录（用于更新前读取旧内容）。
+    async fn fetch_chapter_by_id_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        chapter_id: Uuid,
+    ) -> Result<Chapter, DbError> {
+        let chapter = sqlx::query_as::<_, Chapter>("SELECT * FROM chapters WHERE id = ?1")
+            .bind(chapter_id)
+            .fetch_optional(tx.as_mut())
+            .await?
+            .ok_or_else(|| DbError::Business("章节不存在".to_string()))?;
+        Ok(chapter)
+    }
+
+    /// 事务内：若标题或正文发生变化，则记录一条版本快照并在超限时裁剪最旧记录。
+    ///
+    /// `saved_at` 使用旧章节的 `updated_at`，以真实反映该版本对应的文章更新时间。
+    async fn record_version_if_changed_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        old: &Chapter,
+        new_title: &str,
+        new_content: &str,
+    ) -> Result<(), DbError> {
+        let unchanged = old.title == new_title && old.content == new_content;
+        if unchanged {
+            return Ok(());
+        }
+        SqliteChapterVersionRepository::save_snapshot_in_tx(
+            tx,
+            old.id,
+            &old.title,
+            &old.content,
+            old.word_count,
+            old.updated_at,
+        )
+        .await
+    }
+
+    /// 事务内：执行章节主表的更新语句，返回更新后的完整章节。
+    async fn update_chapter_row_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        chapter_id: Uuid,
+        payload: &UpdateChapter,
+    ) -> Result<Chapter, DbError> {
+        let now = Utc::now();
+        let word_count = Self::count_words(&payload.content);
+
+        let chapter = sqlx::query_as::<_, Chapter>(
+            "UPDATE chapters
+             SET title = ?1, content = ?2, word_count = ?3, sequence = COALESCE(?4, sequence), updated_at = ?5
+             WHERE id = ?6
+             RETURNING *",
+        )
+        .bind(&payload.title)
+        .bind(&payload.content)
+        .bind(word_count)
+        .bind(payload.sequence)
+        .bind(now)
+        .bind(chapter_id)
+        .fetch_one(tx.as_mut())
+        .await?;
+        Ok(chapter)
+    }
+
+    /// 事务内：重建章节与分卷的关联（先清理旧关联，有新分卷再插入）。
+    async fn rebuild_chapter_volume_link_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+        chapter: &Chapter,
+        volume_id: Option<i64>,
+    ) -> Result<(), DbError> {
+        sqlx::query("DELETE FROM volume_chapters WHERE chapter_id = ?1")
+            .bind(chapter.id)
+            .execute(tx.as_mut())
+            .await?;
+
+        if let Some(vid) = volume_id {
+            sqlx::query(
+                "INSERT INTO volume_chapters (novel_id, volume_id, chapter_id)
+                 VALUES (?1, ?2, ?3)",
+            )
+            .bind(chapter.novel_id)
+            .bind(vid)
+            .bind(chapter.id)
+            .execute(tx.as_mut())
+            .await?;
+        }
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -727,42 +816,24 @@ impl ChapterRepository for SqliteChapterRepository {
         payload: &UpdateChapter,
     ) -> Result<Chapter, DbError> {
         let mut tx = self.pool.begin().await?;
-        let now = Utc::now();
-        let word_count = Self::count_words(&payload.content);
 
-        // sequence 为空时保持原值不变。
-        let chapter = sqlx::query_as::<_, Chapter>(
-            "UPDATE chapters
-             SET title = ?1, content = ?2, word_count = ?3, sequence = COALESCE(?4, sequence), updated_at = ?5
-             WHERE id = ?6
-             RETURNING *",
+        // 1) 读取旧章节：用于后续比较与版本快照
+        let old_chapter = Self::fetch_chapter_by_id_in_tx(&mut tx, chapter_id).await?;
+
+        // 2) 标题或正文变化时，记录一条版本快照（saved_at = 旧 updated_at）
+        Self::record_version_if_changed_in_tx(
+            &mut tx,
+            &old_chapter,
+            &payload.title,
+            &payload.content,
         )
-        .bind(&payload.title)
-        .bind(&payload.content)
-        .bind(word_count)
-        .bind(payload.sequence)
-        .bind(now)
-        .bind(chapter_id)
-        .fetch_one(tx.as_mut())
         .await?;
 
-        // 更新分卷关联采用“先清理再重建”，保证最终只有一条有效关联。
-        sqlx::query("DELETE FROM volume_chapters WHERE chapter_id = ?1")
-            .bind(chapter_id)
-            .execute(tx.as_mut())
-            .await?;
+        // 3) 执行章节主表更新，重算字数
+        let chapter = Self::update_chapter_row_in_tx(&mut tx, chapter_id, payload).await?;
 
-        if let Some(volume_id) = payload.volume_id {
-            sqlx::query(
-                "INSERT INTO volume_chapters (novel_id, volume_id, chapter_id)
-                 VALUES (?1, ?2, ?3)",
-            )
-            .bind(chapter.novel_id)
-            .bind(volume_id)
-            .bind(chapter.id)
-            .execute(tx.as_mut())
-            .await?;
-        }
+        // 4) 重建分卷关联（先清理再按需插入）
+        Self::rebuild_chapter_volume_link_in_tx(&mut tx, &chapter, payload.volume_id).await?;
 
         tx.commit().await?;
         Ok(chapter)

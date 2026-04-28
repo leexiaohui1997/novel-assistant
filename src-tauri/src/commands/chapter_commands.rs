@@ -5,6 +5,7 @@ use crate::database::models::chapter::{
     Chapter, ChapterQuery, ChapterResponse, NewChapter, NewVolume, UpdateChapter, UpdateVolume,
     Volume, VolumeUpsert,
 };
+use crate::database::models::chapter_version::ChapterVersion;
 use crate::utils::pagination::{PaginatedResult, PaginationParams};
 use crate::AppState;
 
@@ -162,4 +163,15 @@ pub async fn get_chapters_with_pagination(
         data: build_chapter_responses(page_result.data, max_sequence),
         total: page_result.total,
     })
+}
+
+/// 查询指定章节的全部历史版本（按 saved_at 倒序）。
+#[tauri::command]
+pub async fn get_chapter_versions(
+    state: State<'_, AppState>,
+    chapter_id: String,
+) -> Result<Vec<ChapterVersion>, String> {
+    let uuid = Uuid::parse_str(&chapter_id).map_err(|e| e.to_string())?;
+    let repo = state.chapter_version_repo.read().await;
+    repo.list_by_chapter(uuid).await.map_err(|e| e.to_string())
 }

@@ -26,12 +26,10 @@ export const initialValue: Descendant[] = [
  */
 export function deserializeValue(text: string): Descendant[] {
   if (!text) return initialValue
-  return [
-    {
-      type: 'paragraph',
-      children: [{ text }],
-    } as NovelElement,
-  ]
+  return text.split('\n').map((line) => ({
+    type: 'paragraph',
+    children: [{ text: line }],
+  })) as NovelElement[]
 }
 
 /**

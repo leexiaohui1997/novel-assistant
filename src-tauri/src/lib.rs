@@ -9,7 +9,7 @@ use tokio::sync::RwLock;
 
 use commands::chapter_commands::{
     batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
-    get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
+    get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
 };
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
 use commands::novel_commands::{
@@ -18,14 +18,16 @@ use commands::novel_commands::{
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
-    ChapterRepository, CreationStateRepository, NovelRepository, SqliteChapterRepository,
-    SqliteCreationStateRepository, SqliteNovelRepository, SqliteTagRepository, TagRepository,
+    ChapterRepository, ChapterVersionRepository, CreationStateRepository, NovelRepository,
+    SqliteChapterRepository, SqliteChapterVersionRepository, SqliteCreationStateRepository,
+    SqliteNovelRepository, SqliteTagRepository, TagRepository,
 };
 use tauri::Builder;
 
 pub struct AppState {
     pub novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
     pub chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
+    pub chapter_version_repo: Arc<RwLock<Box<dyn ChapterVersionRepository + Send + Sync>>>,
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
     pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
 }
@@ -46,6 +48,7 @@ pub async fn run() {
     // 创建仓储实例
     let novel_repo = SqliteNovelRepository::new(pool.clone());
     let chapter_repo = SqliteChapterRepository::new(pool.clone());
+    let chapter_version_repo = SqliteChapterVersionRepository::new(pool.clone());
     let tag_repo = SqliteTagRepository::new(pool.clone());
     let creation_state_repo = SqliteCreationStateRepository::new(pool.clone());
 
@@ -53,6 +56,7 @@ pub async fn run() {
     let state = AppState {
         novel_repo: Arc::new(RwLock::new(Box::new(novel_repo))),
         chapter_repo: Arc::new(RwLock::new(Box::new(chapter_repo))),
+        chapter_version_repo: Arc::new(RwLock::new(Box::new(chapter_version_repo))),
         tag_repo: Arc::new(RwLock::new(Box::new(tag_repo))),
         creation_state_repo: Arc::new(RwLock::new(Box::new(creation_state_repo))),
     };
@@ -74,6 +78,7 @@ pub async fn run() {
             update_chapter,
             delete_chapter,
             get_chapters_with_pagination,
+            get_chapter_versions,
             get_tags_by_audience,
             get_tags_by_ids,
             get_creation_state,

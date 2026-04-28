@@ -1,12 +1,14 @@
 import { HistoryOutlined, LeftOutlined } from '@ant-design/icons'
 import { Button, Input, Modal, Select, Tooltip, message } from 'antd'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { EditorContext } from './EditorContext'
 
 import type { EditorContextType, EditorOpenOptions } from './EditorContext'
+import type { EditorHandle } from '@/components/Editor'
 
 import Editor from '@/components/Editor'
+import VersionDrawer from '@/components/VersionDrawer'
 import {
   DEFAULT_VOLUME_SEQUENCE,
   createChapter,
@@ -15,6 +17,7 @@ import {
   resolveVolumesWithDefault,
   updateChapter,
   type Chapter,
+  type ChapterVersion,
   type Volume,
 } from '@/services/chapterService'
 import { logger } from '@/utils/logger'
@@ -319,6 +322,10 @@ interface EditorHeaderProps {
   saving: boolean
   onSave: () => void
   onClose: () => void
+  /** 历史记录按钮点击回调 */
+  onOpenHistory: () => void
+  /** 历史记录按钮是否禁用（新建模式下禁用） */
+  historyDisabled: boolean
 }
 
 /** 编辑器顶部栏 */
@@ -333,6 +340,8 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   saving,
   onSave,
   onClose,
+  onOpenHistory,
+  historyDisabled,
 }) => {
   const sequenceLabel = chapterSequence === null ? '' : `第 ${chapterSequence} 章`
   return (
@@ -354,7 +363,12 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
       </div>
       <div className="flex items-center gap-2">
         <Tooltip title="历史记录" placement="bottom" mouseEnterDelay={1} color="white">
-          <Button type="text" icon={<HistoryOutlined />} />
+          <Button
+            type="text"
+            icon={<HistoryOutlined />}
+            disabled={historyDisabled}
+            onClick={onOpenHistory}
+          />
         </Tooltip>
         <Button type="primary" shape="round" loading={saving} onClick={onSave}>
           保存
@@ -371,6 +385,7 @@ const EditorModal: React.FC<
   // 新建转编辑：首次保存成功后用后端返回的 chapter 更新引用
   const [activeChapter, setActiveChapter] = useState(initialChapter)
   const isEdit = Boolean(activeChapter)
+  const editorRef = useRef<EditorHandle>(null)
 
   // 分卷列表与选中项
   const { volumes, selectedSequence, setSelectedSequence } = useLoadVolumes(novel.id, sequence)
@@ -414,6 +429,22 @@ const EditorModal: React.FC<
     [activeChapter, onChapterCreated, onSubmit, resetBaseline],
   )
 
+  // 历史版本 Drawer 开关
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const openHistory = useCallback(() => setHistoryOpen(true), [])
+  const closeHistory = useCallback(() => setHistoryOpen(false), [])
+
+  // 应用历史版本：覆盖标题/正文，不自动保存，Drawer 保持打开
+  const handleApplyVersion = useCallback(
+    (version: ChapterVersion) => {
+      setTitle(version.title)
+      setContent(version.content)
+      editorRef.current?.setContent(version.content)
+      messageApi.success('应用成功')
+    },
+    [setTitle, setContent, messageApi],
+  )
+
   // 保存处理
   const { saving, handleSave } = useSaveHandler({
     chapter: activeChapter,
@@ -452,6 +483,8 @@ const EditorModal: React.FC<
             saving={saving}
             onSave={handleSave}
             onClose={handleClose}
+            onOpenHistory={openHistory}
+            historyDisabled={!isEdit}
           />
         }
         className="w-full! h-full! max-w-full!"
@@ -483,6 +516,7 @@ const EditorModal: React.FC<
 
             {/* 正文 */}
             <Editor
+              ref={editorRef}
               className="flex-1"
               placeholder="请输入正文"
               value={content}
@@ -491,6 +525,12 @@ const EditorModal: React.FC<
           </div>
         </div>
       </Modal>
+      <VersionDrawer
+        open={historyOpen}
+        onClose={closeHistory}
+        chapterId={activeChapter?.id}
+        onApply={handleApplyVersion}
+      />
     </>
   )
 }
