@@ -22,13 +22,13 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
     path: '/novels',
   },
   {
-    key: 'ai',
-    label: 'AI助手',
+    key: 'settings',
+    label: '设置',
     children: [
       {
-        key: 'ai-settings',
-        label: '设置',
-        path: '/ai/settings',
+        key: 'ai-providers',
+        label: '供应商管理',
+        path: '/settings/providers',
       },
     ],
   },

@@ -81,26 +81,12 @@ export const ROUTES_CONFIG: RouteObject[] = [
         ],
       },
       {
-        path: '/ai/settings',
-        element: lazyElement(() => import('@/pages/AI/Settings')),
+        id: 'ai-providers',
+        path: '/settings/providers',
+        element: lazyElement(() => import('@/pages/Settings/Providers')),
         handle: {
-          title: 'AI助手 - 设置',
-          activeMenuKey: 'ai-settings',
+          title: '供应商管理',
         } satisfies RouteHandle,
-        children: [
-          {
-            index: true,
-            element: <Navigate to="./models" replace />,
-          },
-          {
-            id: 'ai-settings-models',
-            path: 'models',
-            element: lazyElement(() => import('@/pages/AI/Settings/Models')),
-            handle: {
-              title: 'AI助手 - 模型管理',
-            } satisfies RouteHandle,
-          },
-        ],
       },
     ],
   },

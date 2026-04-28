@@ -15,12 +15,16 @@ use commands::creation_state_commands::{get_creation_state, upsert_creation_stat
 use commands::novel_commands::{
     create_novel, get_novel_by_id, get_novels, get_novels_with_pagination, update_novel,
 };
+use commands::provider_commands::{
+    create_provider, delete_provider, get_providers_with_pagination, update_provider,
+};
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
     ChapterRepository, ChapterVersionRepository, CreationStateRepository, NovelRepository,
-    SqliteChapterRepository, SqliteChapterVersionRepository, SqliteCreationStateRepository,
-    SqliteNovelRepository, SqliteTagRepository, TagRepository,
+    ProviderRepository, SqliteChapterRepository, SqliteChapterVersionRepository,
+    SqliteCreationStateRepository, SqliteNovelRepository, SqliteProviderRepository,
+    SqliteTagRepository, TagRepository,
 };
 use tauri::Builder;
 
@@ -30,6 +34,7 @@ pub struct AppState {
     pub chapter_version_repo: Arc<RwLock<Box<dyn ChapterVersionRepository + Send + Sync>>>,
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
     pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
+    pub provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
 }
 
 pub async fn run() {
@@ -51,6 +56,7 @@ pub async fn run() {
     let chapter_version_repo = SqliteChapterVersionRepository::new(pool.clone());
     let tag_repo = SqliteTagRepository::new(pool.clone());
     let creation_state_repo = SqliteCreationStateRepository::new(pool.clone());
+    let provider_repo = SqliteProviderRepository::new(pool.clone());
 
     // 创建应用状态
     let state = AppState {
@@ -59,6 +65,7 @@ pub async fn run() {
         chapter_version_repo: Arc::new(RwLock::new(Box::new(chapter_version_repo))),
         tag_repo: Arc::new(RwLock::new(Box::new(tag_repo))),
         creation_state_repo: Arc::new(RwLock::new(Box::new(creation_state_repo))),
+        provider_repo: Arc::new(RwLock::new(Box::new(provider_repo))),
     };
 
     Builder::default()
@@ -82,7 +89,11 @@ pub async fn run() {
             get_tags_by_audience,
             get_tags_by_ids,
             get_creation_state,
-            upsert_creation_state
+            upsert_creation_state,
+            create_provider,
+            get_providers_with_pagination,
+            update_provider,
+            delete_provider
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");
