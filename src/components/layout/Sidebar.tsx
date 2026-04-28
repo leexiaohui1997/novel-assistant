@@ -8,7 +8,7 @@ import type { MenuItem } from '@/config'
 import { useRouteMeta } from '@/hooks/useRouteMeta'
 import { useAppSelector, useAppDispatch } from '@/store/hooks'
 import { setActiveMenuKey } from '@/store/slices/uiSlice'
-import { deepFindArr } from '@/utils/array'
+import { deepFindArr, deepFindArrWithPath } from '@/utils/array'
 
 import './styles.css'
 
@@ -35,6 +35,13 @@ const Sidebar: React.FC = () => {
     return routeMeta.activeMenuKey || last(matches)?.id || ''
   }, [matches, routeMeta])
 
+  const defaultOpenKeys = useMemo(() => {
+    return deepFindArrWithPath(
+      menuItems,
+      (item) => item.children?.some((child) => child.key === activeMenuKey) || false,
+    ).map((item) => item.key)
+  }, [menuItems, activeMenuKey])
+
   // 监听路由变化，同步菜单高亮状态
   useEffect(() => {
     const foundItem = deepFindArr<MenuItem>(menuItems, (item) => item.path === location.pathname)
@@ -57,6 +64,7 @@ const Sidebar: React.FC = () => {
         <Menu
           mode="inline"
           selectedKeys={[activeMenuKey]}
+          defaultOpenKeys={defaultOpenKeys}
           items={convertMenuItems(menuItems)}
           onClick={handleMenuClick}
           style={{ borderRight: 'none' }}

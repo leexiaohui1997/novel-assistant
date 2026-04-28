@@ -94,17 +94,20 @@ interface SaveChapterParams {
 }
 
 /**
- * 按模式（新建 / 编辑）分派到对应 API
+ * 按模式(新建 / 编辑)分派到对应 API
  *
- * 新建时将 `sequence` 一起传给后端，直接落库为正式章节；
+ * 新建时将 `sequence` 一起传给后端,直接落库为正式章节;
  * 编辑时保留原有章节序号不变。
  */
 const saveChapter = async (params: SaveChapterParams): Promise<Chapter> => {
   const { chapter, novelId, title, content, volumeId, sequence } = params
+  // 过滤虚拟分卷(id === 0),避免外键约束错误
+  const validVolumeId = volumeId && volumeId > 0 ? volumeId : undefined
+
   if (chapter) {
-    return updateChapter(chapter.id, { title, content, sequence, volumeId })
+    return updateChapter(chapter.id, { title, content, sequence, volumeId: validVolumeId })
   }
-  return createChapter(novelId, { title, content, volumeId, sequence })
+  return createChapter(novelId, { title, content, volumeId: validVolumeId, sequence })
 }
 
 /**

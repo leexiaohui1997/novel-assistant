@@ -74,10 +74,11 @@
 /* Main Content 样式 */
 .main-content {
   flex: 1;
-  margin-left: calc(var(--sidebar-width) + var(--gap));
+  width: 100%;
+  padding-left: calc(var(--sidebar-width) + var(--gap));
 }
 
 /* 无侧边栏时 */
 .layout-container--no-sidebar .main-content {
-  margin-left: 0;
+  padding-left: 0;
 }
