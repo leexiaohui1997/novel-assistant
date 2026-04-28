@@ -7,9 +7,12 @@ import React, {
   useState,
 } from 'react'
 import { createEditor, Descendant, Editor as SlateEditor, Node, Transforms } from 'slate'
-import { Slate, Editable, withReact, useSlateSelector } from 'slate-react'
+import { withHistory, HistoryEditor } from 'slate-history'
+import { Slate, Editable, useSlate, withReact, useSlateSelector } from 'slate-react'
 
 import { deserializeValue, initialValue, serializeValue } from './utils/document'
+
+import { useShortcut } from '@/hooks/useShortcut'
 
 interface EditorProps {
   value?: string
@@ -25,6 +28,7 @@ export interface EditorHandle {
 }
 
 const EditorContent: React.FC<EditorProps> = ({ className, placeholder }) => {
+  const editor = useSlate()
   // 跟踪组合输入状态
   const [isComposing, setIsComposing] = useState(false)
 
@@ -43,6 +47,8 @@ const EditorContent: React.FC<EditorProps> = ({ className, placeholder }) => {
     return isEmpty
   })
 
+  const [onKeyDown] = useShortcut({ editor })
+
   return (
     <div className="flex-1 flex flex-col relative text-base indent-[2em]">
       {showPlaceholder && (
@@ -54,6 +60,7 @@ const EditorContent: React.FC<EditorProps> = ({ className, placeholder }) => {
         className={`py-2! px-2.75! flex-1 flex flex-col gap-4 outline-none ${className}`}
         onCompositionStart={() => setIsComposing(true)}
         onCompositionEnd={() => setIsComposing(false)}
+        onKeyDown={onKeyDown}
       />
     </div>
   )
@@ -61,7 +68,7 @@ const EditorContent: React.FC<EditorProps> = ({ className, placeholder }) => {
 
 const Editor = React.forwardRef<EditorHandle, EditorProps>((props, ref) => {
   const { value, onChange } = props
-  const editor = useMemo(() => withReact(createEditor()), [])
+  const editor = useMemo(() => withHistory(withReact(createEditor())), [])
   const onChangeRef = useRef(onChange)
   useEffect(() => {
     onChangeRef.current = onChange
@@ -71,15 +78,20 @@ const Editor = React.forwardRef<EditorHandle, EditorProps>((props, ref) => {
   useImperativeHandle(ref, () => ({
     setContent: (content: string) => {
       const nodes = deserializeValue(content)
-      // 先删除全部节点
-      Transforms.delete(editor, {
-        at: {
-          anchor: SlateEditor.start(editor, []),
-          focus: SlateEditor.end(editor, []),
-        },
+      // 使用 withNewBatch 确保本次替换作为独立的 undo 步骤
+      HistoryEditor.withNewBatch(editor, () => {
+        // 先删除全部节点
+        Transforms.delete(editor, {
+          at: {
+            anchor: SlateEditor.start(editor, []),
+            focus: SlateEditor.end(editor, []),
+          },
+        })
+        // withMerging 将插入操作合并到删除操作的同一批次
+        HistoryEditor.withMerging(editor, () => {
+          Transforms.insertNodes(editor, nodes, { at: [0], select: true })
+        })
       })
-      // 再插入新节点
-      Transforms.insertNodes(editor, nodes, { at: [0], select: true })
     },
   }))
 
