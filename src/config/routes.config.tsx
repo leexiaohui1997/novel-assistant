@@ -88,6 +88,14 @@ export const ROUTES_CONFIG: RouteObject[] = [
           title: '供应商管理',
         } satisfies RouteHandle,
       },
+      {
+        id: 'ai-models',
+        path: '/settings/models',
+        element: lazyElement(() => import('@/pages/Settings/Models/index')),
+        handle: {
+          title: '模型管理',
+        } satisfies RouteHandle,
+      },
     ],
   },
 ]

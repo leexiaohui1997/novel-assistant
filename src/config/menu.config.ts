@@ -30,6 +30,11 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
         label: '供应商管理',
         path: '/settings/providers',
       },
+      {
+        key: 'ai-models',
+        label: '模型管理',
+        path: '/settings/models',
+      },
     ],
   },
 ]

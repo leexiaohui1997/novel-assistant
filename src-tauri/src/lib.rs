@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod commands;
 pub mod config;
 pub mod database;
@@ -7,11 +8,13 @@ pub mod utils;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use ai::model_fetchers::FetcherRegistry;
 use commands::chapter_commands::{
     batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
     get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
 };
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
+use commands::model_commands::fetch_provider_models;
 use commands::novel_commands::{
     create_novel, get_novel_by_id, get_novels, get_novels_with_pagination, update_novel,
 };
@@ -35,6 +38,7 @@ pub struct AppState {
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
     pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
     pub provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
+    pub fetcher_registry: Arc<RwLock<FetcherRegistry>>,
 }
 
 pub async fn run() {
@@ -58,6 +62,9 @@ pub async fn run() {
     let creation_state_repo = SqliteCreationStateRepository::new(pool.clone());
     let provider_repo = SqliteProviderRepository::new(pool.clone());
 
+    // 创建模型拉取策略注册表
+    let fetcher_registry = FetcherRegistry::new();
+
     // 创建应用状态
     let state = AppState {
         novel_repo: Arc::new(RwLock::new(Box::new(novel_repo))),
@@ -66,8 +73,8 @@ pub async fn run() {
         tag_repo: Arc::new(RwLock::new(Box::new(tag_repo))),
         creation_state_repo: Arc::new(RwLock::new(Box::new(creation_state_repo))),
         provider_repo: Arc::new(RwLock::new(Box::new(provider_repo))),
+        fetcher_registry: Arc::new(RwLock::new(fetcher_registry)),
     };
-
     Builder::default()
         .manage(state)
         .invoke_handler(tauri::generate_handler![
@@ -93,7 +100,8 @@ pub async fn run() {
             create_provider,
             get_providers_with_pagination,
             update_provider,
-            delete_provider
+            delete_provider,
+            fetch_provider_models
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");
