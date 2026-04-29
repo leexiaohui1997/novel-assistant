@@ -45,20 +45,9 @@ const maskApiKey = (key?: string): string => {
   return `sk-****${key.slice(-4)}`
 }
 
-/** 添加/编辑供应商弹窗 */
-const AddProviderModal: React.FC<{
-  open: boolean
-  editingProvider?: Provider | null
-  onClose: () => void
-  onSuccess: () => void
-}> = ({ open, editingProvider, onClose, onSuccess }) => {
-  const [messageApi, contextHolder] = message.useMessage()
-  const [submitting, setSubmitting] = useState(false)
+/** 获取供应商拉取类型列表 */
+const useProviderTypes = () => {
   const [providerTypes, setProviderTypes] = useState<ProviderTypeInfo[]>([])
-  const formRef = useRef<FormInstance<ProviderFormValues>>(null)
-
-  const isEdit = !!editingProvider
-
   // 加载供应商拉取类型列表
   useEffect(() => {
     let cancelled = false
@@ -75,6 +64,22 @@ const AddProviderModal: React.FC<{
       cancelled = true
     }
   }, [])
+  return providerTypes
+}
+
+/** 添加/编辑供应商弹窗 */
+const AddProviderModal: React.FC<{
+  open: boolean
+  editingProvider?: Provider | null
+  onClose: () => void
+  onSuccess: () => void
+}> = ({ open, editingProvider, onClose, onSuccess }) => {
+  const [messageApi, contextHolder] = message.useMessage()
+  const [submitting, setSubmitting] = useState(false)
+  const formRef = useRef<FormInstance<ProviderFormValues>>(null)
+  const providerTypes = useProviderTypes()
+
+  const isEdit = !!editingProvider
 
   const handleOk = async () => {
     if (!formRef.current) return
@@ -200,27 +205,10 @@ const ProviderManage: React.FC = () => {
   const [refreshCounter, setRefreshCounter] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null)
-  const [providerTypes, setProviderTypes] = useState<ProviderTypeInfo[]>([])
+  const providerTypes = useProviderTypes()
 
   /** 手动刷新列表（增删改后调用） */
   const refreshList = () => setRefreshCounter((c) => c + 1)
-
-  // 加载供应商拉取类型列表（用于表格显示策略名称）
-  useEffect(() => {
-    let cancelled = false
-    const loadTypes = async () => {
-      try {
-        const types = await getProviderTypes()
-        if (!cancelled) setProviderTypes(types)
-      } catch (error) {
-        logger.error('获取供应商拉取类型失败:', error)
-      }
-    }
-    loadTypes()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   useEffect(() => {
     let cancelled = false

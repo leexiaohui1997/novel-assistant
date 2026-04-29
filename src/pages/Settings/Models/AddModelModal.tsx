@@ -1,4 +1,5 @@
-import { message, Modal, Space } from 'antd'
+import { Empty, message, Modal, Space, Table } from 'antd'
+import { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useImperativeHandle, useState } from 'react'
 
 import { ProviderSelect } from '@/components/ProviderSelect'
@@ -19,6 +20,7 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
   const [selectedProviderId, setSelectedProviderId] = useState<string>()
   const [fetchingModels, setFetchingModels] = useState(false)
   const [models, setModels] = useState<ModelInfo[]>([])
+  const [selectedModelIds, setSelectedModelIds] = useState<React.Key[]>([])
 
   const show = () => {
     setOpen(true)
@@ -40,6 +42,7 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
     const loadModels = async () => {
       if (!selectedProviderId) {
         setModels([])
+        setSelectedModelIds([])
         setFetchingModels(false)
         return
       }
@@ -49,6 +52,7 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
         const result = await fetchProviderModels(selectedProviderId)
         if (!cancelled) {
           setModels(result)
+          setSelectedModelIds([])
         }
       } catch (error) {
         if (!cancelled) {
@@ -69,7 +73,20 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
     }
   }, [selectedProviderId, messageApi])
 
-  console.log({ fetchingModels, models })
+  const columns: ColumnsType<ModelInfo> = [
+    {
+      title: '模型ID',
+      dataIndex: 'modelId',
+      key: 'modelId',
+    },
+    {
+      title: '模型名称',
+      dataIndex: 'modelName',
+      key: 'modelName',
+    },
+  ]
+
+  const emptyText = <Empty description={selectedProviderId ? '无可用模型' : '请选择供应商'} />
 
   return (
     <>
@@ -85,6 +102,22 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
               />
             </Space>
           </div>
+
+          <Table<ModelInfo>
+            rowKey="modelId"
+            columns={columns}
+            virtual={true}
+            loading={fetchingModels}
+            dataSource={models}
+            scroll={{ y: 400 }}
+            pagination={false}
+            locale={{ emptyText }}
+            rowSelection={{
+              columnWidth: 40,
+              selectedRowKeys: selectedModelIds,
+              onChange: setSelectedModelIds,
+            }}
+          ></Table>
         </div>
       </Modal>
     </>
