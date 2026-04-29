@@ -37,15 +37,17 @@ impl ProviderRepository for SqliteProviderRepository {
         let now = Utc::now();
         let is_enabled = provider.is_enabled.unwrap_or(true);
 
+        let model_fetch_type = provider.model_fetch_type.as_deref().unwrap_or("default");
         let created = sqlx::query_as::<_, Provider>(
-            "INSERT INTO ai_providers (id, name, base_url, api_key, is_enabled, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            "INSERT INTO ai_providers (id, name, base_url, api_key, model_fetch_type, is_enabled, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
              RETURNING *",
         )
         .bind(id)
         .bind(&provider.name)
         .bind(&provider.base_url)
         .bind(&provider.api_key)
+        .bind(model_fetch_type)
         .bind(is_enabled)
         .bind(now)
         .bind(now)
@@ -83,15 +85,17 @@ impl ProviderRepository for SqliteProviderRepository {
     async fn update(&self, id: Uuid, provider: &UpdateProvider) -> Result<Provider, DbError> {
         let now = Utc::now();
         let is_enabled = provider.is_enabled.unwrap_or(true);
+        let model_fetch_type = provider.model_fetch_type.as_deref().unwrap_or("default");
 
         let updated = sqlx::query_as::<_, Provider>(
-            "UPDATE ai_providers SET name = ?1, base_url = ?2, api_key = ?3, is_enabled = ?4, updated_at = ?5
-             WHERE id = ?6
+            "UPDATE ai_providers SET name = ?1, base_url = ?2, api_key = ?3, model_fetch_type = ?4, is_enabled = ?5, updated_at = ?6
+             WHERE id = ?7
              RETURNING *",
         )
         .bind(&provider.name)
         .bind(&provider.base_url)
         .bind(&provider.api_key)
+        .bind(model_fetch_type)
         .bind(is_enabled)
         .bind(now)
         .bind(id)

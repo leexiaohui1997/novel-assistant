@@ -2,14 +2,59 @@
 ///
 /// 用于标识不同的 AI 服务供应商，便于策略分发。
 /// 目前只提供 Default 变体，后续按需扩展（如 Openai、Anthropic 等）。
-use crate::string_enum;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ProviderType {
+    Default,
+    SiliconFlow,
+}
 
-string_enum! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub enum ProviderType {
-        Default,
-        SiliconFlow,
+impl ProviderType {
+    /// 返回所有供应商类型变体列表
+    pub fn all() -> &'static [ProviderType] {
+        &[ProviderType::Default, ProviderType::SiliconFlow]
     }
+
+    /// 返回供应商类型的 snake_case 标识符
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ProviderType::Default => "default",
+            ProviderType::SiliconFlow => "silicon_flow",
+        }
+    }
+
+    /// 返回供应商类型的中文显示名称
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            ProviderType::Default => "默认策略",
+            ProviderType::SiliconFlow => "SiliconFlow 策略",
+        }
+    }
+}
+
+impl std::fmt::Display for ProviderType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl std::str::FromStr for ProviderType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "default" => Ok(ProviderType::Default),
+            "silicon_flow" => Ok(ProviderType::SiliconFlow),
+            _ => Err(format!("无效的 ProviderType 值: {}", s)),
+        }
+    }
+}
+
+/// 供应商类型信息（用于前端下拉选择）
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderTypeInfo {
+    pub id: String,
+    pub name: String,
 }
 
 /// 从供应商拉取到的模型信息
@@ -102,7 +147,7 @@ impl FetchStrategy for SiliconFlowFetchStrategy {
         api_key: &str,
     ) -> Result<Vec<ModelInfo>, FetchError> {
         let trimmed_base_url = base_url.trim_end_matches('/');
-        let url = format!("{}/v1/models?type=text&sub_type=chat", trimmed_base_url);
+        let url = format!("{}/models?type=text&sub_type=chat", trimmed_base_url);
 
         let response = reqwest::Client::new()
             .get(&url)

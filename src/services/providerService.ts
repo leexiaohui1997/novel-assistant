@@ -9,6 +9,7 @@ export interface Provider {
   name: string
   baseUrl: string
   apiKey?: string
+  modelFetchType: string
   isEnabled: boolean
   createdAt: string
   updatedAt: string
@@ -19,6 +20,7 @@ export interface CreateProviderParams {
   name: string
   baseUrl: string
   apiKey?: string
+  modelFetchType?: string
   isEnabled?: boolean
 }
 
@@ -27,7 +29,14 @@ export interface UpdateProviderParams {
   name: string
   baseUrl: string
   apiKey?: string
+  modelFetchType?: string
   isEnabled?: boolean
+}
+
+/** 供应商拉取类型信息 */
+export interface ProviderTypeInfo {
+  id: string
+  name: string
 }
 
 /**
@@ -91,6 +100,21 @@ export async function deleteProvider(id: string): Promise<void> {
     logger.debug('供应商删除成功:', id)
   } catch (error) {
     logger.error('删除供应商失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 获取当前支持的供应商拉取类型列表
+ */
+export async function getProviderTypes(): Promise<ProviderTypeInfo[]> {
+  try {
+    logger.debug('调用获取供应商拉取类型列表 API')
+    const result = await invoke<ProviderTypeInfo[]>('get_provider_types')
+    logger.debug('获取到供应商拉取类型列表:', result.length, '种')
+    return result
+  } catch (error) {
+    logger.error('获取供应商拉取类型列表失败:', error)
     throw error
   }
 }

@@ -14,7 +14,7 @@ use commands::chapter_commands::{
     get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
 };
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
-use commands::model_commands::fetch_provider_models;
+use commands::model_commands::{fetch_provider_models, get_provider_types};
 use commands::novel_commands::{
     create_novel, get_novel_by_id, get_novels, get_novels_with_pagination, update_novel,
 };
@@ -101,7 +101,8 @@ pub async fn run() {
             get_providers_with_pagination,
             update_provider,
             delete_provider,
-            fetch_provider_models
+            fetch_provider_models,
+            get_provider_types
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");

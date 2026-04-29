@@ -7,6 +7,7 @@ import {
   Input,
   message,
   Modal,
+  Select,
   Space,
   Switch,
   Table,
@@ -18,8 +19,10 @@ import type { ColumnsType } from 'antd/es/table'
 
 import {
   Provider,
+  ProviderTypeInfo,
   createProvider,
   deleteProvider,
+  getProviderTypes,
   getProvidersWithPagination,
   updateProvider,
 } from '@/services/providerService'
@@ -31,6 +34,7 @@ export interface ProviderFormValues {
   name: string
   baseUrl: string
   apiKey: string
+  modelFetchType: string
   isEnabled: boolean
 }
 
@@ -50,9 +54,27 @@ const AddProviderModal: React.FC<{
 }> = ({ open, editingProvider, onClose, onSuccess }) => {
   const [messageApi, contextHolder] = message.useMessage()
   const [submitting, setSubmitting] = useState(false)
+  const [providerTypes, setProviderTypes] = useState<ProviderTypeInfo[]>([])
   const formRef = useRef<FormInstance<ProviderFormValues>>(null)
 
   const isEdit = !!editingProvider
+
+  // 加载供应商拉取类型列表
+  useEffect(() => {
+    let cancelled = false
+    const loadTypes = async () => {
+      try {
+        const types = await getProviderTypes()
+        if (!cancelled) setProviderTypes(types)
+      } catch (error) {
+        logger.error('获取供应商拉取类型失败:', error)
+      }
+    }
+    loadTypes()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleOk = async () => {
     if (!formRef.current) return
@@ -64,6 +86,7 @@ const AddProviderModal: React.FC<{
         name: values.name,
         baseUrl: values.baseUrl,
         apiKey: values.apiKey || undefined,
+        modelFetchType: values.modelFetchType || 'default',
         isEnabled: values.isEnabled,
       }
 
@@ -115,9 +138,10 @@ const AddProviderModal: React.FC<{
                   name: editingProvider.name,
                   baseUrl: editingProvider.baseUrl,
                   apiKey: editingProvider.apiKey || '',
+                  modelFetchType: editingProvider.modelFetchType || 'default',
                   isEnabled: editingProvider.isEnabled,
                 }
-              : { isEnabled: true }
+              : { isEnabled: true, modelFetchType: 'default' }
           }
         >
           <Form.Item
@@ -138,6 +162,21 @@ const AddProviderModal: React.FC<{
 
           <Form.Item label="API Key" name="apiKey">
             <Input.Password placeholder="请输入 API Key" />
+          </Form.Item>
+
+          <Form.Item
+            label="模型拉取策略"
+            name="modelFetchType"
+            rules={[{ required: true, message: '请选择模型拉取策略' }]}
+          >
+            <Select
+              placeholder="请选择模型拉取策略"
+              options={providerTypes.map((t) => ({
+                key: t.id,
+                value: t.id,
+                label: t.name,
+              }))}
+            />
           </Form.Item>
 
           <Form.Item label="启用状态" name="isEnabled" valuePropName="checked">
@@ -161,9 +200,27 @@ const ProviderManage: React.FC = () => {
   const [refreshCounter, setRefreshCounter] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null)
+  const [providerTypes, setProviderTypes] = useState<ProviderTypeInfo[]>([])
 
   /** 手动刷新列表（增删改后调用） */
   const refreshList = () => setRefreshCounter((c) => c + 1)
+
+  // 加载供应商拉取类型列表（用于表格显示策略名称）
+  useEffect(() => {
+    let cancelled = false
+    const loadTypes = async () => {
+      try {
+        const types = await getProviderTypes()
+        if (!cancelled) setProviderTypes(types)
+      } catch (error) {
+        logger.error('获取供应商拉取类型失败:', error)
+      }
+    }
+    loadTypes()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -252,6 +309,16 @@ const ProviderManage: React.FC = () => {
       key: 'apiKey',
       width: 140,
       render: (key?: string) => maskApiKey(key),
+    },
+    {
+      title: '拉取策略',
+      dataIndex: 'modelFetchType',
+      key: 'modelFetchType',
+      width: 140,
+      render: (val: string) => {
+        const typeName = providerTypes.find((t) => t.id === val)?.name || '-'
+        return <Tag color="blue">{typeName}</Tag>
+      },
     },
     {
       title: '启用状态',

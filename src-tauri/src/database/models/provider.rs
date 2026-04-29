@@ -12,6 +12,7 @@ pub struct Provider {
     pub name: String,
     pub base_url: String,
     pub api_key: Option<String>,
+    pub model_fetch_type: String,
     pub is_enabled: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -25,6 +26,7 @@ pub struct NewProvider {
     pub name: String,
     pub base_url: String,
     pub api_key: Option<String>,
+    pub model_fetch_type: Option<String>,
     pub is_enabled: Option<bool>,
 }
 
@@ -36,5 +38,6 @@ pub struct UpdateProvider {
     pub name: String,
     pub base_url: String,
     pub api_key: Option<String>,
+    pub model_fetch_type: Option<String>,
     pub is_enabled: Option<bool>,
 }
