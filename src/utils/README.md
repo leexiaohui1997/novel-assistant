@@ -72,6 +72,15 @@
 
 ---
 
+## 错误工具 (error.ts)
+
+### getErrorMsg
+
+从未知类型的错误中提取可读的错误消息字符串。优先返回 Error 实例的 message，其他类型则转为字符串
+文件：`src/utils/error.ts`
+
+---
+
 ## 日期工具 (date.ts)
 
 ### formatDateTime

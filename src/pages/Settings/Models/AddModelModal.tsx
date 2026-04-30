@@ -1,7 +1,8 @@
 import { Empty, message, Modal, Space, Table } from 'antd'
 import { ColumnsType } from 'antd/es/table'
-import React, { useEffect, useImperativeHandle, useState } from 'react'
+import React, { useCallback, useEffect, useImperativeHandle, useState } from 'react'
 
+import { InputEditableCell } from '@/components/EditableCell/Input'
 import { ProviderSelect } from '@/components/ProviderSelect'
 import { fetchProviderModels, ModelInfo } from '@/services/modelService'
 import { logger } from '@/utils/logger'
@@ -29,6 +30,20 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
   const close = () => {
     setOpen(false)
   }
+
+  const setModelName = useCallback(({ modelId }: { modelId: string }, modelName: string) => {
+    setModels((models) =>
+      models.map((model) => {
+        if (model.modelId === modelId) {
+          return {
+            ...model,
+            modelName,
+          }
+        }
+        return model
+      }),
+    )
+  }, [])
 
   useImperativeHandle(ref, () => {
     return {
@@ -83,6 +98,18 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
       title: '模型名称',
       dataIndex: 'modelName',
       key: 'modelName',
+      render: (value, record) => (
+        <InputEditableCell
+          size="small"
+          value={value}
+          validate={(val) => {
+            if (!val) {
+              throw new Error('模型名称不能为空')
+            }
+          }}
+          onChange={(modelName) => setModelName(record, modelName)}
+        />
+      ),
     },
   ]
 
