@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useImperativeHandle, useState } from 're
 
 import { InputEditableCell } from '@/components/EditableCell/Input'
 import { ProviderSelect } from '@/components/ProviderSelect'
-import { fetchProviderModels, ModelInfo } from '@/services/modelService'
+import { addModels, fetchProviderModels, ModelInfo } from '@/services/modelService'
 import { logger } from '@/utils/logger'
 
 export interface AddModelModalHandle {
@@ -13,11 +13,14 @@ export interface AddModelModalHandle {
 
 export interface AddModelModalProps {
   ref?: React.RefObject<AddModelModalHandle>
+  /** 添加成功后回调，用于外部刷新列表 */
+  onSuccess?: () => void
 }
 
-const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
+const AddModelModal: React.FC<AddModelModalProps> = ({ ref, onSuccess }) => {
   const [messageApi, messageContext] = message.useMessage()
   const [open, setOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [selectedProviderId, setSelectedProviderId] = useState<string>()
   const [fetchingModels, setFetchingModels] = useState(false)
   const [models, setModels] = useState<ModelInfo[]>([])
@@ -25,6 +28,12 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
 
   const show = () => {
     setOpen(true)
+  }
+
+  const resetState = () => {
+    setSelectedProviderId(undefined)
+    setModels([])
+    setSelectedModelIds([])
   }
 
   const close = () => {
@@ -88,6 +97,39 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
     }
   }, [selectedProviderId, messageApi])
 
+  /** 根据已勾选的行构造提交载荷 */
+  const buildPayload = () => {
+    const selectedSet = new Set(selectedModelIds)
+    return models
+      .filter((m) => selectedSet.has(m.modelId))
+      .map((m) => ({ modelId: m.modelId, alias: m.modelName }))
+  }
+
+  const handleOk = async () => {
+    if (!selectedProviderId) {
+      messageApi.warning('请先选择供应商')
+      return
+    }
+    const items = buildPayload()
+    if (items.length === 0) {
+      messageApi.warning('请至少勾选一个模型')
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      await addModels({ providerId: selectedProviderId, models: items })
+      messageApi.success(`成功添加 ${items.length} 个模型`)
+      onSuccess?.()
+      close()
+    } catch (error) {
+      logger.error('添加模型失败:', error)
+      messageApi.error('添加模型失败')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const columns: ColumnsType<ModelInfo> = [
     {
       title: '模型ID',
@@ -118,7 +160,19 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref }) => {
   return (
     <>
       {messageContext}
-      <Modal title="添加模型" open={open} onCancel={close} width={800}>
+      <Modal
+        title="添加模型"
+        open={open}
+        onCancel={close}
+        onOk={handleOk}
+        okText="确定"
+        cancelText="取消"
+        confirmLoading={submitting}
+        okButtonProps={{ disabled: selectedModelIds.length === 0 }}
+        afterClose={resetState}
+        destroyOnHidden
+        width={800}
+      >
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <Space>

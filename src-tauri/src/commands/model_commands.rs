@@ -2,6 +2,8 @@ use tauri::State;
 use uuid::Uuid;
 
 use crate::ai::model_fetchers::{FetchError, ModelInfo, ProviderType, ProviderTypeInfo};
+use crate::database::models::model::{BatchAddModels, Model, ModelWithProvider};
+use crate::utils::pagination::{PaginatedResult, PaginationParams};
 use crate::AppState;
 
 /// 获取当前支持的供应商拉取类型列表
@@ -47,4 +49,52 @@ pub async fn fetch_provider_models(
             FetchError::RequestFailed(msg) => msg,
             _ => e.to_string(),
         })
+}
+
+/// 批量添加模型到数据库
+#[tauri::command]
+pub async fn add_models(
+    state: State<'_, AppState>,
+    payload: BatchAddModels,
+) -> Result<Vec<Model>, String> {
+    let repo = state.model_repo.read().await;
+    repo.batch_create(payload.provider_id, &payload.models)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// 分页获取模型列表（带供应商名称）
+#[tauri::command]
+pub async fn get_models_with_pagination(
+    state: State<'_, AppState>,
+    page: i64,
+    page_size: i64,
+) -> Result<PaginatedResult<ModelWithProvider>, String> {
+    let repo = state.model_repo.read().await;
+    let params = PaginationParams { page, page_size };
+    repo.find_with_pagination(&params)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// 删除模型
+#[tauri::command]
+pub async fn delete_model(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let repo = state.model_repo.read().await;
+    let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    repo.delete(uuid).await.map_err(|e| e.to_string())
+}
+
+/// 切换模型启用状态
+#[tauri::command]
+pub async fn toggle_model_enabled(
+    state: State<'_, AppState>,
+    id: String,
+    is_enabled: bool,
+) -> Result<Model, String> {
+    let repo = state.model_repo.read().await;
+    let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    repo.toggle_enabled(uuid, is_enabled)
+        .await
+        .map_err(|e| e.to_string())
 }

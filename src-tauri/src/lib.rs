@@ -14,7 +14,10 @@ use commands::chapter_commands::{
     get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
 };
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
-use commands::model_commands::{fetch_provider_models, get_provider_types};
+use commands::model_commands::{
+    add_models, delete_model, fetch_provider_models, get_models_with_pagination,
+    get_provider_types, toggle_model_enabled,
+};
 use commands::novel_commands::{
     create_novel, get_novel_by_id, get_novels, get_novels_with_pagination, update_novel,
 };
@@ -24,10 +27,10 @@ use commands::provider_commands::{
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
-    ChapterRepository, ChapterVersionRepository, CreationStateRepository, NovelRepository,
-    ProviderRepository, SqliteChapterRepository, SqliteChapterVersionRepository,
-    SqliteCreationStateRepository, SqliteNovelRepository, SqliteProviderRepository,
-    SqliteTagRepository, TagRepository,
+    ChapterRepository, ChapterVersionRepository, CreationStateRepository, ModelRepository,
+    NovelRepository, ProviderRepository, SqliteChapterRepository, SqliteChapterVersionRepository,
+    SqliteCreationStateRepository, SqliteModelRepository, SqliteNovelRepository,
+    SqliteProviderRepository, SqliteTagRepository, TagRepository,
 };
 use tauri::Builder;
 
@@ -38,6 +41,7 @@ pub struct AppState {
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
     pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
     pub provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
+    pub model_repo: Arc<RwLock<Box<dyn ModelRepository + Send + Sync>>>,
     pub fetcher_registry: Arc<RwLock<FetcherRegistry>>,
 }
 
@@ -61,6 +65,7 @@ pub async fn run() {
     let tag_repo = SqliteTagRepository::new(pool.clone());
     let creation_state_repo = SqliteCreationStateRepository::new(pool.clone());
     let provider_repo = SqliteProviderRepository::new(pool.clone());
+    let model_repo = SqliteModelRepository::new(pool.clone());
 
     // 创建模型拉取策略注册表
     let fetcher_registry = FetcherRegistry::new();
@@ -73,6 +78,7 @@ pub async fn run() {
         tag_repo: Arc::new(RwLock::new(Box::new(tag_repo))),
         creation_state_repo: Arc::new(RwLock::new(Box::new(creation_state_repo))),
         provider_repo: Arc::new(RwLock::new(Box::new(provider_repo))),
+        model_repo: Arc::new(RwLock::new(Box::new(model_repo))),
         fetcher_registry: Arc::new(RwLock::new(fetcher_registry)),
     };
     Builder::default()
@@ -102,7 +108,11 @@ pub async fn run() {
             update_provider,
             delete_provider,
             fetch_provider_models,
-            get_provider_types
+            get_provider_types,
+            add_models,
+            get_models_with_pagination,
+            delete_model,
+            toggle_model_enabled
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");
