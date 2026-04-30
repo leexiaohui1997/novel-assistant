@@ -28,6 +28,9 @@ pub trait ModelRepository {
 
     /// 切换启用状态
     async fn toggle_enabled(&self, id: Uuid, is_enabled: bool) -> Result<Model, DbError>;
+
+    /// 更新模型别名
+    async fn update_alias(&self, id: Uuid, alias: &str) -> Result<Model, DbError>;
 }
 
 /// SQLite 模型仓储实现
@@ -132,6 +135,22 @@ impl ModelRepository for SqliteModelRepository {
         .await?;
 
         tracing::info!("模型启用状态更新: {} -> {}", updated.id, is_enabled);
+        Ok(updated)
+    }
+
+    /// 更新模型别名
+    async fn update_alias(&self, id: Uuid, alias: &str) -> Result<Model, DbError> {
+        let now = Utc::now();
+        let updated = sqlx::query_as::<_, Model>(
+            "UPDATE ai_models SET alias = ?1, updated_at = ?2 WHERE id = ?3 RETURNING *",
+        )
+        .bind(alias)
+        .bind(now)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        tracing::info!("模型别名更新: {} -> {}", updated.id, alias);
         Ok(updated)
     }
 }

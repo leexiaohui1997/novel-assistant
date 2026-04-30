@@ -1,16 +1,18 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
-import { Button, Card, message, Modal, Space, Switch, Table, Tag } from 'antd'
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { Button, Card, message, Modal, Switch, Table, Tag } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 
 import AddModelModal, { AddModelModalHandle } from './AddModelModal'
 
 import type { ColumnsType } from 'antd/es/table'
 
+import { InputEditableCell } from '@/components/EditableCell/Input'
 import {
   deleteModel,
   getModelsWithPagination,
   Model,
   toggleModelEnabled,
+  updateModelAlias,
 } from '@/services/modelService'
 import { formatDateTime } from '@/utils/date'
 import { logger } from '@/utils/logger'
@@ -70,6 +72,11 @@ const ModelManage: React.FC = () => {
     }
   }
 
+  const handleUpdateAlias = async (record: Model, alias: string) => {
+    await updateModelAlias(record.id, alias)
+    refreshList()
+  }
+
   const handleDelete = (record: Model) => {
     modalApi.confirm({
       title: '确认删除',
@@ -88,10 +95,6 @@ const ModelManage: React.FC = () => {
         }
       },
     })
-  }
-
-  const handleEdit = () => {
-    messageApi.info('编辑功能暂未实现')
   }
 
   const columns: ColumnsType<Model> = [
@@ -113,8 +116,19 @@ const ModelManage: React.FC = () => {
       title: '名称',
       dataIndex: 'alias',
       key: 'alias',
-      ellipsis: true,
       width: 300,
+      render: (value: string, record) => (
+        <InputEditableCell
+          size="small"
+          value={value}
+          validate={(val) => {
+            if (!val) {
+              throw new Error('名称不能为空')
+            }
+          }}
+          onChange={(alias) => handleUpdateAlias(record, alias)}
+        />
+      ),
     },
     {
       title: '是否启用',
@@ -140,23 +154,18 @@ const ModelManage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 180,
+      width: 100,
       fixed: 'right',
       render: (_, record) => (
-        <Space size="small">
-          <Button type="link" size="small" disabled icon={<EditOutlined />} onClick={handleEdit}>
-            编辑
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record)}
-          >
-            删除
-          </Button>
-        </Space>
+        <Button
+          type="link"
+          size="small"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => handleDelete(record)}
+        >
+          删除
+        </Button>
       ),
     },
   ]

@@ -124,3 +124,18 @@ export async function toggleModelEnabled(id: string, isEnabled: boolean): Promis
     throw error
   }
 }
+
+/**
+ * 更新模型别名
+ */
+export async function updateModelAlias(id: string, alias: string): Promise<Model> {
+  try {
+    logger.debug('调用更新模型别名 API:', { id, alias })
+    const result = await invoke<Model>('update_model_alias', { id, alias })
+    logger.debug('模型别名更新成功:', result)
+    return result
+  } catch (error) {
+    logger.error('更新模型别名失败:', error)
+    throw error
+  }
+}

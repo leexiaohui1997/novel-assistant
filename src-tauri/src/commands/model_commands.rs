@@ -98,3 +98,17 @@ pub async fn toggle_model_enabled(
         .await
         .map_err(|e| e.to_string())
 }
+
+/// 更新模型别名
+#[tauri::command]
+pub async fn update_model_alias(
+    state: State<'_, AppState>,
+    id: String,
+    alias: String,
+) -> Result<Model, String> {
+    let repo = state.model_repo.read().await;
+    let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    repo.update_alias(uuid, &alias)
+        .await
+        .map_err(|e| e.to_string())
+}
