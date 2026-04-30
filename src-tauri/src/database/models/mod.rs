@@ -1,3 +1,4 @@
+pub mod ai_call_log;
 pub mod chapter;
 pub mod chapter_version;
 pub mod creation_state;

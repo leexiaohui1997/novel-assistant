@@ -1,3 +1,5 @@
+pub mod ai_call_log_repo;
+pub mod ai_call_log_repo_impl;
 pub mod chapter_repo;
 pub mod chapter_version_repo;
 pub mod creation_state_repo;
@@ -6,6 +8,8 @@ pub mod novel_repo;
 pub mod provider_repo;
 pub mod tag_repo;
 
+pub use ai_call_log_repo::AiCallLogRepository;
+pub use ai_call_log_repo_impl::SqliteAiCallLogRepository;
 pub use chapter_repo::{ChapterRepository, SqliteChapterRepository};
 pub use chapter_version_repo::{ChapterVersionRepository, SqliteChapterVersionRepository};
 pub use creation_state_repo::{CreationStateRepository, SqliteCreationStateRepository};

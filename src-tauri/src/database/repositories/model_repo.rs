@@ -23,6 +23,9 @@ pub trait ModelRepository {
         params: &PaginationParams,
     ) -> Result<PaginatedResult<ModelWithProvider>, DbError>;
 
+    /// 根据 ID 查询模型
+    async fn find_by_id(&self, id: Uuid) -> Result<Model, DbError>;
+
     /// 删除模型
     async fn delete(&self, id: Uuid) -> Result<(), DbError>;
 
@@ -105,6 +108,15 @@ impl ModelRepository for SqliteModelRepository {
              LIMIT ? OFFSET ?",
         )
         .await
+    }
+
+    /// 根据 ID 查询模型
+    async fn find_by_id(&self, id: Uuid) -> Result<Model, DbError> {
+        sqlx::query_as::<_, Model>("SELECT * FROM ai_models WHERE id = ?1")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(Into::into)
     }
 
     /// 删除模型
