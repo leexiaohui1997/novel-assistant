@@ -1,3 +1,4 @@
+pub mod action_commands;
 pub mod ai_commands;
 pub mod chapter_commands;
 pub mod creation_state_commands;

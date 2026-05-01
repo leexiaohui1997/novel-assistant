@@ -8,7 +8,10 @@ pub mod utils;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
+use ai::service::AiService;
+use commands::action_commands::{execute_action, list_actions};
 use commands::ai_commands::test_model;
 use commands::chapter_commands::{
     batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
@@ -46,6 +49,9 @@ pub struct AppState {
     pub model_repo: Arc<RwLock<Box<dyn ModelRepository + Send + Sync>>>,
     pub call_log_repo: Arc<RwLock<Box<dyn AiCallLogRepository + Send + Sync>>>,
     pub fetcher_registry: Arc<RwLock<FetcherRegistry>>,
+    // AI Actions 系统
+    pub action_router: Arc<RwLock<ActionRouter>>,
+    pub action_executor: Arc<ActionExecutor>,
 }
 
 pub async fn run() {
@@ -74,7 +80,11 @@ pub async fn run() {
     // 创建模型拉取策略注册表
     let fetcher_registry = FetcherRegistry::new();
 
-    // 创建应用状态
+    // 初始化 AI Actions 系统
+    let action_router = ActionRouter::new();
+    let action_router = Arc::new(RwLock::new(action_router));
+
+    // 创建应用状态（先不包含 action_executor）
     let state = AppState {
         novel_repo: Arc::new(RwLock::new(Box::new(novel_repo))),
         chapter_repo: Arc::new(RwLock::new(Box::new(chapter_repo))),
@@ -85,6 +95,21 @@ pub async fn run() {
         model_repo: Arc::new(RwLock::new(Box::new(model_repo))),
         call_log_repo: Arc::new(RwLock::new(Box::new(call_log_repo))),
         fetcher_registry: Arc::new(RwLock::new(fetcher_registry)),
+        action_router: action_router.clone(),
+        action_executor: Arc::new(ActionExecutor::new(
+            action_router.clone(),
+            Arc::new(AiService::new(
+                Arc::new(RwLock::new(Box::new(SqliteModelRepository::new(
+                    pool.clone(),
+                )))),
+                Arc::new(RwLock::new(Box::new(SqliteProviderRepository::new(
+                    pool.clone(),
+                )))),
+                Arc::new(RwLock::new(Box::new(SqliteAiCallLogRepository::new(
+                    pool.clone(),
+                )))),
+            )),
+        )),
     };
     Builder::default()
         .manage(state)
@@ -119,7 +144,9 @@ pub async fn run() {
             delete_model,
             toggle_model_enabled,
             update_model_alias,
-            test_model
+            test_model,
+            execute_action,
+            list_actions
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");
