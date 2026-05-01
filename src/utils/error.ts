@@ -15,9 +15,9 @@
  * getErrorMsg('字符串错误') // '字符串错误'
  * getErrorMsg(404) // '404'
  */
-export function getErrorMsg(error: unknown) {
+export function getErrorMsg(error: unknown, fallback = '') {
   if (error instanceof Error) {
     return error.message
   }
-  return String(error)
+  return String(error) || fallback
 }

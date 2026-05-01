@@ -30,7 +30,7 @@ impl AiCallLogRepository for SqliteAiCallLogRepository {
                 id, provider_id, model_id, model_name, provider_name,
                 input_tokens, output_tokens, total_tokens, duration_ms,
                 message, response, status, error_message, call_time
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, CURRENT_TIMESTAMP)
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
             RETURNING *
             "#,
         )
@@ -47,6 +47,7 @@ impl AiCallLogRepository for SqliteAiCallLogRepository {
         .bind(log.response.as_deref())
         .bind(&log.status)
         .bind(log.error_message.as_deref())
+        .bind(log.call_time)
         .fetch_one(&self.pool)
         .await
         .map_err(Into::into)

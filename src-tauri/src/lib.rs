@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use ai::model_fetchers::FetcherRegistry;
+use commands::ai_commands::test_model;
 use commands::chapter_commands::{
     batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
     get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
@@ -27,10 +28,11 @@ use commands::provider_commands::{
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
-    ChapterRepository, ChapterVersionRepository, CreationStateRepository, ModelRepository,
-    NovelRepository, ProviderRepository, SqliteChapterRepository, SqliteChapterVersionRepository,
-    SqliteCreationStateRepository, SqliteModelRepository, SqliteNovelRepository,
-    SqliteProviderRepository, SqliteTagRepository, TagRepository,
+    AiCallLogRepository, ChapterRepository, ChapterVersionRepository, CreationStateRepository,
+    ModelRepository, NovelRepository, ProviderRepository, SqliteAiCallLogRepository,
+    SqliteChapterRepository, SqliteChapterVersionRepository, SqliteCreationStateRepository,
+    SqliteModelRepository, SqliteNovelRepository, SqliteProviderRepository, SqliteTagRepository,
+    TagRepository,
 };
 use tauri::Builder;
 
@@ -42,6 +44,7 @@ pub struct AppState {
     pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
     pub provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
     pub model_repo: Arc<RwLock<Box<dyn ModelRepository + Send + Sync>>>,
+    pub call_log_repo: Arc<RwLock<Box<dyn AiCallLogRepository + Send + Sync>>>,
     pub fetcher_registry: Arc<RwLock<FetcherRegistry>>,
 }
 
@@ -66,6 +69,7 @@ pub async fn run() {
     let creation_state_repo = SqliteCreationStateRepository::new(pool.clone());
     let provider_repo = SqliteProviderRepository::new(pool.clone());
     let model_repo = SqliteModelRepository::new(pool.clone());
+    let call_log_repo = SqliteAiCallLogRepository::new(pool.clone());
 
     // 创建模型拉取策略注册表
     let fetcher_registry = FetcherRegistry::new();
@@ -79,6 +83,7 @@ pub async fn run() {
         creation_state_repo: Arc::new(RwLock::new(Box::new(creation_state_repo))),
         provider_repo: Arc::new(RwLock::new(Box::new(provider_repo))),
         model_repo: Arc::new(RwLock::new(Box::new(model_repo))),
+        call_log_repo: Arc::new(RwLock::new(Box::new(call_log_repo))),
         fetcher_registry: Arc::new(RwLock::new(fetcher_registry)),
     };
     Builder::default()
@@ -113,7 +118,8 @@ pub async fn run() {
             get_models_with_pagination,
             delete_model,
             toggle_model_enabled,
-            update_model_alias
+            update_model_alias,
+            test_model
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");

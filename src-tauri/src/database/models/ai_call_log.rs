@@ -41,4 +41,5 @@ pub struct CreateAiCallLog {
     pub response: Option<String>,
     pub status: String,
     pub error_message: Option<String>,
+    pub call_time: DateTime<Utc>,
 }

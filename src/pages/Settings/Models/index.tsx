@@ -3,6 +3,7 @@ import { Button, Card, message, Modal, Switch, Table, Tag } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 
 import AddModelModal, { AddModelModalHandle } from './AddModelModal'
+import { TestAction } from './TestAction'
 
 import type { ColumnsType } from 'antd/es/table'
 
@@ -154,18 +155,21 @@ const ModelManage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 170,
       fixed: 'right',
       render: (_, record) => (
-        <Button
-          type="link"
-          size="small"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleDelete(record)}
-        >
-          删除
-        </Button>
+        <>
+          <TestAction modelId={record.id} />
+          <Button
+            size="small"
+            color="danger"
+            variant="link"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record)}
+          >
+            删除
+          </Button>
+        </>
       ),
     },
   ]

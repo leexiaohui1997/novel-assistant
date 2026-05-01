@@ -38,7 +38,9 @@ impl AiService {
     /// - `Ok(AiChatResponse)`: 包含 content 和原始 response 对象
     pub async fn chat(&self, request_data: AiRequestData) -> Result<AiChatResponse, String> {
         // 记录开始时间
+        use chrono::Utc;
         let start_time = Instant::now();
+        let call_time = Utc::now();
 
         // 1 根据 model_id 从表里读出模型数据
         let model = {
@@ -160,6 +162,7 @@ impl AiService {
             response: Some(content.clone()),
             status: "success".to_string(),
             error_message: None,
+            call_time,
         };
 
         // 异步保存日志（不阻塞返回）
