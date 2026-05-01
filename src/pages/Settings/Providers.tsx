@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import {
   Button,
   Card,
@@ -268,10 +268,6 @@ const ProviderManage: React.FC = () => {
     })
   }
 
-  const handleModelManage = () => {
-    messageApi.info('暂未实现')
-  }
-
   const handleModalClose = () => {
     setModalOpen(false)
     setEditingProvider(null)
@@ -283,6 +279,7 @@ const ProviderManage: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
       width: 140,
+      fixed: 'left',
     },
     {
       title: 'API 地址',
@@ -305,7 +302,7 @@ const ProviderManage: React.FC = () => {
       width: 140,
       render: (val: string) => {
         const typeName = providerTypes.find((t) => t.id === val)?.name || '-'
-        return <Tag color="blue">{typeName}</Tag>
+        return <Tag color="default">{typeName}</Tag>
       },
     },
     {
@@ -326,17 +323,26 @@ const ProviderManage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 180,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" onClick={handleModelManage}>
-            模型管理
-          </Button>
-          <Button type="link" size="small" onClick={() => handleEdit(record)}>
+          <Button
+            size="small"
+            color="primary"
+            variant="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
             编辑
           </Button>
-          <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+          <Button
+            size="small"
+            color="danger"
+            variant="link"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record)}
+          >
             删除
           </Button>
         </Space>
