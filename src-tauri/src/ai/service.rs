@@ -29,6 +29,52 @@ impl AiService {
         }
     }
 
+    /// 获取第一个可用模型
+    ///
+    /// # 参数
+    /// - `fallback_reason`: 回退原因（用于日志）
+    ///
+    /// # 返回
+    /// - `Ok(Model)`: 第一个可用模型
+    /// - `Err(String)`: 错误信息
+    async fn get_first_available_model(
+        &self,
+        fallback_reason: &str,
+    ) -> Result<crate::database::models::model::Model, String> {
+        let available_models = self.get_available_models().await?;
+
+        if available_models.is_empty() {
+            return Err("没有可用的模型，请先添加模型".to_string());
+        }
+
+        let first_model = &available_models[0];
+        tracing::warn!("{}，使用默认模型: {}", fallback_reason, first_model.id);
+
+        Ok(first_model.clone())
+    }
+
+    /// 获取所有可用的模型列表
+    ///
+    /// 当前实现：从数据库中查询所有启用的模型
+    /// TODO: 未来可以从配置或用户偏好中筛选
+    ///
+    /// # 返回
+    /// - `Ok(Vec<Model>)`: 模型列表
+    /// - `Err(String)`: 错误信息（如查询失败）
+    pub async fn get_available_models(
+        &self,
+    ) -> Result<Vec<crate::database::models::model::Model>, String> {
+        let repo = self.model_repo.read().await;
+
+        // 查询所有启用的模型
+        let models = repo
+            .find_all(Some(true))
+            .await
+            .map_err(|e| format!("查询模型列表失败: {}", e))?;
+
+        Ok(models)
+    }
+
     /// 执行 AI 聊天调用
     ///
     /// # 参数
@@ -42,12 +88,26 @@ impl AiService {
         let start_time = Instant::now();
         let call_time = Utc::now();
 
-        // 1 根据 model_id 从表里读出模型数据
+        // 1. 根据 model_id 从表里读出模型数据
         let model = {
             let repo = self.model_repo.read().await;
-            repo.find_by_id(request_data.model_id)
-                .await
-                .map_err(|e| format!("查询模型失败: {}", e))?
+
+            // 如果提供了 model_id，尝试查询指定的模型
+            if let Some(model_id) = request_data.model_id {
+                match repo.find_by_id(model_id).await {
+                    Ok(model) => model,
+                    Err(_) => {
+                        // 如果查询失败，使用第一个可用模型
+                        drop(repo); // 释放读锁
+                        self.get_first_available_model(&format!("指定的模型 {} 不存在", model_id))
+                            .await?
+                    }
+                }
+            } else {
+                // 未提供 model_id，直接使用第一个可用模型
+                drop(repo); // 释放读锁
+                self.get_first_available_model("未指定模型").await?
+            }
         };
 
         // 2 根据模型的供应商ID 从供应商表读出供应商数据

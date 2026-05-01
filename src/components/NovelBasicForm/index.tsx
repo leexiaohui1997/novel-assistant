@@ -1,7 +1,11 @@
-import { Button, Col, Form, Input, Radio, Row, Space, Tag as AntdTag, Typography } from 'antd'
+import { App, Button, Col, Form, Input, Radio, Row, Space, Tag as AntdTag, Typography } from 'antd'
 import { FormInstance } from 'antd/es/form'
+import { useRef } from 'react'
 
-import TagSelector from '@/pages/Novels/components/TagSelector'
+import { WithAiAction } from '../WithAiAction'
+
+import { useAiAction } from '@/hooks/useAiAction'
+import TagSelector, { TagSelectorHandle } from '@/pages/Novels/components/TagSelector'
 import { type Tag, type TargetAudience } from '@/services/tagService'
 
 const { TextArea } = Input
@@ -44,6 +48,20 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
   tags,
 }) => {
   const isView = mode === 'view'
+  const { message } = App.useApp()
+  const tagSelectorRef = useRef<TagSelectorHandle>(null)
+
+  // 使用 AI Action Hook
+  const { execute: recommendTags } = useAiAction<{
+    tags: number[]
+  }>({
+    actionName: 'recommend_tags',
+    getParams: () => ({
+      title: form.getFieldValue('title'),
+      channel: form.getFieldValue('targetReader'),
+      introduction: form.getFieldValue('description'),
+    }),
+  })
 
   return (
     <Form
@@ -109,13 +127,42 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
             )}
           </Form.Item>
 
-          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.targetReader !== curr.targetReader}>
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev, curr) =>
+              prev.targetReader !== curr.targetReader || prev.tagIds !== curr.tagIds
+            }
+          >
             {() => (
-              <Form.Item label="作品标签" name="tagIds">
+              <Form.Item
+                label="作品标签"
+                name="tagIds"
+                rules={[{ required: true, message: '请选择作品标签' }]}
+              >
                 {isView ? (
                   <ViewTagIds tags={tags} />
                 ) : (
-                  <TagSelector targetAudience={form.getFieldValue('targetReader')} />
+                  <WithAiAction
+                    tip="AI 推荐标签"
+                    onAction={async () => {
+                      const result = await recommendTags()
+                      if (result?.tags && result.tags.length > 0) {
+                        // 将推荐的标签 ID 填入表单
+                        const originTags = form.getFieldValue('tagIds') || []
+                        const newTags = [...new Set([...originTags, ...result.tags])]
+                        tagSelectorRef.current?.handleSelectChange(newTags)
+                        message.success(`已推荐 ${result.tags.length} 个标签`)
+                      } else {
+                        message.info('未找到合适的标签推荐')
+                      }
+                    }}
+                    disabled={!form.getFieldValue('targetReader')}
+                  >
+                    <TagSelector
+                      ref={tagSelectorRef}
+                      targetAudience={form.getFieldValue('targetReader')}
+                    />
+                  </WithAiAction>
                 )}
               </Form.Item>
             )}

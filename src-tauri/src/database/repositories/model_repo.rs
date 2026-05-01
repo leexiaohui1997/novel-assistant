@@ -17,6 +17,12 @@ pub trait ModelRepository {
         models: &[NewModelItem],
     ) -> Result<Vec<Model>, DbError>;
 
+    /// 获取所有模型
+    ///
+    /// # 参数
+    /// - `enabled_only`: 如果为 Some(true)，只返回启用的模型；如果为 Some(false)，只返回禁用的模型；如果为 None，返回所有模型
+    async fn find_all(&self, enabled_only: Option<bool>) -> Result<Vec<Model>, DbError>;
+
     /// 分页查询模型列表（带供应商名称）
     async fn find_with_pagination(
         &self,
@@ -89,6 +95,24 @@ impl ModelRepository for SqliteModelRepository {
             created.len()
         );
         Ok(created)
+    }
+
+    /// 获取所有模型
+    async fn find_all(&self, enabled_only: Option<bool>) -> Result<Vec<Model>, DbError> {
+        let query = match enabled_only {
+            Some(true) => {
+                "SELECT * FROM ai_models WHERE is_enabled = TRUE ORDER BY created_at DESC"
+            }
+            Some(false) => {
+                "SELECT * FROM ai_models WHERE is_enabled = FALSE ORDER BY created_at DESC"
+            }
+            None => "SELECT * FROM ai_models ORDER BY created_at DESC",
+        };
+
+        let models = sqlx::query_as::<_, Model>(query)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(models)
     }
 
     /// 分页查询模型列表（带供应商名称）

@@ -17,7 +17,7 @@ pub async fn test_model(
 
     // 构建测试请求
     let request_data = AiRequestData {
-        model_id: model_uuid,
+        model_id: Some(model_uuid),
         messages: vec![Message {
             role: MessageRole::User,
             content: "你好".to_string(),

@@ -1,4 +1,4 @@
-import { ConfigProvider } from 'antd'
+import { ConfigProvider, App as AntdApp } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
@@ -20,7 +20,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       }}
     >
       <Provider store={store}>
-        <App />
+        <AntdApp>
+          <App />
+        </AntdApp>
       </Provider>
     </ConfigProvider>
   </React.StrictMode>,

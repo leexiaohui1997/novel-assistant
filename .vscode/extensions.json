@@ -1,0 +1,21 @@
+{
+  "recommendations": [
+    // JavaScript/TypeScript 开发
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // Rust 开发
+    "rust-lang.rust-analyzer",
+    "tamasfe.even-better-toml",
+
+    // Tera 模板支持
+    "samuelcolvin.jinjahtml",
+
+    // Tauri 开发
+    "tauri-apps.tauri-vscode",
+
+    // 数据库支持
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-sqlite"
+  ]
+}

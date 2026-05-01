@@ -1,17 +1,22 @@
 import { Select } from 'antd'
 import { DefaultOptionType } from 'antd/es/select'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 
 import TagSelectorModal from './TagSelectorModal'
 
 import { getTagsByAudience, type Tag, type TargetAudience } from '@/services/tagService'
 import { logger } from '@/utils/logger'
 
+export interface TagSelectorHandle {
+  handleSelectChange: (ids: number[]) => void
+}
+
 interface TagSelectorProps {
   value?: number[]
   onChange?: (value: number[]) => void
   targetAudience?: Exclude<TargetAudience, 'both'>
   placeholder?: string
+  ref?: React.Ref<TagSelectorHandle>
 }
 
 /**
@@ -22,6 +27,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   onChange,
   targetAudience,
   placeholder = '请选择作品标签',
+  ref,
 }) => {
   const [open, setOpen] = useState(false)
   const [tags, setTags] = useState<Tag[]>([])
@@ -49,6 +55,10 @@ const TagSelector: React.FC<TagSelectorProps> = ({
     () => tags.map((tag) => ({ label: tag.name, value: tag.id })),
     [tags],
   )
+
+  useImperativeHandle(ref, () => ({
+    handleSelectChange,
+  }))
 
   // 加载标签数据
   useEffect(() => {

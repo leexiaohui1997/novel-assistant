@@ -9,6 +9,7 @@ use super::context::ActionContext;
 use super::error::ActionError;
 use super::router::ActionRouter;
 use crate::ai::service::AiService;
+use crate::database::repositories::TagRepository;
 
 /// Action 执行器
 ///
@@ -20,12 +21,23 @@ pub struct ActionExecutor {
 
     /// AI 服务引用
     ai_service: Arc<AiService>,
+
+    /// 标签仓储引用
+    tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
 }
 
 impl ActionExecutor {
     /// 创建新的 ActionExecutor
-    pub fn new(router: Arc<RwLock<ActionRouter>>, ai_service: Arc<AiService>) -> Self {
-        Self { router, ai_service }
+    pub fn new(
+        router: Arc<RwLock<ActionRouter>>,
+        ai_service: Arc<AiService>,
+        tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
+    ) -> Self {
+        Self {
+            router,
+            ai_service,
+            tag_repo,
+        }
     }
 
     /// 执行指定的 Action
@@ -62,7 +74,11 @@ impl ActionExecutor {
         };
 
         // 2. 构建 Context
-        let ctx = ActionContext::new(action_params, self.ai_service.clone());
+        let ctx = ActionContext::new(
+            action_params,
+            self.ai_service.clone(),
+            self.tag_repo.clone(),
+        );
 
         // 3. 执行 Handler
         let response = handler.handle(ctx).await?;

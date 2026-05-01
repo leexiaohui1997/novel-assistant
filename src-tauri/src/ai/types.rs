@@ -21,8 +21,8 @@ pub struct Message {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiRequestData {
-    /// 模型 ID
-    pub model_id: Uuid,
+    /// 模型 ID（可选，不提供时使用默认模型）
+    pub model_id: Option<Uuid>,
 
     /// 消息数组
     pub messages: Vec<Message>,

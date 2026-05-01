@@ -8,4 +8,7 @@
 // 2. 实现 `ActionHandler` trait
 // 3. 在本文件中导出并注册到 Router
 
-// 暂时为空，后续添加具体 Action 实现
+pub mod recommend_tags;
+
+// 重新导出所有内置 Action
+pub use recommend_tags::RecommendTagsAction;

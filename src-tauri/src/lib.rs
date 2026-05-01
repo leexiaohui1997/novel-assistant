@@ -8,6 +8,7 @@ pub mod utils;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use ai::actions::builtin::RecommendTagsAction;
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
 use ai::service::AiService;
@@ -81,7 +82,8 @@ pub async fn run() {
     let fetcher_registry = FetcherRegistry::new();
 
     // 初始化 AI Actions 系统
-    let action_router = ActionRouter::new();
+    let mut action_router = ActionRouter::new();
+    action_router.register(Arc::new(RecommendTagsAction));
     let action_router = Arc::new(RwLock::new(action_router));
 
     // 创建应用状态（先不包含 action_executor）
@@ -109,6 +111,9 @@ pub async fn run() {
                     pool.clone(),
                 )))),
             )),
+            Arc::new(RwLock::new(Box::new(SqliteTagRepository::new(
+                pool.clone(),
+            )))),
         )),
     };
     Builder::default()
