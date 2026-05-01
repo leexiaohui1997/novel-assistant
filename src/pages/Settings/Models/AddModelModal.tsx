@@ -2,6 +2,8 @@ import { Empty, message, Modal, Space, Table } from 'antd'
 import { ColumnsType } from 'antd/es/table'
 import React, { useCallback, useEffect, useImperativeHandle, useState } from 'react'
 
+import { useModelIdFilters } from './hooks/useModelIdFilters'
+
 import { InputEditableCell } from '@/components/EditableCell/Input'
 import { ProviderSelect } from '@/components/ProviderSelect'
 import { addModels, fetchProviderModels, ModelInfo } from '@/services/modelService'
@@ -25,6 +27,8 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref, onSuccess }) => {
   const [fetchingModels, setFetchingModels] = useState(false)
   const [models, setModels] = useState<ModelInfo[]>([])
   const [selectedModelIds, setSelectedModelIds] = useState<React.Key[]>([])
+
+  const { modelIdFilters, modelIdFilterSearch } = useModelIdFilters(models)
 
   const show = () => {
     setOpen(true)
@@ -135,6 +139,21 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref, onSuccess }) => {
       title: '模型ID',
       dataIndex: 'modelId',
       key: 'modelId',
+      // 动态生成筛选项
+      filters: modelIdFilters,
+      filterMode: 'tree',
+      filterSearch: modelIdFilterSearch,
+      // 本地过滤函数
+      onFilter: (value, record) => record.modelId === value,
+      // 支持多选
+      filterMultiple: true,
+      filterDropdownProps: {
+        classNames: {
+          root: 'min-w-90!',
+        },
+      },
+      // 设置列宽以适应筛选图标
+      minWidth: 200,
     },
     {
       title: '模型名称',

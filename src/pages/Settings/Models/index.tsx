@@ -100,24 +100,18 @@ const ModelManage: React.FC = () => {
 
   const columns: ColumnsType<Model> = [
     {
-      title: '供应商',
-      dataIndex: 'providerName',
-      key: 'providerName',
-      width: 160,
-      render: (val: string) => <Tag color="blue">{val}</Tag>,
-    },
-    {
       title: '模型ID',
       dataIndex: 'modelId',
       key: 'modelId',
       ellipsis: true,
-      width: 300,
+      width: 280,
+      fixed: 'left',
     },
     {
       title: '名称',
       dataIndex: 'alias',
       key: 'alias',
-      width: 300,
+      width: 280,
       render: (value: string, record) => (
         <InputEditableCell
           size="small"
@@ -130,6 +124,17 @@ const ModelManage: React.FC = () => {
           onChange={(alias) => handleUpdateAlias(record, alias)}
         />
       ),
+    },
+    {
+      title: '供应商',
+      dataIndex: 'providerName',
+      key: 'providerName',
+      width: 160,
+      render: (val: string) => <Tag color="default">{val}</Tag>,
+      filters: [...new Set(models.map((model) => model.providerName))].map((providerName) => ({
+        text: providerName,
+        value: providerName,
+      })),
     },
     {
       title: '是否启用',
