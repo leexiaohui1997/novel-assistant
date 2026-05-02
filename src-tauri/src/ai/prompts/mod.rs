@@ -62,6 +62,17 @@ impl PromptTemplates {
 
         self.tera.render("generate_introduction", &tera_context)
     }
+
+    /// 渲染 generate_title 提示词
+    pub fn render_generate_title(
+        &self,
+        context: &GenerateTitleContext,
+    ) -> Result<String, tera::Error> {
+        // 使用 Serialize trait 自动转换，无需手动 insert
+        let tera_context = Context::from_serialize(context)?;
+
+        self.tera.render("generate_title", &tera_context)
+    }
 }
 
 /// recommend_tags 模板的上下文数据
@@ -115,4 +126,20 @@ pub struct GenerateIntroductionContext {
     /// 已选标签信息（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub selected_tags: Option<String>,
+}
+
+/// generate_title 模板的上下文数据
+#[derive(Debug, Serialize)]
+pub struct GenerateTitleContext {
+    /// 频道名称（男频/女频，可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channel_name: Option<String>,
+
+    /// 标签信息（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<String>,
+
+    /// 作品简介（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub introduction: Option<String>,
 }

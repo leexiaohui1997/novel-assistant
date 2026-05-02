@@ -8,7 +8,7 @@ pub mod utils;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use ai::actions::builtin::{GenerateIntroductionAction, RecommendTagsAction};
+use ai::actions::builtin::{GenerateIntroductionAction, GenerateTitleAction, RecommendTagsAction};
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
 use ai::service::AiService;
@@ -85,6 +85,7 @@ pub async fn run() {
     let mut action_router = ActionRouter::new();
     action_router.register(Arc::new(RecommendTagsAction));
     action_router.register(Arc::new(GenerateIntroductionAction));
+    action_router.register(Arc::new(GenerateTitleAction));
     let action_router = Arc::new(RwLock::new(action_router));
 
     // 创建应用状态（先不包含 action_executor）

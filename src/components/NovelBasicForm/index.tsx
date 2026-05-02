@@ -76,6 +76,18 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
     }),
   })
 
+  // 使用 AI Action Hook - 生成书名
+  const { execute: generateTitle } = useAiAction<{
+    title: string
+  }>({
+    actionName: 'generate_title',
+    getParams: () => ({
+      channel: form.getFieldValue('targetReader'),
+      tag_ids: form.getFieldValue('tagIds'),
+      introduction: form.getFieldValue('description'),
+    }),
+  })
+
   return (
     <Form
       form={form}
@@ -119,7 +131,20 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
             {isView ? (
               <ViewText />
             ) : (
-              <Input placeholder="请输入作品名称" maxLength={15} showCount />
+              <WithAiAction
+                tip="AI 生成书名"
+                onAction={async () => {
+                  const result = await generateTitle()
+                  if (result?.title) {
+                    form.setFieldValue('title', result.title)
+                    message.success('已生成书名')
+                  } else {
+                    message.info('未生成书名')
+                  }
+                }}
+              >
+                <Input placeholder="请输入作品名称" maxLength={15} showCount />
+              </WithAiAction>
             )}
           </Form.Item>
 
