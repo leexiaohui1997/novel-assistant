@@ -51,7 +51,7 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
   const { message } = App.useApp()
   const tagSelectorRef = useRef<TagSelectorHandle>(null)
 
-  // 使用 AI Action Hook
+  // 使用 AI Action Hook - 推荐标签
   const { execute: recommendTags } = useAiAction<{
     tags: number[]
   }>({
@@ -60,6 +60,18 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
       title: form.getFieldValue('title'),
       channel: form.getFieldValue('targetReader'),
       introduction: form.getFieldValue('description'),
+      tag_ids: form.getFieldValue('tagIds'),
+    }),
+  })
+
+  // 使用 AI Action Hook - 生成简介
+  const { execute: generateIntroduction } = useAiAction<{
+    introduction: string
+  }>({
+    actionName: 'generate_introduction',
+    getParams: () => ({
+      title: form.getFieldValue('title'),
+      channel: form.getFieldValue('targetReader'),
       tag_ids: form.getFieldValue('tagIds'),
     }),
   })
@@ -181,12 +193,25 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
             {isView ? (
               <ViewText multiline />
             ) : (
-              <TextArea
-                placeholder="请输入50-500字以内的作品简介，不可出现低俗、暴力、血腥等不符合法律法规的内容"
-                maxLength={500}
-                rows={6}
-                showCount
-              />
+              <WithAiAction
+                tip="AI 生成作品简介"
+                onAction={async () => {
+                  const result = await generateIntroduction()
+                  if (result?.introduction) {
+                    form.setFieldValue('description', result.introduction)
+                    message.success('已生成作品简介')
+                  } else {
+                    message.info('未生成简介内容')
+                  }
+                }}
+              >
+                <TextArea
+                  placeholder="请输入50-500字以内的作品简介，不可出现低俗、暴力、血腥等不符合法律法规的内容"
+                  maxLength={500}
+                  rows={6}
+                  showCount
+                />
+              </WithAiAction>
             )}
           </Form.Item>
         </Col>

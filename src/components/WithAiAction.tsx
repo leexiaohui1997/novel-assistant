@@ -72,7 +72,7 @@ export const WithAiAction: React.FC<WithAiActionProps> = ({
     <>
       {contextHolder}
       {/* 布局容器：左侧子组件 + 右侧 AI 按钮 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         {/* 子组件区域：占据剩余空间 */}
         <div className="flex-1 w-0">
           {React.isValidElement(children) ? React.cloneElement(children, props) : children}
