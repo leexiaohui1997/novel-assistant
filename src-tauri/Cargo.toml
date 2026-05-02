@@ -3,7 +3,7 @@ name = "novel-assistant"
 version = "0.1.0"
 description = "小说创作助手桌面应用"
 authors = ["橙续缘 <1287338537@qq.com>"]
-license = "GPL-3.0"
+license = "proprietary"
 edition = "2021"
 
 [lib]

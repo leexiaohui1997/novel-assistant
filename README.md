@@ -5,6 +5,7 @@
 ## 🚀 技术栈
 
 ### 前端
+
 - **React 19** - 组件化 UI 框架
 - **TypeScript 5** - 类型安全
 - **Vite 8** - 极速构建工具
@@ -12,6 +13,7 @@
 - **Redux Toolkit** - 状态管理
 
 ### 后端
+
 - **Tauri v2** - 轻量级桌面应用框架
 - **Rust** - 高性能系统编程语言
 - **Tokio** - 异步运行时
@@ -61,6 +63,7 @@ pnpm run tauri dev
 ```
 
 这将同时启动:
+
 - Vite 开发服务器 (http://localhost:5173)
 - Tauri 桌面应用窗口
 
@@ -85,4 +88,4 @@ pnpm run tauri build
 
 ## 📄 许可证
 
-GNU General Public License v3.0
+专有软件 - 保留所有权利。详见 [LICENSE](LICENSE) 文件。
