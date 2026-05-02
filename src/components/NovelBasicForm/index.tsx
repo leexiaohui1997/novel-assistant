@@ -60,6 +60,7 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
       title: form.getFieldValue('title'),
       channel: form.getFieldValue('targetReader'),
       introduction: form.getFieldValue('description'),
+      tag_ids: form.getFieldValue('tagIds'),
     }),
   })
 
@@ -150,7 +151,8 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
                         // 将推荐的标签 ID 填入表单
                         const originTags = form.getFieldValue('tagIds') || []
                         const newTags = [...new Set([...originTags, ...result.tags])]
-                        tagSelectorRef.current?.handleSelectChange(newTags)
+                        // tagSelectorRef.current?.handleSelectChange(newTags)
+                        form.setFieldValue('tagIds', newTags)
                         message.success(`已推荐 ${result.tags.length} 个标签`)
                       } else {
                         message.info('未找到合适的标签推荐')

@@ -1,5 +1,5 @@
 import { Empty, Modal, Tag as AntdTag, Tooltip } from 'antd'
-import { useState, Fragment } from 'react'
+import { useState, Fragment, useEffect } from 'react'
 
 import { TAG_TYPE_LABELS, type Tag, type TagType } from '@/services/tagService'
 
@@ -78,6 +78,11 @@ const TagSelectorModal: React.FC<TagSelectorModalProps> = ({
   }
 
   const currentTabTags = tags.filter((tag) => tag.tagType === activeTab)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedIds(value)
+  }, [value])
 
   return (
     <Modal

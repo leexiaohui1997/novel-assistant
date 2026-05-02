@@ -45,6 +45,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
    */
   const handleSelectChange = useCallback(
     (ids: number[]) => {
+      console.log('TagSelector handleSelectChange:', ids)
       setInnerValue(ids)
       onChange?.(ids)
     },

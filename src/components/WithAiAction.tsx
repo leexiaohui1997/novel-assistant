@@ -45,6 +45,7 @@ export const WithAiAction: React.FC<WithAiActionProps> = ({
   children,
   disabled = false,
   onAction,
+  ...props
 }) => {
   // Ant Design Message 实例
   const [messageApi, contextHolder] = message.useMessage()
@@ -73,7 +74,9 @@ export const WithAiAction: React.FC<WithAiActionProps> = ({
       {/* 布局容器：左侧子组件 + 右侧 AI 按钮 */}
       <div className="flex items-center gap-2">
         {/* 子组件区域：占据剩余空间 */}
-        <div className="flex-1 w-0">{children}</div>
+        <div className="flex-1 w-0">
+          {React.isValidElement(children) ? React.cloneElement(children, props) : children}
+        </div>
         {/* 按钮区域：固定宽度 */}
         <div className="flex items-center gap-1">
           <Tooltip title={tip} color="white">
