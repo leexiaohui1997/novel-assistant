@@ -85,3 +85,13 @@ pub async fn update_novel(
     let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
     repo.update(uuid, &novel).await.map_err(|e| e.to_string())
 }
+
+/// 删除小说
+///
+/// 根据小说ID删除对应的小说及其所有关联数据（章节、分卷、历史版本、标签关联等）
+#[tauri::command]
+pub async fn delete_novel(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let repo = state.novel_repo.read().await;
+    let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    repo.delete(uuid).await.map_err(|e| e.to_string())
+}

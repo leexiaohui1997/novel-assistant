@@ -33,6 +33,7 @@ pub trait NovelRepository {
     ) -> Result<PaginatedResult<NovelWithTags>, DbError>;
     async fn find_by_id(&self, id: Uuid, options: &QueryOptions) -> Result<NovelWithTags, DbError>;
     async fn update(&self, id: Uuid, novel: &UpdateNovel) -> Result<Novel, DbError>;
+    async fn delete(&self, id: Uuid) -> Result<(), DbError>;
 }
 
 pub struct SqliteNovelRepository {
@@ -270,5 +271,91 @@ impl NovelRepository for SqliteNovelRepository {
             updated_novel.title
         );
         Ok(updated_novel)
+    }
+
+    /// 删除小说及其所有关联数据
+    ///
+    /// 使用事务确保级联删除的原子性，按以下顺序删除：
+    /// 1. 章节历史版本 (chapter_versions)
+    /// 2. 章节与分卷关联 (volume_chapters)
+    /// 3. 章节 (chapters)
+    /// 4. 分卷 (volumes)
+    /// 5. 标签关联 (novel_tags)
+    /// 6. 小说本身 (novels)
+    async fn delete(&self, id: Uuid) -> Result<(), DbError> {
+        let mut tx = self.pool.begin().await?;
+
+        // 1. 查询该小说下的所有章节ID
+        let chapter_ids: Vec<Uuid> =
+            sqlx::query_scalar("SELECT id FROM chapters WHERE novel_id = ?1")
+                .bind(id)
+                .fetch_all(tx.as_mut())
+                .await?
+                .into_iter()
+                .collect();
+
+        // 2. 删除所有章节的历史版本 (chapter_versions)
+        if !chapter_ids.is_empty() {
+            let placeholders = chapter_ids
+                .iter()
+                .map(|_| "?")
+                .collect::<Vec<_>>()
+                .join(", ");
+            let query = format!(
+                "DELETE FROM chapter_versions WHERE chapter_id IN ({})",
+                placeholders
+            );
+            let mut db_query = sqlx::query(&query);
+            for chapter_id in &chapter_ids {
+                db_query = db_query.bind(chapter_id);
+            }
+            db_query.execute(tx.as_mut()).await?;
+        }
+
+        // 3. 删除所有章节与分卷的关联 (volume_chapters)
+        if !chapter_ids.is_empty() {
+            let placeholders = chapter_ids
+                .iter()
+                .map(|_| "?")
+                .collect::<Vec<_>>()
+                .join(", ");
+            let query = format!(
+                "DELETE FROM volume_chapters WHERE chapter_id IN ({})",
+                placeholders
+            );
+            let mut db_query = sqlx::query(&query);
+            for chapter_id in &chapter_ids {
+                db_query = db_query.bind(chapter_id);
+            }
+            db_query.execute(tx.as_mut()).await?;
+        }
+
+        // 4. 删除所有章节 (chapters)
+        sqlx::query("DELETE FROM chapters WHERE novel_id = ?1")
+            .bind(id)
+            .execute(tx.as_mut())
+            .await?;
+
+        // 5. 删除该小说下的所有分卷 (volumes)
+        sqlx::query("DELETE FROM volumes WHERE novel_id = ?1")
+            .bind(id)
+            .execute(tx.as_mut())
+            .await?;
+
+        // 6. 删除所有标签关联 (novel_tags)
+        sqlx::query("DELETE FROM novel_tags WHERE novel_id = ?1")
+            .bind(id)
+            .execute(tx.as_mut())
+            .await?;
+
+        // 7. 最后删除小说本身 (novels)
+        sqlx::query("DELETE FROM novels WHERE id = ?1")
+            .bind(id)
+            .execute(tx.as_mut())
+            .await?;
+
+        tx.commit().await?;
+        tracing::info!("小说及其关联数据删除成功: {}", id);
+        Ok(())
     }
 }

@@ -1,3 +1,4 @@
+import { DeleteOutlined, ProjectOutlined } from '@ant-design/icons'
 import { Button, Divider, Space } from 'antd'
 import { Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -6,13 +7,14 @@ import type { Novel } from '@/services/novelService'
 
 interface NovelItemProps {
   novel: Novel
+  onDelete?: (novel: Novel) => unknown
 }
 
 /**
  * 小说项目组件
  * 用于展示单个小说的基本信息
  */
-const NovelItem: React.FC<NovelItemProps> = ({ novel }) => {
+const NovelItem: React.FC<NovelItemProps> = ({ novel, onDelete }) => {
   const navigate = useNavigate()
 
   return (
@@ -44,8 +46,19 @@ const NovelItem: React.FC<NovelItemProps> = ({ novel }) => {
                 type="primary"
                 shape="round"
                 onClick={() => navigate(`/creation/${novel.id}`)}
+                icon={<ProjectOutlined />}
               >
-                开始创作
+                作品详情
+              </Button>
+
+              <Button
+                variant="solid"
+                color="danger"
+                shape="round"
+                icon={<DeleteOutlined />}
+                onClick={() => onDelete?.(novel)}
+              >
+                删除
               </Button>
             </Space>
           </div>

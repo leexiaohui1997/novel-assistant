@@ -24,7 +24,8 @@ use commands::model_commands::{
     get_provider_types, toggle_model_enabled, update_model_alias,
 };
 use commands::novel_commands::{
-    create_novel, get_novel_by_id, get_novels, get_novels_with_pagination, update_novel,
+    create_novel, delete_novel, get_novel_by_id, get_novels, get_novels_with_pagination,
+    update_novel,
 };
 use commands::provider_commands::{
     create_provider, delete_provider, get_providers_with_pagination, update_provider,
@@ -126,6 +127,7 @@ pub async fn run() {
             get_novels,
             get_novels_with_pagination,
             update_novel,
+            delete_novel,
             create_volume,
             update_volume,
             delete_volume,

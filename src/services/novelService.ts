@@ -134,3 +134,19 @@ export async function updateNovel(id: string, params: UpdateNovelParams): Promis
     throw error
   }
 }
+
+/**
+ * 删除小说
+ */
+export async function deleteNovel(id: string): Promise<void> {
+  try {
+    logger.debug('调用删除小说 API:', id)
+
+    await invoke<void>('delete_novel', { id })
+
+    logger.debug('小说删除成功')
+  } catch (error) {
+    logger.error('删除小说失败:', error)
+    throw error
+  }
+}
