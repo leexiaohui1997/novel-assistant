@@ -1,5 +1,5 @@
 import { Spin, Pagination, Form, Button, Empty } from 'antd'
-import { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useImperativeHandle } from 'react'
 
 import type { FormInstance } from 'antd'
 
@@ -52,17 +52,19 @@ interface ListProps<T> {
 }
 
 /**
+ * List 组件暴露的命令式方法
+ */
+export interface ListRef {
+  /** 刷新列表数据（保持当前页码和筛选条件） */
+  refresh: () => void
+}
+
+/**
  * 通用列表组件
  * 支持分页、加载状态、筛选等基础功能
  */
-const List = <T,>({
-  fetchList,
-  renderItem,
-  renderFilters,
-  pageSize = 10,
-  initialPage = 1,
-  classNames,
-}: ListProps<T>) => {
+function List<T>(props: ListProps<T>, ref: React.ForwardedRef<ListRef>) {
+  const { fetchList, renderItem, renderFilters, pageSize = 10, initialPage = 1, classNames } = props
   const [data, setData] = useState<T[]>([])
   const [total, setTotal] = useState(0)
   const [currentPage, setCurrentPage] = useState(initialPage)
@@ -106,6 +108,19 @@ const List = <T,>({
       await executeFetch(page, currentFilters)
     },
     [executeFetch],
+  )
+
+  /**
+   * 对外暴露命令式方法：refresh
+   */
+  useImperativeHandle(
+    ref,
+    () => ({
+      refresh: () => {
+        void loadData(currentPage, filters)
+      },
+    }),
+    [loadData, currentPage, filters],
   )
 
   // 初始化加载数据（需要 isMounted 检查）
@@ -204,4 +219,12 @@ const List = <T,>({
   )
 }
 
-export default List
+const ForwardedList = React.forwardRef(List)
+ForwardedList.displayName = 'List'
+
+// 添加泛型支持
+const ListWithGenerics = ForwardedList as <T>(
+  props: ListProps<T> & { ref?: React.ForwardedRef<ListRef> },
+) => ReturnType<typeof List>
+
+export default ListWithGenerics

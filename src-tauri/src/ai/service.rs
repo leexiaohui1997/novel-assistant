@@ -121,85 +121,94 @@ impl AiService {
         // 检查 API Key 是否存在
         let api_key = provider.api_key.ok_or("供应商未配置 API Key")?;
 
-        // 3 创建 OpenAI 客户端
-        use async_openai::types::{
-            ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
-            ChatCompletionRequestUserMessage, CreateChatCompletionRequest,
-        };
-        use async_openai::{config::OpenAIConfig, Client};
+        // 3 构建 HTTP 请求（使用 reqwest 直接调用，避免 async-openai 的反序列化问题）
+        use serde_json::json;
 
-        let config = OpenAIConfig::new()
-            .with_api_key(api_key)
-            .with_api_base(&provider.base_url);
-
-        let client = Client::with_config(config);
-
-        // 4 构建消息列表
-        let mut messages: Vec<ChatCompletionRequestMessage> = vec![];
-
-        // 将 AiRequestData 的 messages 转换为 OpenAI 格式
+        // 构建消息列表
+        let mut messages_json: Vec<serde_json::Value> = vec![];
         for msg in &request_data.messages {
-            match msg.role {
-                super::types::MessageRole::System => {
-                    messages.push(ChatCompletionRequestMessage::System(
-                        ChatCompletionRequestSystemMessage {
-                            content: msg.content.clone().into(),
-                            name: None,
-                        },
-                    ));
-                }
-                super::types::MessageRole::User => {
-                    messages.push(ChatCompletionRequestMessage::User(
-                        ChatCompletionRequestUserMessage {
-                            content: msg.content.clone().into(),
-                            name: None,
-                        },
-                    ));
-                }
-                super::types::MessageRole::Assistant => {
-                    // Assistant 消息暂时不支持，跳过或可以扩展
-                }
-            }
+            let role_str = match msg.role {
+                MessageRole::System => "system",
+                MessageRole::User => "user",
+                MessageRole::Assistant => "assistant",
+            };
+
+            messages_json.push(json!({
+                "role": role_str,
+                "content": msg.content
+            }));
         }
 
-        // 5 构建请求
-        let request = CreateChatCompletionRequest {
-            model: model.model_id.clone(),
-            messages,
-            temperature: Some(0.7),
-            max_tokens: Some(4096),
-            ..Default::default()
-        };
+        // 构建请求体
+        let request_body = json!({
+            "model": model.model_id,
+            "messages": messages_json,
+            "temperature": 0.7,
+            "max_tokens": 4096
+        });
 
-        // 6 调用 API
-        let response = client
-            .chat()
-            .create(request)
+        // 发送 HTTP 请求
+        let http_client = reqwest::Client::new();
+        let response = http_client
+            .post(format!("{}/chat/completions", provider.base_url))
+            .header("Authorization", format!("Bearer {}", api_key))
+            .header("Content-Type", "application/json")
+            .json(&request_body)
+            .send()
             .await
-            .map_err(|e| format!("AI 调用失败: {}", e))?;
+            .map_err(|e| format!("HTTP 请求失败: {}", e))?;
 
-        // 7 提取响应内容
-        let content = response
-            .choices
-            .first()
-            .and_then(|choice| choice.message.content.clone())
-            .unwrap_or_default();
+        // 检查 HTTP 状态
+        let status = response.status();
+        if !status.is_success() {
+            // 克隆状态码用于错误消息，因为 text() 会消耗 response
+            let status_code = status.as_u16();
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(format!("API 返回错误 ({}): {}", status_code, error_text));
+        }
 
-        // 8 获取 token 使用统计
-        let (input_tokens, output_tokens, total_tokens) = if let Some(usage) = &response.usage {
-            (
-                usage.prompt_tokens as i32,
-                usage.completion_tokens as i32,
-                usage.total_tokens as i32,
-            )
-        } else {
-            (0, 0, 0)
-        };
+        // 解析响应（使用宽松的解析方式）
+        let response_json: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| format!("解析响应失败: {}", e))?;
 
-        // 9 计算耗时
+        // 4 提取响应内容（容忍 role 字段为空或不规范）
+        let content = response_json
+            .get("choices")
+            .and_then(|choices| choices.as_array())
+            .and_then(|choices| choices.first())
+            .and_then(|choice| choice.get("message"))
+            .and_then(|message| message.get("content"))
+            .and_then(|content| content.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        // 5 获取 token 使用统计
+        let (input_tokens, output_tokens, total_tokens) = response_json
+            .get("usage")
+            .map(|usage| {
+                (
+                    usage
+                        .get("prompt_tokens")
+                        .and_then(|v| v.as_i64())
+                        .unwrap_or(0) as i32,
+                    usage
+                        .get("completion_tokens")
+                        .and_then(|v| v.as_i64())
+                        .unwrap_or(0) as i32,
+                    usage
+                        .get("total_tokens")
+                        .and_then(|v| v.as_i64())
+                        .unwrap_or(0) as i32,
+                )
+            })
+            .unwrap_or((0, 0, 0));
+
+        // 6 计算耗时
         let duration_ms = start_time.elapsed().as_millis() as i64;
 
-        // 10 提取最后一条用户消息
+        // 7 提取最后一条用户消息
         let last_user_message = request_data
             .messages
             .iter()
@@ -208,7 +217,7 @@ impl AiService {
             .map(|msg| msg.content.clone())
             .unwrap_or_default();
 
-        // 11 保存调用记录
+        // 8 保存调用记录
         let call_log = CreateAiCallLog {
             provider_id: model.provider_id,
             model_id: model.id,
@@ -232,10 +241,6 @@ impl AiService {
                 eprintln!("保存 AI 调用记录失败: {}", e);
             }
         });
-
-        // 将 response 转换为 JSON Value
-        let response_json =
-            serde_json::to_value(&response).map_err(|e| format!("序列化响应失败: {}", e))?;
 
         Ok(AiChatResponse {
             content,
