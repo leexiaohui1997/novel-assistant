@@ -6,6 +6,7 @@ import ListWithGenerics, { ListRef } from '@/components/List'
 import { useCreationState } from '@/hooks/useCreationState'
 import {
   createCharacter,
+  deleteCharacter,
   getCharactersWithPagination,
   updateCharacter,
 } from '@/services/characterService'
@@ -103,6 +104,29 @@ export default function CreationDetailCharacter() {
     [setEditingCharacter, setModalIsOpen],
   )
 
+  const handleDelete = useCallback(
+    (character: Character) => {
+      Modal.confirm({
+        title: '确认删除',
+        content: `确定要删除角色「${character.name}」吗？此操作不可恢复。`,
+        okText: '删除',
+        okType: 'danger',
+        cancelText: '取消',
+        onOk: async () => {
+          try {
+            await deleteCharacter(character.id)
+            message.success('删除角色成功')
+            void listRef.current?.refresh()
+          } catch (error) {
+            logger.error('删除角色失败:', error)
+            message.error(`删除角色失败: ${getErrorMsg(error)}`)
+          }
+        },
+      })
+    },
+    [message],
+  )
+
   return (
     <>
       <div className="p-6">
@@ -126,6 +150,7 @@ export default function CreationDetailCharacter() {
               list: 'flex flex-wrap relative',
               item: 'w-1/3 p-3',
             }}
+            emptyDescription="暂无角色"
             fetchList={fetchList}
             renderItem={(itemInfo, _, order) => (
               <Card
@@ -153,7 +178,13 @@ export default function CreationDetailCharacter() {
                   >
                     编辑
                   </Button>,
-                  <Button size="small" variant="text" color="danger" icon={<DeleteOutlined />}>
+                  <Button
+                    size="small"
+                    variant="text"
+                    color="danger"
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDelete(itemInfo)}
+                  >
                     删除
                   </Button>,
                 ]}

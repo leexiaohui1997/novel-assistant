@@ -49,6 +49,11 @@ interface ListProps<T> {
     list?: string
     item?: string
   }
+
+  /**
+   * 空状态的描述文本
+   */
+  emptyDescription?: string
 }
 
 /**
@@ -64,7 +69,15 @@ export interface ListRef {
  * 支持分页、加载状态、筛选等基础功能
  */
 function List<T>(props: ListProps<T>, ref: React.ForwardedRef<ListRef>) {
-  const { fetchList, renderItem, renderFilters, pageSize = 10, initialPage = 1, classNames } = props
+  const {
+    fetchList,
+    renderItem,
+    renderFilters,
+    pageSize = 10,
+    initialPage = 1,
+    classNames,
+    emptyDescription = '暂无数据',
+  } = props
   const [data, setData] = useState<T[]>([])
   const [total, setTotal] = useState(0)
   const [currentPage, setCurrentPage] = useState(initialPage)
@@ -191,7 +204,7 @@ function List<T>(props: ListProps<T>, ref: React.ForwardedRef<ListRef>) {
       <Spin spinning={loading}>
         {data.length === 0 ? (
           <div className="p-6!">
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyDescription} />
           </div>
         ) : (
           <div className={classNames?.list}>
