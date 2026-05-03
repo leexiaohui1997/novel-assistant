@@ -9,7 +9,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use ai::actions::builtin::{
-    GenerateCharacterAction, GenerateIntroductionAction, GenerateTitleAction, RecommendTagsAction,
+    GenerateCharacterAction, GenerateIntroductionAction, GenerateTitleAction,
+    OptimizeCharacterAction, RecommendTagsAction,
 };
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
@@ -96,6 +97,7 @@ pub async fn run() {
     action_router.register(Arc::new(GenerateIntroductionAction));
     action_router.register(Arc::new(GenerateTitleAction));
     action_router.register(Arc::new(GenerateCharacterAction));
+    action_router.register(Arc::new(OptimizeCharacterAction));
     let action_router = Arc::new(RwLock::new(action_router));
 
     // 创建应用状态（先不包含 action_executor）

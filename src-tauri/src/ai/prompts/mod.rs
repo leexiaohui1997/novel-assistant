@@ -84,6 +84,17 @@ impl PromptTemplates {
 
         self.tera.render("generate_character", &tera_context)
     }
+
+    /// 渲染 optimize_character 提示词
+    pub fn render_optimize_character(
+        &self,
+        context: &OptimizeCharacterContext,
+    ) -> Result<String, tera::Error> {
+        // 使用 Serialize trait 自动转换，无需手动 insert
+        let tera_context = Context::from_serialize(context)?;
+
+        self.tera.render("optimize_character", &tera_context)
+    }
 }
 
 /// recommend_tags 模板的上下文数据
@@ -189,4 +200,58 @@ pub struct CharacterInfo {
     /// 背景（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub background: Option<String>,
+}
+
+/// optimize_character 模板的上下文数据
+#[derive(Debug, Serialize)]
+pub struct OptimizeCharacterContext {
+    /// 小说标题
+    pub title: String,
+
+    /// 频道名称（男频/女频）
+    pub channel_name: String,
+
+    /// 标签信息（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<String>,
+
+    /// 作品简介（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub introduction: Option<String>,
+
+    /// 待优化的角色信息
+    pub character: CharacterDetail,
+
+    /// 需要优化的字段列表
+    pub optimize_fields: Vec<String>,
+
+    /// 用户优化意见（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_feedback: Option<String>,
+}
+
+/// 角色详细信息（用于优化）
+#[derive(Debug, Serialize)]
+pub struct CharacterDetail {
+    /// 角色名称
+    pub name: String,
+
+    /// 性别
+    pub gender: String,
+
+    /// 背景（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+
+    /// 外貌（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub appearance: Option<String>,
+
+    /// 性格（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub personality: Option<String>,
+
+    /// 其它描述（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_info: Option<String>,
 }

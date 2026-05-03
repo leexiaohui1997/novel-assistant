@@ -11,10 +11,12 @@
 pub mod generate_character;
 pub mod generate_introduction;
 pub mod generate_title;
+pub mod optimize_character;
 pub mod recommend_tags;
 
 // 重新导出所有内置 Action
 pub use generate_character::GenerateCharacterAction;
 pub use generate_introduction::GenerateIntroductionAction;
 pub use generate_title::GenerateTitleAction;
+pub use optimize_character::OptimizeCharacterAction;
 pub use recommend_tags::RecommendTagsAction;
