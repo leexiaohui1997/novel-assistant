@@ -16,6 +16,10 @@ pub struct GenerateIntroductionInput {
 
     /// 已选择的标签 ID 列表（可选）
     pub tag_ids: Option<Vec<i64>>,
+
+    /// 用户意见（可选）
+    #[serde(default)]
+    pub user_feedback: Option<String>,
 }
 
 /// 生成作品简介 Action
@@ -84,6 +88,7 @@ impl ActionHandler for GenerateIntroductionAction {
             title: input.title.clone(),
             channel_name: channel_name.map(|s| s.to_string()),
             selected_tags: selected_tags_info,
+            user_feedback: input.user_feedback,
         };
 
         let prompt = templates

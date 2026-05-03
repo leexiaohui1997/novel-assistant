@@ -196,6 +196,7 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
             ) : (
               <WithAiAction
                 tip="AI 生成作品简介"
+                showFeedback
                 aiAction={{
                   actionName: 'generate_introduction',
                   getParams: () => ({
