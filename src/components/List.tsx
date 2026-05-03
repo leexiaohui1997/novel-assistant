@@ -26,7 +26,7 @@ interface ListProps<T> {
    * @param index - 索引
    * @returns ReactNode
    */
-  renderItem: (item: T, index: number) => React.ReactNode
+  renderItem: (item: T, index: number, order: number) => React.ReactNode
 
   /**
    * 渲染筛选表单的函数
@@ -197,7 +197,7 @@ function List<T>(props: ListProps<T>, ref: React.ForwardedRef<ListRef>) {
           <div className={classNames?.list}>
             {data.map((item, index) => (
               <div key={index} className={classNames?.item}>
-                {renderItem(item, index)}
+                {renderItem(item, index, (currentPage - 1) * pageSize + index + 1)}
               </div>
             ))}
           </div>

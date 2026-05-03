@@ -1,10 +1,15 @@
-import { PlusOutlined } from '@ant-design/icons'
-import { App, Button, Card, Form, FormInstance, Input, Modal, Select } from 'antd'
+import { DeleteOutlined, EditOutlined, IdcardOutlined, PlusOutlined } from '@ant-design/icons'
+import { App, Button, Card, Form, FormInstance, Input, Modal, Select, Tag } from 'antd'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
+import ListWithGenerics, { ListRef } from '@/components/List'
 import { useCreationState } from '@/hooks/useCreationState'
-import { createCharacter, getCharactersByNovel, updateCharacter } from '@/services/characterService'
-import { Character, CharacterGenderOptions } from '@/types/character'
+import {
+  createCharacter,
+  getCharactersWithPagination,
+  updateCharacter,
+} from '@/services/characterService'
+import { Character, CharacterGenderLabels, CharacterGenderOptions } from '@/types/character'
 import { getErrorMsg } from '@/utils/error'
 import { logger } from '@/utils/logger'
 
@@ -12,8 +17,8 @@ export default function CreationDetailCharacter() {
   const { message } = App.useApp()
   const { novelId } = useCreationState()
   const formRef = useRef<FormInstance>(null)
+  const listRef = useRef<ListRef>(null)
 
-  const [, setCharacters] = useState<Character[]>([])
   const [editingCharacter, setEditingCharacter] = useState<Character>()
   const [modalIsOpen, setModalIsOpen] = useState(false)
   const [modalLoading, setModalLoading] = useState(false)
@@ -21,6 +26,13 @@ export default function CreationDetailCharacter() {
   const modalIsEdit = useMemo(() => !!editingCharacter, [editingCharacter])
   const modalTitle = useMemo(() => (modalIsEdit ? '编辑角色' : '创建角色'), [modalIsEdit])
   const modalOkLabel = useMemo(() => (modalIsEdit ? '更新' : '创建'), [modalIsEdit])
+
+  const fetchList = useCallback(
+    async (page: number, pageSize: number) => {
+      return getCharactersWithPagination(page, pageSize, novelId)
+    },
+    [novelId],
+  )
 
   const modalInitialValues = useMemo(
     () =>
@@ -40,16 +52,6 @@ export default function CreationDetailCharacter() {
   const modalAfterClose = useCallback(() => {
     setEditingCharacter(undefined)
   }, [])
-
-  const refreshList = useCallback(async () => {
-    try {
-      const list = await getCharactersByNovel(novelId)
-      setCharacters(list)
-    } catch (error) {
-      logger.error('获取角色列表失败:', error)
-      message.error('获取角色列表失败')
-    }
-  }, [novelId, message])
 
   const modalOkhandle = useCallback(async () => {
     try {
@@ -82,7 +84,7 @@ export default function CreationDetailCharacter() {
         }
         message.success(`${modalOkLabel}角色成功`)
         setModalIsOpen(false)
-        void refreshList()
+        void listRef.current?.refresh()
       } catch (error) {
         message.error(`${modalOkLabel}角色失败: ${getErrorMsg(error)}`)
       } finally {
@@ -91,13 +93,22 @@ export default function CreationDetailCharacter() {
     } catch (error) {
       logger.error('表单验证失败:', error)
     }
-  }, [message, modalOkLabel, modalIsEdit, editingCharacter, novelId, refreshList])
+  }, [message, modalOkLabel, modalIsEdit, editingCharacter, novelId])
+
+  const handleEdit = useCallback(
+    (character: Character) => {
+      setEditingCharacter(character)
+      setModalIsOpen(true)
+    },
+    [setEditingCharacter, setModalIsOpen],
+  )
 
   return (
     <>
       <div className="p-6">
         <Card
           title="角色管理"
+          classNames={{ body: 'p-3!' }}
           extra={
             <Button
               type="primary"
@@ -108,7 +119,52 @@ export default function CreationDetailCharacter() {
               创建角色
             </Button>
           }
-        ></Card>
+        >
+          <ListWithGenerics
+            ref={listRef}
+            classNames={{
+              list: 'flex flex-wrap relative',
+              item: 'w-1/3 p-3',
+            }}
+            fetchList={fetchList}
+            renderItem={(itemInfo, _, order) => (
+              <Card
+                size="small"
+                title={
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400"># {order}</span>
+                      <span>{itemInfo.name}</span>
+                    </div>
+
+                    <Tag>性别：{CharacterGenderLabels[itemInfo.gender]}</Tag>
+                  </div>
+                }
+                actions={[
+                  <Button size="small" variant="text" color="primary" icon={<IdcardOutlined />}>
+                    查看
+                  </Button>,
+                  <Button
+                    size="small"
+                    variant="text"
+                    color="primary"
+                    icon={<EditOutlined />}
+                    onClick={() => handleEdit(itemInfo)}
+                  >
+                    编辑
+                  </Button>,
+                  <Button size="small" variant="text" color="danger" icon={<DeleteOutlined />}>
+                    删除
+                  </Button>,
+                ]}
+              >
+                <div className="h-8 line-clamp-2 leading-4 text-sm flex items-center">
+                  {itemInfo.background}
+                </div>
+              </Card>
+            )}
+          />
+        </Card>
       </div>
 
       <Modal

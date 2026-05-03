@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 
 import { Character } from '@/types/character'
+import { PaginatedResult } from '@/types/common'
 import { logger } from '@/utils/logger'
 
 /**
@@ -69,6 +70,31 @@ export async function getCharactersByNovel(novelId: string): Promise<Character[]
     return result
   } catch (error) {
     logger.error('获取角色列表失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 分页查询角色
+ */
+export async function getCharactersWithPagination(
+  page: number,
+  pageSize: number,
+  novelId?: string,
+): Promise<PaginatedResult<Character>> {
+  try {
+    logger.debug('调用分页获取角色列表 API:', { page, pageSize, novelId })
+
+    const result = await invoke<PaginatedResult<Character>>('get_characters_with_pagination', {
+      page,
+      pageSize,
+      novelId,
+    })
+
+    logger.debug('获取到角色列表:', result.data.length, '个，总数:', result.total)
+    return result
+  } catch (error) {
+    logger.error('分页获取角色列表失败:', error)
     throw error
   }
 }

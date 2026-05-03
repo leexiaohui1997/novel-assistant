@@ -2,6 +2,7 @@ use tauri::State;
 use uuid::Uuid;
 
 use crate::database::models::character::{Character, Gender};
+use crate::utils::pagination::{PaginatedResult, PaginationParams};
 use crate::AppState;
 
 /// 创建角色
@@ -55,6 +56,26 @@ pub async fn get_characters_by_novel(
     let character_repo = state.character_repo.read().await;
     character_repo
         .find_by_novel_id(&novel_uuid)
+        .await
+        .map_err(|e| format!("获取角色列表失败: {}", e))
+}
+
+/// 分页查询角色
+#[tauri::command]
+pub async fn get_characters_with_pagination(
+    page: i64,
+    page_size: i64,
+    novel_id: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<PaginatedResult<Character>, String> {
+    let params = PaginationParams { page, page_size };
+    let novel_uuid = novel_id
+        .map(|id| Uuid::parse_str(&id).map_err(|e| e.to_string()))
+        .transpose()?;
+
+    let character_repo = state.character_repo.read().await;
+    character_repo
+        .find_with_pagination(&params, novel_uuid.as_ref())
         .await
         .map_err(|e| format!("获取角色列表失败: {}", e))
 }

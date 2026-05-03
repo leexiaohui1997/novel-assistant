@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::database::error::DbError;
 use crate::database::models::character::Character;
+use crate::utils::pagination::{PaginatedResult, PaginationParams};
 
 /// 角色仓储 trait
 #[async_trait]
@@ -17,6 +18,13 @@ pub trait CharacterRepository {
 
     /// 根据小说 ID 查询所有角色
     async fn find_by_novel_id(&self, novel_id: &Uuid) -> Result<Vec<Character>, DbError>;
+
+    /// 分页查询角色（支持按小说 ID 筛选）
+    async fn find_with_pagination(
+        &self,
+        params: &PaginationParams,
+        novel_id: Option<&Uuid>,
+    ) -> Result<PaginatedResult<Character>, DbError>;
 
     /// 更新角色
     async fn update_character(&self, character: &Character) -> Result<Character, DbError>;
@@ -84,6 +92,56 @@ impl CharacterRepository for SqliteCharacterRepository {
         .await?;
 
         Ok(characters)
+    }
+
+    async fn find_with_pagination(
+        &self,
+        params: &PaginationParams,
+        novel_id: Option<&Uuid>,
+    ) -> Result<PaginatedResult<Character>, DbError> {
+        let (count_sql, data_sql) = match novel_id {
+            Some(_) => (
+                "SELECT COUNT(*) FROM characters WHERE novel_id = ?1",
+                "SELECT * FROM characters WHERE novel_id = ?1 ORDER BY created_at ASC LIMIT ?2 OFFSET ?3",
+            ),
+            None => (
+                "SELECT COUNT(*) FROM characters",
+                "SELECT * FROM characters ORDER BY created_at ASC LIMIT ?1 OFFSET ?2",
+            ),
+        };
+
+        let offset = (params.page - 1) * params.page_size;
+
+        // 查询总数
+        let total: (i64,) = if let Some(nid) = novel_id {
+            sqlx::query_as(count_sql)
+                .bind(nid)
+                .fetch_one(&self.pool)
+                .await?
+        } else {
+            sqlx::query_as(count_sql).fetch_one(&self.pool).await?
+        };
+
+        // 查询分页数据
+        let data: Vec<Character> = if let Some(nid) = novel_id {
+            sqlx::query_as::<_, Character>(data_sql)
+                .bind(nid)
+                .bind(params.page_size)
+                .bind(offset)
+                .fetch_all(&self.pool)
+                .await?
+        } else {
+            sqlx::query_as::<_, Character>(data_sql)
+                .bind(params.page_size)
+                .bind(offset)
+                .fetch_all(&self.pool)
+                .await?
+        };
+
+        Ok(PaginatedResult {
+            data,
+            total: total.0,
+        })
     }
 
     async fn update_character(&self, character: &Character) -> Result<Character, DbError> {

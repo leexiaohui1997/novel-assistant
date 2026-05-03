@@ -20,7 +20,7 @@ use commands::chapter_commands::{
 };
 use commands::character_commands::{
     create_character, delete_character, get_character_by_id, get_characters_by_novel,
-    update_character,
+    get_characters_with_pagination, update_character,
 };
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
 use commands::model_commands::{
@@ -147,6 +147,7 @@ pub async fn run() {
             get_chapter_versions,
             create_character,
             get_characters_by_novel,
+            get_characters_with_pagination,
             get_character_by_id,
             update_character,
             delete_character,
