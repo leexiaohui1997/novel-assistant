@@ -1,6 +1,8 @@
-import { ThunderboltOutlined } from '@ant-design/icons'
-import { Button, message, Tooltip } from 'antd'
+import { CaretDownFilled, ThunderboltOutlined } from '@ant-design/icons'
+import { Button, Divider, Form, message, Popover, Space } from 'antd'
 import React, { useCallback, useState } from 'react'
+
+import { ModelSelect } from './ModelSelect'
 
 import { getErrorMsg } from '@/utils/error'
 
@@ -77,9 +79,10 @@ export const WithAiAction: React.FC<WithAiActionProps> = ({
         <div className="flex-1 w-0">
           {React.isValidElement(children) ? React.cloneElement(children, props) : children}
         </div>
+
         {/* 按钮区域：固定宽度 */}
         <div className="flex items-center gap-1">
-          <Tooltip title={tip} color="white">
+          <Space.Compact>
             <Button
               icon={<ThunderboltOutlined />}
               variant="filled"
@@ -88,7 +91,50 @@ export const WithAiAction: React.FC<WithAiActionProps> = ({
               disabled={disabled}
               onClick={onClick}
             />
-          </Tooltip>
+
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              content={
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div>{tip}</div>
+
+                    <div className="flex items-center justify-center">
+                      <Button
+                        size="small"
+                        type="primary"
+                        className="min-w-20"
+                        icon={<ThunderboltOutlined />}
+                        loading={loading}
+                        disabled={disabled}
+                        onClick={onClick}
+                      >
+                        运行
+                      </Button>
+                    </div>
+                  </div>
+                  <Divider size="small"></Divider>
+                  <Form
+                    classNames={{ content: 'flex justify-end' }}
+                    initialValues={{ modelId: '' }}
+                  >
+                    <Form.Item label="模型" name="modelId">
+                      <ModelSelect withAuto className="w-full" allowClear={false} />
+                    </Form.Item>
+                  </Form>
+                </div>
+              }
+              classNames={{ content: 'min-w-75!' }}
+            >
+              <Button
+                icon={<CaretDownFilled />}
+                variant="filled"
+                color="primary"
+                disabled={disabled}
+              />
+            </Popover>
+          </Space.Compact>
         </div>
       </div>
     </>

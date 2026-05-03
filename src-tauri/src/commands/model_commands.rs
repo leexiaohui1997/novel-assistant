@@ -63,6 +63,21 @@ pub async fn add_models(
         .map_err(|e| e.to_string())
 }
 
+/// 获取所有模型（不分页，带供应商名称）
+///
+/// # 参数
+/// - `enabled_only`: 如果为 Some(true)，只返回启用的模型；如果为 Some(false)，只返回禁用的模型；如果为 None，返回所有模型
+#[tauri::command]
+pub async fn get_all_models(
+    state: State<'_, AppState>,
+    enabled_only: Option<bool>,
+) -> Result<Vec<ModelWithProvider>, String> {
+    let repo = state.model_repo.read().await;
+    repo.find_all_with_provider(enabled_only)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// 分页获取模型列表（带供应商名称）
 #[tauri::command]
 pub async fn get_models_with_pagination(

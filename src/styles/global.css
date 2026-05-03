@@ -45,6 +45,10 @@ body {
   height: 100vh;
 }
 
+.ant-form > .ant-form-item:last-child {
+  margin-bottom: 0;
+}
+
 /* 滚动条样式 */
 ::-webkit-scrollbar {
   width: 8px;

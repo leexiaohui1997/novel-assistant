@@ -17,11 +17,20 @@ pub trait ModelRepository {
         models: &[NewModelItem],
     ) -> Result<Vec<Model>, DbError>;
 
-    /// 获取所有模型
+    /// 获取所有模型（不带供应商名称）
     ///
     /// # 参数
     /// - `enabled_only`: 如果为 Some(true)，只返回启用的模型；如果为 Some(false)，只返回禁用的模型；如果为 None，返回所有模型
     async fn find_all(&self, enabled_only: Option<bool>) -> Result<Vec<Model>, DbError>;
+
+    /// 获取所有模型（带供应商名称）
+    ///
+    /// # 参数
+    /// - `enabled_only`: 如果为 Some(true)，只返回启用的模型；如果为 Some(false)，只返回禁用的模型；如果为 None，返回所有模型
+    async fn find_all_with_provider(
+        &self,
+        enabled_only: Option<bool>,
+    ) -> Result<Vec<ModelWithProvider>, DbError>;
 
     /// 分页查询模型列表（带供应商名称）
     async fn find_with_pagination(
@@ -110,6 +119,33 @@ impl ModelRepository for SqliteModelRepository {
         };
 
         let models = sqlx::query_as::<_, Model>(query)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(models)
+    }
+
+    /// 获取所有模型（带供应商名称）
+    async fn find_all_with_provider(
+        &self,
+        enabled_only: Option<bool>,
+    ) -> Result<Vec<ModelWithProvider>, DbError> {
+        let where_clause = match enabled_only {
+            Some(true) => "WHERE m.is_enabled = TRUE",
+            Some(false) => "WHERE m.is_enabled = FALSE",
+            None => "",
+        };
+
+        let query = format!(
+            "SELECT m.id, m.provider_id, p.name AS provider_name, m.model_id, m.alias, \
+             m.is_default, m.is_enabled, m.created_at, m.updated_at \
+             FROM ai_models m \
+             INNER JOIN ai_providers p ON p.id = m.provider_id \
+             {} \
+             ORDER BY m.created_at DESC",
+            where_clause
+        );
+
+        let models = sqlx::query_as::<_, ModelWithProvider>(&query)
             .fetch_all(&self.pool)
             .await?;
         Ok(models)

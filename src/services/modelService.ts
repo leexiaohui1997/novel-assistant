@@ -76,6 +76,25 @@ export async function addModels(payload: BatchAddModelsParams): Promise<Model[]>
 }
 
 /**
+ * 获取所有模型（不分页，带供应商名称）
+ *
+ * @param enabledOnly - 是否只返回启用的模型。true=只返回启用，false=只返回禁用，undefined=返回全部
+ */
+export async function getAllModels(enabledOnly?: boolean): Promise<Model[]> {
+  try {
+    logger.debug('调用获取所有模型 API:', { enabledOnly })
+    const result = await invoke<Model[]>('get_all_models', {
+      enabledOnly: enabledOnly ?? null,
+    })
+    logger.debug('获取到模型列表:', result.length, '条')
+    return result
+  } catch (error) {
+    logger.error('获取所有模型失败:', error)
+    throw error
+  }
+}
+
+/**
  * 分页获取模型列表（带供应商名称）
  */
 export async function getModelsWithPagination(
