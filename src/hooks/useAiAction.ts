@@ -5,6 +5,7 @@ import { logger } from '@/utils/logger'
 
 export type ExecuteParams = {
   modelId?: string
+  userFeedback?: string
 }
 
 export type UseAiActionProps = {
@@ -53,9 +54,12 @@ export function useAiAction<T = unknown>(options: UseAiActionProps) {
         logger.debug(`调用 AI Action: ${actionName}`, params, executeParams)
 
         const response = await invoke<T>('execute_action', {
-          actionName,
-          actionParams: params,
           modelId: executeParams.modelId,
+          actionName,
+          actionParams: {
+            user_feedback: executeParams.userFeedback,
+            ...params,
+          },
         })
 
         logger.debug(`AI Action 返回结果: ${actionName}`, response)

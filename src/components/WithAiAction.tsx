@@ -1,5 +1,5 @@
 import { ThunderboltOutlined } from '@ant-design/icons'
-import { Button, Divider, Form, FormInstance, message, Popover } from 'antd'
+import { Button, Divider, Form, FormInstance, Input, message, Popover } from 'antd'
 import { TooltipPlacement } from 'antd/es/tooltip'
 import React, { useCallback, useRef, useState } from 'react'
 
@@ -24,6 +24,8 @@ export type WithAiActionProps<T = unknown> = {
   aiAction: UseAiActionProps
   /** 提示 placement */
   placement?: TooltipPlacement
+  /** 是否提供意见输入框 */
+  showFeedback?: boolean
   /** 样式类名 */
   classNames?: {
     root?: string
@@ -47,6 +49,7 @@ export function WithAiAction<T = unknown>({
   onResult,
   classNames,
   placement = 'leftTop',
+  showFeedback = false,
   ...props
 }: WithAiActionProps<T>) {
   // Ant Design Message 实例
@@ -65,6 +68,7 @@ export function WithAiAction<T = unknown>({
       setLoading(true)
       const result = await execute({
         modelId: formRef.current?.getFieldValue('modelId'),
+        userFeedback: formRef.current?.getFieldValue('userFeedback'),
       })
       await onResult?.(result)
     } catch (error) {
@@ -115,10 +119,17 @@ export function WithAiAction<T = unknown>({
                   disabled={loading}
                   classNames={{ content: 'flex justify-end' }}
                   initialValues={{ modelId: '' }}
+                  styles={{}}
                 >
                   <Form.Item label="模型" name="modelId">
                     <ModelSelect withAuto className="w-full" allowClear={false} />
                   </Form.Item>
+
+                  {showFeedback && (
+                    <Form.Item label="意见" name="userFeedback">
+                      <Input.TextArea placeholder="请输入意见" rows={3} />
+                    </Form.Item>
+                  )}
                 </Form>
               </div>
             }

@@ -1,5 +1,6 @@
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import { App, Button, Card, Form, FormInstance, Input, Modal, Select, Tag } from 'antd'
+import { camelCase } from 'lodash-es'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import ListWithGenerics, { ListRef } from '@/components/List'
@@ -32,6 +33,18 @@ interface GeneratedCharacter {
   additional_info?: string
 }
 
+/**
+ * AI 优化结果数据结构（只包含优化的字段）
+ */
+interface OptimizedCharacter {
+  name?: string
+  gender?: CharacterGender
+  background?: string
+  appearance?: string
+  personality?: string
+  additional_info?: string
+}
+
 export default function CreationDetailCharacter() {
   const { message } = App.useApp()
   const { novelId } = useCreationState()
@@ -54,7 +67,7 @@ export default function CreationDetailCharacter() {
 
       // 将 AI 返回的数据填充到表单中
       formRef.current?.setFieldsValue({
-        characterName: result.name,
+        name: result.name,
         gender: result.gender,
         background: result.background,
         appearance: result.appearance,
@@ -65,6 +78,23 @@ export default function CreationDetailCharacter() {
       // 打开模态框
       setModalIsOpen(true)
       message.success('AI 已生成角色建议，请确认后创建')
+    },
+    [message],
+  )
+
+  /**
+   * 处理 AI 优化的结果
+   */
+  const handleOptimizeResult = useCallback(
+    (result: OptimizedCharacter, field: keyof OptimizedCharacter, fieldLabel: string) => {
+      logger.debug(`AI 优化${fieldLabel}结果:`, result)
+
+      if (result[field]) {
+        formRef.current?.setFieldValue(camelCase(field), result[field])
+        message.success(`已优化${fieldLabel}`)
+      } else {
+        message.info(`AI 认为${fieldLabel}无需优化`)
+      }
     },
     [message],
   )
@@ -106,7 +136,7 @@ export default function CreationDetailCharacter() {
     () =>
       editingCharacter
         ? {
-            characterName: editingCharacter.name,
+            name: editingCharacter.name,
             gender: editingCharacter.gender,
             background: editingCharacter.background,
             appearance: editingCharacter.appearance,
@@ -131,7 +161,7 @@ export default function CreationDetailCharacter() {
           // 更新角色
           await updateCharacter({
             id: editingCharacter.id,
-            name: values.characterName,
+            name: values.name,
             gender: values.gender,
             background: values.background,
             appearance: values.appearance,
@@ -142,7 +172,7 @@ export default function CreationDetailCharacter() {
           // 创建角色
           await createCharacter({
             novelId,
-            name: values.characterName,
+            name: values.name,
             gender: values.gender,
             background: values.background,
             appearance: values.appearance,
@@ -192,6 +222,46 @@ export default function CreationDetailCharacter() {
       })
     },
     [message],
+  )
+
+  const withOptimizeField = useCallback(
+    (
+      children: React.ReactNode,
+      props: {
+        tip: string
+        field: keyof OptimizedCharacter
+        fieldLabel: string
+      },
+    ) => (
+      <WithAiAction
+        tip={props.tip}
+        showFeedback
+        aiAction={{
+          actionName: 'optimize_character',
+          getParams: () => {
+            const currentValues = formRef.current?.getFieldsValue()
+            return {
+              novel_id: novelId,
+              character: {
+                name: currentValues?.name || '',
+                gender: currentValues?.gender || 'unknown',
+                background: currentValues?.background,
+                appearance: currentValues?.appearance,
+                personality: currentValues?.personality,
+                additional_info: currentValues?.additionalInfo,
+              },
+              optimize_fields: [props.field],
+            }
+          },
+        }}
+        onResult={(result: OptimizedCharacter) =>
+          handleOptimizeResult(result, props.field, props.fieldLabel)
+        }
+      >
+        {children}
+      </WithAiAction>
+    ),
+    [novelId, handleOptimizeResult],
   )
 
   return (
@@ -282,10 +352,14 @@ export default function CreationDetailCharacter() {
         <Form ref={formRef} labelCol={{ flex: '90px' }} initialValues={modalInitialValues}>
           <Form.Item
             label="角色名称"
-            name="characterName"
+            name="name"
             rules={[{ required: true, message: '请输入角色名称' }]}
           >
-            <Input placeholder="请输入角色名称" />
+            {withOptimizeField(<Input placeholder="请输入角色名称" />, {
+              tip: 'AI 优化角色名称',
+              field: 'name',
+              fieldLabel: '角色名称',
+            })}
           </Form.Item>
 
           <Form.Item
@@ -293,23 +367,46 @@ export default function CreationDetailCharacter() {
             name="gender"
             rules={[{ required: true, message: '请选择角色性别' }]}
           >
-            <Select placeholder="请选择角色性别" options={CharacterGenderOptions} />
+            {withOptimizeField(
+              <Select placeholder="请选择角色性别" options={CharacterGenderOptions} />,
+              {
+                tip: 'AI 优化角色性别',
+                field: 'gender',
+                fieldLabel: '角色性别',
+              },
+            )}
           </Form.Item>
 
           <Form.Item label="角色背景" name="background">
-            <Input.TextArea placeholder="请输入角色背景" rows={3} />
+            {withOptimizeField(<Input.TextArea placeholder="请输入角色背景" rows={3} />, {
+              tip: 'AI 优化角色背景',
+              field: 'background',
+              fieldLabel: '角色背景',
+            })}
           </Form.Item>
 
           <Form.Item label="外貌描写" name="appearance">
-            <Input.TextArea placeholder="请输入外貌描写" rows={3} />
+            {withOptimizeField(<Input.TextArea placeholder="请输入外貌描写" rows={3} />, {
+              tip: 'AI 优化外貌描写',
+              field: 'appearance',
+              fieldLabel: '外貌描写',
+            })}
           </Form.Item>
 
           <Form.Item label="性格特征" name="personality">
-            <Input.TextArea placeholder="请输入性格特征" rows={3} />
+            {withOptimizeField(<Input.TextArea placeholder="请输入性格特征" rows={3} />, {
+              tip: 'AI 优化性格特征',
+              field: 'personality',
+              fieldLabel: '性格特征',
+            })}
           </Form.Item>
 
           <Form.Item label="其它描述" name="additionalInfo">
-            <Input.TextArea placeholder="请输入其它描述" rows={3} />
+            {withOptimizeField(<Input.TextArea placeholder="请输入其它描述" rows={3} />, {
+              tip: 'AI 优化其它描述',
+              field: 'additional_info',
+              fieldLabel: '其它描述',
+            })}
           </Form.Item>
         </Form>
       </Modal>
