@@ -3,6 +3,13 @@ import { useCallback, useState } from 'react'
 
 import { logger } from '@/utils/logger'
 
+export type UseAiActionProps = {
+  /** Action 名称 */
+  actionName: string
+  /** 获取参数的函数 */
+  getParams: () => Record<string, unknown>
+}
+
 /**
  * 使用 AI Action 的 Hook
  *
@@ -20,12 +27,7 @@ import { logger } from '@/utils/logger'
  * <Button onClick={execute} loading={loading}>AI 推荐</Button>
  * ```
  */
-export function useAiAction<T = unknown>(options: {
-  /** Action 名称 */
-  actionName: string
-  /** 获取参数的函数 */
-  getParams: () => Record<string, unknown>
-}) {
+export function useAiAction<T = unknown>(options: UseAiActionProps) {
   const { actionName, getParams } = options
 
   const [loading, setLoading] = useState(false)
@@ -35,9 +37,9 @@ export function useAiAction<T = unknown>(options: {
   /**
    * 执行 AI Action
    *
-   * @returns Promise<T | null> Action 返回结果，失败时返回 null
+   * @returns Promise<T> Action 返回结果
    */
-  const execute = useCallback(async (): Promise<T | null> => {
+  const execute = useCallback(async (): Promise<T> => {
     try {
       setLoading(true)
       setError(null)

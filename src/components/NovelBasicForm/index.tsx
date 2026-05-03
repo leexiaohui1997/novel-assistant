@@ -4,7 +4,6 @@ import { useRef } from 'react'
 
 import { WithAiAction } from '../WithAiAction'
 
-import { useAiAction } from '@/hooks/useAiAction'
 import TagSelector, { TagSelectorHandle } from '@/pages/Novels/components/TagSelector'
 import { type Tag, type TargetAudience } from '@/services/tagService'
 
@@ -51,43 +50,6 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
   const { message } = App.useApp()
   const tagSelectorRef = useRef<TagSelectorHandle>(null)
 
-  // 使用 AI Action Hook - 推荐标签
-  const { execute: recommendTags } = useAiAction<{
-    tags: number[]
-  }>({
-    actionName: 'recommend_tags',
-    getParams: () => ({
-      title: form.getFieldValue('title'),
-      channel: form.getFieldValue('targetReader'),
-      introduction: form.getFieldValue('description'),
-      tag_ids: form.getFieldValue('tagIds'),
-    }),
-  })
-
-  // 使用 AI Action Hook - 生成简介
-  const { execute: generateIntroduction } = useAiAction<{
-    introduction: string
-  }>({
-    actionName: 'generate_introduction',
-    getParams: () => ({
-      title: form.getFieldValue('title'),
-      channel: form.getFieldValue('targetReader'),
-      tag_ids: form.getFieldValue('tagIds'),
-    }),
-  })
-
-  // 使用 AI Action Hook - 生成书名
-  const { execute: generateTitle } = useAiAction<{
-    title: string
-  }>({
-    actionName: 'generate_title',
-    getParams: () => ({
-      channel: form.getFieldValue('targetReader'),
-      tag_ids: form.getFieldValue('tagIds'),
-      introduction: form.getFieldValue('description'),
-    }),
-  })
-
   return (
     <Form
       form={form}
@@ -133,8 +95,15 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
             ) : (
               <WithAiAction
                 tip="AI 生成书名"
-                onAction={async () => {
-                  const result = await generateTitle()
+                aiAction={{
+                  actionName: 'generate_title',
+                  getParams: () => ({
+                    channel: form.getFieldValue('targetReader'),
+                    tag_ids: form.getFieldValue('tagIds'),
+                    introduction: form.getFieldValue('description'),
+                  }),
+                }}
+                onAction={async (result: { title: string }) => {
                   if (result?.title) {
                     form.setFieldValue('title', result.title)
                     message.success('已生成书名')
@@ -182,13 +151,20 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
                 ) : (
                   <WithAiAction
                     tip="AI 推荐标签"
-                    onAction={async () => {
-                      const result = await recommendTags()
+                    aiAction={{
+                      actionName: 'recommend_tags',
+                      getParams: () => ({
+                        title: form.getFieldValue('title'),
+                        channel: form.getFieldValue('targetReader'),
+                        introduction: form.getFieldValue('description'),
+                        tag_ids: form.getFieldValue('tagIds'),
+                      }),
+                    }}
+                    onAction={async (result: { tags: number[] }) => {
                       if (result?.tags && result.tags.length > 0) {
                         // 将推荐的标签 ID 填入表单
                         const originTags = form.getFieldValue('tagIds') || []
                         const newTags = [...new Set([...originTags, ...result.tags])]
-                        // tagSelectorRef.current?.handleSelectChange(newTags)
                         form.setFieldValue('tagIds', newTags)
                         message.success(`已推荐 ${result.tags.length} 个标签`)
                       } else {
@@ -220,8 +196,15 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
             ) : (
               <WithAiAction
                 tip="AI 生成作品简介"
-                onAction={async () => {
-                  const result = await generateIntroduction()
+                aiAction={{
+                  actionName: 'generate_introduction',
+                  getParams: () => ({
+                    title: form.getFieldValue('title'),
+                    channel: form.getFieldValue('targetReader'),
+                    tag_ids: form.getFieldValue('tagIds'),
+                  }),
+                }}
+                onAction={async (result: { introduction: string }) => {
                   if (result?.introduction) {
                     form.setFieldValue('description', result.introduction)
                     message.success('已生成作品简介')

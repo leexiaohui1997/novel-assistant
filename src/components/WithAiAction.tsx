@@ -4,12 +4,13 @@ import React, { useCallback, useState } from 'react'
 
 import { ModelSelect } from './ModelSelect'
 
+import { useAiAction, UseAiActionProps } from '@/hooks/useAiAction'
 import { getErrorMsg } from '@/utils/error'
 
 /**
  * AI Action 触发器组件属性
  */
-export type WithAiActionProps = {
+export type WithAiActionProps<T = unknown> = {
   /** 操作提示文本（Tooltip 显示内容） */
   tip?: string
   /** 是否禁用按钮 */
@@ -17,7 +18,9 @@ export type WithAiActionProps = {
   /** 子组件（通常是输入框或表单字段） */
   children?: React.ReactNode
   /** AI 操作回调函数，由父组件实现具体的业务逻辑 */
-  onAction?: () => unknown
+  onAction?: (result: T) => unknown
+  /** AI 操作的配置 */
+  aiAction: UseAiActionProps
 }
 
 /**
@@ -25,34 +28,21 @@ export type WithAiActionProps = {
  *
  * 提供一个带闪电图标的按钮，用于触发 AI 相关的操作。
  * 自动管理 loading 状态和错误提示，保持 UI 交互的一致性。
- *
- * @example
- * ```tsx
- * <WithAiAction
- *   tip="使用 AI 推荐标签"
- *   onAction={async () => {
- *     // 调用后端 AI Action
- *     const result = await invoke('execute_action', {
- *       actionName: 'recommend_tags',
- *       actionParams: { channel: 'male' }
- *     })
- *   }}
- * >
- *   <Input placeholder="输入标签" />
- * </WithAiAction>
- * ```
+ * 内置模型选择器和运行按钮，支持配置 AI Action。
  */
-export const WithAiAction: React.FC<WithAiActionProps> = ({
+export function WithAiAction<T = unknown>({
   tip,
   children,
   disabled = false,
+  aiAction,
   onAction,
   ...props
-}) => {
+}: WithAiActionProps<T>) {
   // Ant Design Message 实例
   const [messageApi, contextHolder] = message.useMessage()
   // 按钮加载状态
   const [loading, setLoading] = useState(false)
+  const { execute } = useAiAction<T>(aiAction)
 
   /**
    * 点击处理函数
@@ -61,14 +51,15 @@ export const WithAiAction: React.FC<WithAiActionProps> = ({
   const onClick = useCallback(async () => {
     try {
       setLoading(true)
-      await onAction?.()
+      const result = await execute()
+      await onAction?.(result)
     } catch (error) {
       // 统一错误提示
       messageApi.error(getErrorMsg(error))
     } finally {
       setLoading(false)
     }
-  }, [messageApi, onAction])
+  }, [messageApi, onAction, execute])
 
   return (
     <>
@@ -116,6 +107,7 @@ export const WithAiAction: React.FC<WithAiActionProps> = ({
                   </div>
                   <Divider size="small"></Divider>
                   <Form
+                    disabled={loading}
                     classNames={{ content: 'flex justify-end' }}
                     initialValues={{ modelId: '' }}
                   >
