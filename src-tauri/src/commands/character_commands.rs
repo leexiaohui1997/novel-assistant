@@ -1,4 +1,5 @@
 use tauri::State;
+use uuid::Uuid;
 
 use crate::database::models::character::{Character, Gender};
 use crate::AppState;
@@ -25,8 +26,8 @@ pub async fn create_character(
     };
 
     let character = Character {
-        id: String::new(), // ID 将在 repository 中生成
-        novel_id,
+        id: Uuid::new_v4(),
+        novel_id: Uuid::parse_str(&novel_id).map_err(|e| e.to_string())?,
         name,
         gender,
         background,
@@ -50,9 +51,10 @@ pub async fn get_characters_by_novel(
     novel_id: String,
     state: State<'_, AppState>,
 ) -> Result<Vec<Character>, String> {
+    let novel_uuid = Uuid::parse_str(&novel_id).map_err(|e| e.to_string())?;
     let character_repo = state.character_repo.read().await;
     character_repo
-        .find_by_novel_id(&novel_id)
+        .find_by_novel_id(&novel_uuid)
         .await
         .map_err(|e| format!("获取角色列表失败: {}", e))
 }
@@ -63,9 +65,10 @@ pub async fn get_character_by_id(
     id: String,
     state: State<'_, AppState>,
 ) -> Result<Character, String> {
+    let id_uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
     let character_repo = state.character_repo.read().await;
     character_repo
-        .find_by_id(&id)
+        .find_by_id(&id_uuid)
         .await
         .map_err(|e| format!("获取角色失败: {}", e))?
         .ok_or_else(|| format!("角色 {} 不存在", id))
@@ -94,14 +97,15 @@ pub async fn update_character(
 
     // 先获取现有角色以保留 novel_id
     let character_repo = state.character_repo.read().await;
+    let id_uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
     let existing_character = character_repo
-        .find_by_id(&id)
+        .find_by_id(&id_uuid)
         .await
         .map_err(|e| format!("获取角色失败: {}", e))?
         .ok_or_else(|| format!("角色 {} 不存在", id))?;
 
     let character = Character {
-        id,
+        id: id_uuid,
         novel_id: existing_character.novel_id,
         name,
         gender,
@@ -122,9 +126,10 @@ pub async fn update_character(
 /// 删除角色
 #[tauri::command]
 pub async fn delete_character(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    let id_uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
     let character_repo = state.character_repo.read().await;
     character_repo
-        .delete_character(&id)
+        .delete_character(&id_uuid)
         .await
         .map_err(|e| format!("删除角色失败: {}", e))
 }

@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::Type;
+use uuid::Uuid;
 
 use crate::string_enum;
 
@@ -23,8 +24,8 @@ string_enum! {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct Character {
-    pub id: String,
-    pub novel_id: String,
+    pub id: Uuid,
+    pub novel_id: Uuid,
     pub name: String,
     pub gender: Gender,
     pub background: Option<String>,

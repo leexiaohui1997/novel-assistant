@@ -1,7 +1,7 @@
 -- 创建角色表
 CREATE TABLE IF NOT EXISTS characters (
-    id TEXT PRIMARY KEY,
-    novel_id TEXT NOT NULL,
+    id UUID PRIMARY KEY,
+    novel_id UUID NOT NULL,
     name TEXT NOT NULL,
     gender TEXT NOT NULL DEFAULT 'unknown' CHECK(gender IN ('male', 'female', 'other', 'unknown')),
     background TEXT,

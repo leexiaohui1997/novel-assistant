@@ -1,4 +1,4 @@
-import { FileOutlined, ProjectOutlined } from '@ant-design/icons'
+import { FileOutlined, IdcardOutlined, ProjectOutlined } from '@ant-design/icons'
 import React from 'react'
 import { NavigateFunction } from 'react-router-dom'
 
@@ -32,6 +32,13 @@ export const CREATION_TABS: CreationTab[] = [
     icon: <ProjectOutlined />,
     checkActive: (ctx) => ctx.currentMatch.id === 'creation-basic',
     clickHandler: (navigate) => navigate('./basic'),
+  },
+  {
+    id: 'character',
+    title: '角色',
+    icon: <IdcardOutlined />,
+    checkActive: (ctx) => ctx.currentMatch.id === 'creation-character',
+    clickHandler: (navigate) => navigate('./character'),
   },
   {
     id: 'article',

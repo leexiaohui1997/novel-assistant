@@ -13,16 +13,16 @@ pub trait CharacterRepository {
     async fn create_character(&self, character: &Character) -> Result<Character, DbError>;
 
     /// 根据 ID 查询角色
-    async fn find_by_id(&self, id: &str) -> Result<Option<Character>, DbError>;
+    async fn find_by_id(&self, id: &Uuid) -> Result<Option<Character>, DbError>;
 
     /// 根据小说 ID 查询所有角色
-    async fn find_by_novel_id(&self, novel_id: &str) -> Result<Vec<Character>, DbError>;
+    async fn find_by_novel_id(&self, novel_id: &Uuid) -> Result<Vec<Character>, DbError>;
 
     /// 更新角色
     async fn update_character(&self, character: &Character) -> Result<Character, DbError>;
 
     /// 删除角色
-    async fn delete_character(&self, id: &str) -> Result<(), DbError>;
+    async fn delete_character(&self, id: &Uuid) -> Result<(), DbError>;
 }
 
 /// SQLite 角色仓储实现
@@ -40,7 +40,7 @@ impl SqliteCharacterRepository {
 impl CharacterRepository for SqliteCharacterRepository {
     async fn create_character(&self, character: &Character) -> Result<Character, DbError> {
         let now = Utc::now();
-        let id = Uuid::new_v4().to_string();
+        let id = Uuid::new_v4();
 
         sqlx::query(
             "INSERT INTO characters (id, novel_id, name, gender, background, appearance, personality, additional_info, created_at, updated_at)
@@ -66,7 +66,7 @@ impl CharacterRepository for SqliteCharacterRepository {
         )))
     }
 
-    async fn find_by_id(&self, id: &str) -> Result<Option<Character>, DbError> {
+    async fn find_by_id(&self, id: &Uuid) -> Result<Option<Character>, DbError> {
         let character = sqlx::query_as::<_, Character>("SELECT * FROM characters WHERE id = ?1")
             .bind(id)
             .fetch_optional(&self.pool)
@@ -75,7 +75,7 @@ impl CharacterRepository for SqliteCharacterRepository {
         Ok(character)
     }
 
-    async fn find_by_novel_id(&self, novel_id: &str) -> Result<Vec<Character>, DbError> {
+    async fn find_by_novel_id(&self, novel_id: &Uuid) -> Result<Vec<Character>, DbError> {
         let characters = sqlx::query_as::<_, Character>(
             "SELECT * FROM characters WHERE novel_id = ?1 ORDER BY created_at DESC",
         )
@@ -114,7 +114,7 @@ impl CharacterRepository for SqliteCharacterRepository {
             )))
     }
 
-    async fn delete_character(&self, id: &str) -> Result<(), DbError> {
+    async fn delete_character(&self, id: &Uuid) -> Result<(), DbError> {
         let result = sqlx::query("DELETE FROM characters WHERE id = ?1")
             .bind(id)
             .execute(&self.pool)
