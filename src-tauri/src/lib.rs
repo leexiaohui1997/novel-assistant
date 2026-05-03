@@ -18,6 +18,10 @@ use commands::chapter_commands::{
     batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
     get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
 };
+use commands::character_commands::{
+    create_character, delete_character, get_character_by_id, get_characters_by_novel,
+    update_character,
+};
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
 use commands::model_commands::{
     add_models, delete_model, fetch_provider_models, get_all_models, get_models_with_pagination,
@@ -33,11 +37,11 @@ use commands::provider_commands::{
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
-    AiCallLogRepository, ChapterRepository, ChapterVersionRepository, CreationStateRepository,
-    ModelRepository, NovelRepository, ProviderRepository, SqliteAiCallLogRepository,
-    SqliteChapterRepository, SqliteChapterVersionRepository, SqliteCreationStateRepository,
-    SqliteModelRepository, SqliteNovelRepository, SqliteProviderRepository, SqliteTagRepository,
-    TagRepository,
+    AiCallLogRepository, ChapterRepository, ChapterVersionRepository, CharacterRepository,
+    CreationStateRepository, ModelRepository, NovelRepository, ProviderRepository,
+    SqliteAiCallLogRepository, SqliteChapterRepository, SqliteChapterVersionRepository,
+    SqliteCharacterRepository, SqliteCreationStateRepository, SqliteModelRepository,
+    SqliteNovelRepository, SqliteProviderRepository, SqliteTagRepository, TagRepository,
 };
 use tauri::Builder;
 
@@ -45,6 +49,7 @@ pub struct AppState {
     pub novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
     pub chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
     pub chapter_version_repo: Arc<RwLock<Box<dyn ChapterVersionRepository + Send + Sync>>>,
+    pub character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
     pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
     pub provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
@@ -73,6 +78,7 @@ pub async fn run() {
     let novel_repo = SqliteNovelRepository::new(pool.clone());
     let chapter_repo = SqliteChapterRepository::new(pool.clone());
     let chapter_version_repo = SqliteChapterVersionRepository::new(pool.clone());
+    let character_repo = SqliteCharacterRepository::new(pool.clone());
     let tag_repo = SqliteTagRepository::new(pool.clone());
     let creation_state_repo = SqliteCreationStateRepository::new(pool.clone());
     let provider_repo = SqliteProviderRepository::new(pool.clone());
@@ -94,6 +100,7 @@ pub async fn run() {
         novel_repo: Arc::new(RwLock::new(Box::new(novel_repo))),
         chapter_repo: Arc::new(RwLock::new(Box::new(chapter_repo))),
         chapter_version_repo: Arc::new(RwLock::new(Box::new(chapter_version_repo))),
+        character_repo: Arc::new(RwLock::new(Box::new(character_repo))),
         tag_repo: Arc::new(RwLock::new(Box::new(tag_repo))),
         creation_state_repo: Arc::new(RwLock::new(Box::new(creation_state_repo))),
         provider_repo: Arc::new(RwLock::new(Box::new(provider_repo))),
@@ -138,6 +145,11 @@ pub async fn run() {
             delete_chapter,
             get_chapters_with_pagination,
             get_chapter_versions,
+            create_character,
+            get_characters_by_novel,
+            get_character_by_id,
+            update_character,
+            delete_character,
             get_tags_by_audience,
             get_tags_by_ids,
             get_creation_state,
