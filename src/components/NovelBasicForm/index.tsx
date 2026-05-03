@@ -103,7 +103,7 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
                     introduction: form.getFieldValue('description'),
                   }),
                 }}
-                onAction={async (result: { title: string }) => {
+                onResult={async (result: { title: string }) => {
                   if (result?.title) {
                     form.setFieldValue('title', result.title)
                     message.success('已生成书名')
@@ -160,7 +160,7 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
                         tag_ids: form.getFieldValue('tagIds'),
                       }),
                     }}
-                    onAction={async (result: { tags: number[] }) => {
+                    onResult={async (result: { tags: number[] }) => {
                       if (result?.tags && result.tags.length > 0) {
                         // 将推荐的标签 ID 填入表单
                         const originTags = form.getFieldValue('tagIds') || []
@@ -204,7 +204,7 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
                     tag_ids: form.getFieldValue('tagIds'),
                   }),
                 }}
-                onAction={async (result: { introduction: string }) => {
+                onResult={async (result: { introduction: string }) => {
                   if (result?.introduction) {
                     form.setFieldValue('description', result.introduction)
                     message.success('已生成作品简介')

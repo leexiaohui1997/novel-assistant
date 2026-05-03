@@ -1,5 +1,6 @@
-import { CaretDownFilled, ThunderboltOutlined } from '@ant-design/icons'
-import { Button, Divider, Form, FormInstance, message, Popover, Space } from 'antd'
+import { ThunderboltOutlined } from '@ant-design/icons'
+import { Button, Divider, Form, FormInstance, message, Popover } from 'antd'
+import { TooltipPlacement } from 'antd/es/tooltip'
 import React, { useCallback, useRef, useState } from 'react'
 
 import { ModelSelect } from './ModelSelect'
@@ -18,9 +19,17 @@ export type WithAiActionProps<T = unknown> = {
   /** 子组件（通常是输入框或表单字段） */
   children?: React.ReactNode
   /** AI 操作回调函数，由父组件实现具体的业务逻辑 */
-  onAction?: (result: T) => unknown
+  onResult?: (result: T) => unknown
   /** AI 操作的配置 */
   aiAction: UseAiActionProps
+  /** 提示 placement */
+  placement?: TooltipPlacement
+  /** 样式类名 */
+  classNames?: {
+    root?: string
+    left?: string
+    right?: string
+  }
 }
 
 /**
@@ -35,7 +44,9 @@ export function WithAiAction<T = unknown>({
   children,
   disabled = false,
   aiAction,
-  onAction,
+  onResult,
+  classNames,
+  placement = 'leftTop',
   ...props
 }: WithAiActionProps<T>) {
   // Ant Design Message 实例
@@ -55,82 +66,71 @@ export function WithAiAction<T = unknown>({
       const result = await execute({
         modelId: formRef.current?.getFieldValue('modelId'),
       })
-      await onAction?.(result)
+      await onResult?.(result)
     } catch (error) {
       // 统一错误提示
       messageApi.error(getErrorMsg(error))
     } finally {
       setLoading(false)
     }
-  }, [messageApi, onAction, execute])
+  }, [messageApi, onResult, execute])
 
   return (
     <>
       {contextHolder}
       {/* 布局容器：左侧子组件 + 右侧 AI 按钮 */}
-      <div className="flex items-start gap-2">
+      <div className={`flex items-start gap-2 ${classNames?.root}`}>
         {/* 子组件区域：占据剩余空间 */}
-        <div className="flex-1 w-0">
+        <div className={`${classNames?.left ?? 'flex-1 w-0'}`}>
           {React.isValidElement(children) ? React.cloneElement(children, props) : children}
         </div>
 
         {/* 按钮区域：固定宽度 */}
-        <div className="flex items-center gap-1">
-          <Space.Compact>
+        <div className={`flex items-center gap-1 ${classNames?.right}`}>
+          <Popover
+            trigger="click"
+            placement={placement}
+            content={
+              <div>
+                <div className="flex items-center justify-between">
+                  <div>{tip}</div>
+
+                  <div className="flex items-center justify-center">
+                    <Button
+                      size="small"
+                      type="primary"
+                      className="min-w-20"
+                      icon={<ThunderboltOutlined />}
+                      loading={loading}
+                      disabled={disabled}
+                      onClick={onClick}
+                    >
+                      运行
+                    </Button>
+                  </div>
+                </div>
+                <Divider size="small"></Divider>
+                <Form
+                  ref={formRef}
+                  disabled={loading}
+                  classNames={{ content: 'flex justify-end' }}
+                  initialValues={{ modelId: '' }}
+                >
+                  <Form.Item label="模型" name="modelId">
+                    <ModelSelect withAuto className="w-full" allowClear={false} />
+                  </Form.Item>
+                </Form>
+              </div>
+            }
+            classNames={{ content: 'min-w-75!' }}
+          >
             <Button
               icon={<ThunderboltOutlined />}
               variant="filled"
               color="primary"
-              loading={loading}
               disabled={disabled}
-              onClick={onClick}
             />
-
-            <Popover
-              trigger="click"
-              placement="bottomRight"
-              content={
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div>{tip}</div>
-
-                    <div className="flex items-center justify-center">
-                      <Button
-                        size="small"
-                        type="primary"
-                        className="min-w-20"
-                        icon={<ThunderboltOutlined />}
-                        loading={loading}
-                        disabled={disabled}
-                        onClick={onClick}
-                      >
-                        运行
-                      </Button>
-                    </div>
-                  </div>
-                  <Divider size="small"></Divider>
-                  <Form
-                    ref={formRef}
-                    disabled={loading}
-                    classNames={{ content: 'flex justify-end' }}
-                    initialValues={{ modelId: '' }}
-                  >
-                    <Form.Item label="模型" name="modelId">
-                      <ModelSelect withAuto className="w-full" allowClear={false} />
-                    </Form.Item>
-                  </Form>
-                </div>
-              }
-              classNames={{ content: 'min-w-75!' }}
-            >
-              <Button
-                icon={<CaretDownFilled />}
-                variant="filled"
-                color="primary"
-                disabled={disabled}
-              />
-            </Popover>
-          </Space.Compact>
+          </Popover>
         </div>
       </div>
     </>

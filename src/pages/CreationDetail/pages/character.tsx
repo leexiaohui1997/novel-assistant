@@ -1,8 +1,9 @@
-import { DeleteOutlined, EditOutlined, IdcardOutlined, PlusOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import { App, Button, Card, Form, FormInstance, Input, Modal, Select, Tag } from 'antd'
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import ListWithGenerics, { ListRef } from '@/components/List'
+import { WithAiAction } from '@/components/WithAiAction'
 import { useCreationState } from '@/hooks/useCreationState'
 import {
   createCharacter,
@@ -10,9 +11,26 @@ import {
   getCharactersWithPagination,
   updateCharacter,
 } from '@/services/characterService'
-import { Character, CharacterGenderLabels, CharacterGenderOptions } from '@/types/character'
+import {
+  Character,
+  CharacterGender,
+  CharacterGenderLabels,
+  CharacterGenderOptions,
+} from '@/types/character'
 import { getErrorMsg } from '@/utils/error'
 import { logger } from '@/utils/logger'
+
+/**
+ * AI 生成的角色数据结构
+ */
+interface GeneratedCharacter {
+  name: string
+  gender: CharacterGender
+  background: string
+  appearance?: string
+  personality?: string
+  additional_info?: string
+}
 
 export default function CreationDetailCharacter() {
   const { message } = App.useApp()
@@ -25,8 +43,57 @@ export default function CreationDetailCharacter() {
   const [modalLoading, setModalLoading] = useState(false)
 
   const modalIsEdit = useMemo(() => !!editingCharacter, [editingCharacter])
-  const modalTitle = useMemo(() => (modalIsEdit ? '编辑角色' : '创建角色'), [modalIsEdit])
   const modalOkLabel = useMemo(() => (modalIsEdit ? '更新' : '创建'), [modalIsEdit])
+
+  /**
+   * 处理 AI 生成角色的结果
+   */
+  const handleAiGenerateResult = useCallback(
+    (result: GeneratedCharacter) => {
+      logger.debug('AI 生成角色结果:', result)
+
+      // 将 AI 返回的数据填充到表单中
+      formRef.current?.setFieldsValue({
+        characterName: result.name,
+        gender: result.gender,
+        background: result.background,
+        appearance: result.appearance,
+        personality: result.personality,
+        additionalInfo: result.additional_info,
+      })
+
+      // 打开模态框
+      setModalIsOpen(true)
+      message.success('AI 已生成角色建议，请确认后创建')
+    },
+    [message],
+  )
+
+  const modalTitle = useMemo(
+    () =>
+      modalIsEdit ? (
+        '编辑角色'
+      ) : (
+        <WithAiAction
+          tip="AI 创建角色"
+          placement="rightTop"
+          classNames={{
+            root: 'items-center!',
+            left: '',
+          }}
+          aiAction={{
+            actionName: 'generate_character',
+            getParams: () => ({
+              novel_id: novelId,
+            }),
+          }}
+          onResult={handleAiGenerateResult}
+        >
+          <span>创建角色</span>
+        </WithAiAction>
+      ),
+    [modalIsEdit, handleAiGenerateResult, novelId],
+  )
 
   const fetchList = useCallback(
     async (page: number, pageSize: number) => {
@@ -166,9 +233,6 @@ export default function CreationDetailCharacter() {
                   </div>
                 }
                 actions={[
-                  <Button size="small" variant="text" color="primary" icon={<IdcardOutlined />}>
-                    查看
-                  </Button>,
                   <Button
                     size="small"
                     variant="text"
@@ -189,8 +253,14 @@ export default function CreationDetailCharacter() {
                   </Button>,
                 ]}
               >
-                <div className="h-8 line-clamp-2 leading-4 text-sm flex items-center">
-                  {itemInfo.background}
+                <div className="h-8 flex items-center">
+                  <div className="line-clamp-2 leading-4 text-sm">
+                    {itemInfo.appearance ||
+                      itemInfo.background ||
+                      itemInfo.personality ||
+                      itemInfo.additionalInfo ||
+                      '暂无描述'}
+                  </div>
                 </div>
               </Card>
             )}
