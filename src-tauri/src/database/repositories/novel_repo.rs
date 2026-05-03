@@ -281,7 +281,8 @@ impl NovelRepository for SqliteNovelRepository {
     /// 3. 章节 (chapters)
     /// 4. 分卷 (volumes)
     /// 5. 标签关联 (novel_tags)
-    /// 6. 小说本身 (novels)
+    /// 6. 角色 (characters)
+    /// 7. 小说本身 (novels)
     async fn delete(&self, id: Uuid) -> Result<(), DbError> {
         let mut tx = self.pool.begin().await?;
 
@@ -348,7 +349,13 @@ impl NovelRepository for SqliteNovelRepository {
             .execute(tx.as_mut())
             .await?;
 
-        // 7. 最后删除小说本身 (novels)
+        // 7. 删除该小说下的所有角色 (characters)
+        sqlx::query("DELETE FROM characters WHERE novel_id = ?1")
+            .bind(id)
+            .execute(tx.as_mut())
+            .await?;
+
+        // 8. 最后删除小说本身 (novels)
         sqlx::query("DELETE FROM novels WHERE id = ?1")
             .bind(id)
             .execute(tx.as_mut())
