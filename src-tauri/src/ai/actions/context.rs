@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::ai::service::AiService;
-use crate::database::repositories::TagRepository;
+use crate::database::repositories::{CharacterRepository, NovelRepository, TagRepository};
 
 /// Action 执行上下文
 ///
@@ -22,6 +22,12 @@ pub struct ActionContext {
     /// 标签仓储引用（用于查询标签）
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
 
+    /// 小说仓储引用（用于查询小说信息）
+    pub novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
+
+    /// 角色仓储引用（用于查询角色列表）
+    pub character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
+
     /// 指定的模型 ID（可选）
     pub model_id: Option<String>,
 
@@ -35,11 +41,15 @@ impl ActionContext {
         input: serde_json::Value,
         ai_service: Arc<AiService>,
         tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
+        novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
+        character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
     ) -> Self {
         Self {
             input,
             ai_service,
             tag_repo,
+            novel_repo,
+            character_repo,
             model_id: None,
             metadata: HashMap::new(),
         }

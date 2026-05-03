@@ -9,7 +9,7 @@ use super::context::ActionContext;
 use super::error::ActionError;
 use super::router::ActionRouter;
 use crate::ai::service::AiService;
-use crate::database::repositories::TagRepository;
+use crate::database::repositories::{CharacterRepository, NovelRepository, TagRepository};
 
 /// Action 执行器
 ///
@@ -24,6 +24,12 @@ pub struct ActionExecutor {
 
     /// 标签仓储引用
     tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
+
+    /// 小说仓储引用
+    novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
+
+    /// 角色仓储引用
+    character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
 }
 
 impl ActionExecutor {
@@ -32,11 +38,15 @@ impl ActionExecutor {
         router: Arc<RwLock<ActionRouter>>,
         ai_service: Arc<AiService>,
         tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
+        novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
+        character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
     ) -> Self {
         Self {
             router,
             ai_service,
             tag_repo,
+            novel_repo,
+            character_repo,
         }
     }
 
@@ -80,6 +90,8 @@ impl ActionExecutor {
             action_params,
             self.ai_service.clone(),
             self.tag_repo.clone(),
+            self.novel_repo.clone(),
+            self.character_repo.clone(),
         );
 
         // 3. 如果提供了 model_id，添加到 context 中

@@ -73,6 +73,17 @@ impl PromptTemplates {
 
         self.tera.render("generate_title", &tera_context)
     }
+
+    /// 渲染 generate_character 提示词
+    pub fn render_generate_character(
+        &self,
+        context: &GenerateCharacterContext,
+    ) -> Result<String, tera::Error> {
+        // 使用 Serialize trait 自动转换，无需手动 insert
+        let tera_context = Context::from_serialize(context)?;
+
+        self.tera.render("generate_character", &tera_context)
+    }
 }
 
 /// recommend_tags 模板的上下文数据
@@ -142,4 +153,40 @@ pub struct GenerateTitleContext {
     /// 作品简介（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub introduction: Option<String>,
+}
+
+/// generate_character 模板的上下文数据
+#[derive(Debug, Serialize)]
+pub struct GenerateCharacterContext {
+    /// 小说标题
+    pub title: String,
+
+    /// 频道名称（男频/女频）
+    pub channel_name: String,
+
+    /// 标签信息（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<String>,
+
+    /// 作品简介（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub introduction: Option<String>,
+
+    /// 已有角色列表
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub existing_characters: Option<Vec<CharacterInfo>>,
+}
+
+/// 角色信息（用于提示词上下文）
+#[derive(Debug, Serialize)]
+pub struct CharacterInfo {
+    /// 角色名称
+    pub name: String,
+
+    /// 性别
+    pub gender: String,
+
+    /// 背景（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
 }
