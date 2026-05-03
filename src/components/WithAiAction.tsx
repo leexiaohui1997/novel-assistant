@@ -1,6 +1,6 @@
 import { CaretDownFilled, ThunderboltOutlined } from '@ant-design/icons'
-import { Button, Divider, Form, message, Popover, Space } from 'antd'
-import React, { useCallback, useState } from 'react'
+import { Button, Divider, Form, FormInstance, message, Popover, Space } from 'antd'
+import React, { useCallback, useRef, useState } from 'react'
 
 import { ModelSelect } from './ModelSelect'
 
@@ -43,6 +43,7 @@ export function WithAiAction<T = unknown>({
   // 按钮加载状态
   const [loading, setLoading] = useState(false)
   const { execute } = useAiAction<T>(aiAction)
+  const formRef = useRef<FormInstance>(null)
 
   /**
    * 点击处理函数
@@ -51,7 +52,9 @@ export function WithAiAction<T = unknown>({
   const onClick = useCallback(async () => {
     try {
       setLoading(true)
-      const result = await execute()
+      const result = await execute({
+        modelId: formRef.current?.getFieldValue('modelId'),
+      })
       await onAction?.(result)
     } catch (error) {
       // 统一错误提示
@@ -107,6 +110,7 @@ export function WithAiAction<T = unknown>({
                   </div>
                   <Divider size="small"></Divider>
                   <Form
+                    ref={formRef}
                     disabled={loading}
                     classNames={{ content: 'flex justify-end' }}
                     initialValues={{ modelId: '' }}

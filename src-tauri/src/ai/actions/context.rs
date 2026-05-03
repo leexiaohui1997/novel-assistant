@@ -22,6 +22,9 @@ pub struct ActionContext {
     /// 标签仓储引用（用于查询标签）
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
 
+    /// 指定的模型 ID（可选）
+    pub model_id: Option<String>,
+
     /// 扩展元数据（未来可添加用户信息、会话 ID 等）
     pub metadata: HashMap<String, serde_json::Value>,
 }
@@ -37,7 +40,13 @@ impl ActionContext {
             input,
             ai_service,
             tag_repo,
+            model_id: None,
             metadata: HashMap::new(),
         }
+    }
+
+    /// 设置模型 ID
+    pub fn set_model_id(&mut self, model_id: String) {
+        self.model_id = Some(model_id);
     }
 }

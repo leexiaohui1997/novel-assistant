@@ -96,8 +96,11 @@ impl ActionHandler for GenerateTitleAction {
         // 4. 调用 AI 服务生成书名
         use crate::ai::types::{AiRequestData, Message, MessageRole};
 
+        // 解析 model_id（如果提供了的话）
+        let parsed_model_id = ctx.model_id.and_then(|id| uuid::Uuid::parse_str(&id).ok());
+
         let request_data = AiRequestData {
-            model_id: None, // 使用默认模型
+            model_id: parsed_model_id,
             messages: vec![Message {
                 role: MessageRole::User,
                 content: prompt.clone(),

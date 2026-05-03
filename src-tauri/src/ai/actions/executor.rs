@@ -49,6 +49,7 @@ impl ActionExecutor {
     /// # 参数
     /// - `action_name`: Action 名称
     /// - `action_params`: Action 参数（JSON 格式）
+    /// - `model_id`: 可选的模型 ID，用于指定使用哪个 AI 模型
     ///
     /// # 返回
     /// - `Ok(serde_json::Value)`: 执行结果
@@ -58,12 +59,13 @@ impl ActionExecutor {
     ///
     /// ```rust
     /// // 后端内部调用
-    /// let result = executor.execute("text_summary", json!({ "text": "..." })).await?;
+    /// let result = executor.execute("text_summary", json!({ "text": "..." }), None).await?;
     /// ```
     pub async fn execute(
         &self,
         action_name: &str,
         action_params: serde_json::Value,
+        model_id: Option<String>,
     ) -> Result<serde_json::Value, ActionError> {
         // 1. 查找 Handler
         let handler = {
@@ -74,16 +76,21 @@ impl ActionExecutor {
         };
 
         // 2. 构建 Context
-        let ctx = ActionContext::new(
+        let mut ctx = ActionContext::new(
             action_params,
             self.ai_service.clone(),
             self.tag_repo.clone(),
         );
 
-        // 3. 执行 Handler
+        // 3. 如果提供了 model_id，添加到 context 中
+        if let Some(id) = model_id {
+            ctx.set_model_id(id);
+        }
+
+        // 4. 执行 Handler
         let response = handler.handle(ctx).await?;
 
-        // 4. 返回数据
+        // 5. 返回数据
         Ok(response.data)
     }
 

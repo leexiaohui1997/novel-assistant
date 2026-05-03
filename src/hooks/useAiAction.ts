@@ -3,6 +3,10 @@ import { useCallback, useState } from 'react'
 
 import { logger } from '@/utils/logger'
 
+export type ExecuteParams = {
+  modelId?: string
+}
+
 export type UseAiActionProps = {
   /** Action 名称 */
   actionName: string
@@ -39,31 +43,35 @@ export function useAiAction<T = unknown>(options: UseAiActionProps) {
    *
    * @returns Promise<T> Action 返回结果
    */
-  const execute = useCallback(async (): Promise<T> => {
-    try {
-      setLoading(true)
-      setError(null)
+  const execute = useCallback(
+    async (executeParams: ExecuteParams = {}): Promise<T> => {
+      try {
+        setLoading(true)
+        setError(null)
 
-      const params = getParams()
-      logger.debug(`调用 AI Action: ${actionName}`, params)
+        const params = getParams()
+        logger.debug(`调用 AI Action: ${actionName}`, params, executeParams)
 
-      const response = await invoke<T>('execute_action', {
-        actionName,
-        actionParams: params,
-      })
+        const response = await invoke<T>('execute_action', {
+          actionName,
+          actionParams: params,
+          modelId: executeParams.modelId,
+        })
 
-      logger.debug(`AI Action 返回结果: ${actionName}`, response)
-      setResult(response)
-      return response
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err))
-      logger.error(`AI Action 执行失败: ${actionName}`, error)
-      setError(error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }, [actionName, getParams])
+        logger.debug(`AI Action 返回结果: ${actionName}`, response)
+        setResult(response)
+        return response
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        logger.error(`AI Action 执行失败: ${actionName}`, error)
+        setError(error)
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+    [actionName, getParams],
+  )
 
   return {
     /** 执行函数 */

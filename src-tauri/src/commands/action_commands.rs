@@ -9,6 +9,7 @@ use crate::AppState;
 /// # 参数
 /// - `action_name`: Action 名称
 /// - `action_params`: Action 参数（JSON 格式）
+/// - `model_id`: 可选的模型 ID，用于指定使用哪个 AI 模型
 ///
 /// # 返回
 /// - `Ok(serde_json::Value)`: 执行结果
@@ -18,10 +19,11 @@ pub async fn execute_action(
     state: State<'_, AppState>,
     action_name: String,
     action_params: serde_json::Value,
+    model_id: Option<String>,
 ) -> Result<serde_json::Value, String> {
     state
         .action_executor
-        .execute(&action_name, action_params)
+        .execute(&action_name, action_params, model_id)
         .await
         .map_err(|e| format!("Action 执行失败: {}", e))
 }
