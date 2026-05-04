@@ -845,6 +845,12 @@ impl ChapterRepository for SqliteChapterRepository {
         // 业务约束：仅允许删除分卷下的最后一个非草稿章节
         Self::ensure_tail_chapter_in_tx(&mut tx, novel_id, chapter_id).await?;
 
+        // 删除该章节关联的大纲
+        sqlx::query("DELETE FROM chapter_outlines WHERE chapter_id = ?1")
+            .bind(chapter_id)
+            .execute(tx.as_mut())
+            .await?;
+
         // 先删关联，再删主记录，避免留下脏数据。
         sqlx::query("DELETE FROM volume_chapters WHERE chapter_id = ?1")
             .bind(chapter_id)

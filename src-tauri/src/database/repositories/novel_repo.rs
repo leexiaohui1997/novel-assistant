@@ -282,11 +282,12 @@ impl NovelRepository for SqliteNovelRepository {
     /// 4. 分卷 (volumes)
     /// 5. 标签关联 (novel_tags)
     /// 6. 角色 (characters)
-    /// 7. 小说本身 (novels)
+    /// 7. 章节大纲 (chapter_outlines)
+    /// 8. 小说本身 (novels)
     async fn delete(&self, id: Uuid) -> Result<(), DbError> {
         let mut tx = self.pool.begin().await?;
 
-        // 1. 查询该小说下的所有章节ID
+        // 0. 查询该小说下的所有章节ID
         let chapter_ids: Vec<Uuid> =
             sqlx::query_scalar("SELECT id FROM chapters WHERE novel_id = ?1")
                 .bind(id)
@@ -295,7 +296,7 @@ impl NovelRepository for SqliteNovelRepository {
                 .into_iter()
                 .collect();
 
-        // 2. 删除所有章节的历史版本 (chapter_versions)
+        // 1. 删除所有章节的历史版本 (chapter_versions)
         if !chapter_ids.is_empty() {
             let placeholders = chapter_ids
                 .iter()
@@ -313,7 +314,7 @@ impl NovelRepository for SqliteNovelRepository {
             db_query.execute(tx.as_mut()).await?;
         }
 
-        // 3. 删除所有章节与分卷的关联 (volume_chapters)
+        // 2. 删除所有章节与分卷的关联 (volume_chapters)
         if !chapter_ids.is_empty() {
             let placeholders = chapter_ids
                 .iter()
@@ -331,26 +332,32 @@ impl NovelRepository for SqliteNovelRepository {
             db_query.execute(tx.as_mut()).await?;
         }
 
-        // 4. 删除所有章节 (chapters)
+        // 3. 删除所有章节 (chapters)
         sqlx::query("DELETE FROM chapters WHERE novel_id = ?1")
             .bind(id)
             .execute(tx.as_mut())
             .await?;
 
-        // 5. 删除该小说下的所有分卷 (volumes)
+        // 4. 删除该小说下的所有分卷 (volumes)
         sqlx::query("DELETE FROM volumes WHERE novel_id = ?1")
             .bind(id)
             .execute(tx.as_mut())
             .await?;
 
-        // 6. 删除所有标签关联 (novel_tags)
+        // 5. 删除所有标签关联 (novel_tags)
         sqlx::query("DELETE FROM novel_tags WHERE novel_id = ?1")
             .bind(id)
             .execute(tx.as_mut())
             .await?;
 
-        // 7. 删除该小说下的所有角色 (characters)
+        // 6. 删除该小说下的所有角色 (characters)
         sqlx::query("DELETE FROM characters WHERE novel_id = ?1")
+            .bind(id)
+            .execute(tx.as_mut())
+            .await?;
+
+        // 7. 删除该小说下的所有章节大纲 (chapter_outlines)
+        sqlx::query("DELETE FROM chapter_outlines WHERE novel_id = ?1")
             .bind(id)
             .execute(tx.as_mut())
             .await?;
