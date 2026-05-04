@@ -7,7 +7,7 @@ import { EditorContext } from './EditorContext'
 import type { EditorContextType, EditorOpenOptions } from './EditorContext'
 import type { EditorHandle } from '@/components/Editor'
 
-import { ChapterOutlineTrigger } from '@/components/ChapterOutlineDrawer'
+import { ChapterOutlineTrigger } from '@/components/ChapterOutlineDrawer/ChapterOutlineTrigger'
 import Editor from '@/components/Editor'
 import VersionDrawer from '@/components/VersionDrawer'
 import {
