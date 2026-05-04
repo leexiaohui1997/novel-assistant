@@ -10,7 +10,8 @@ pub struct ChapterOutline {
     pub id: i64,
     pub novel_id: Uuid,
     pub chapter_id: Option<Uuid>,
-    pub positioning: String,
+    pub positioning: Option<String>,
+    pub plot: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

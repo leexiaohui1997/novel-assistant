@@ -47,9 +47,10 @@ impl ChapterOutlineRepository for SqliteChapterOutlineRepository {
         if let Some(_) = existing {
             // 更新现有记录
             sqlx::query(
-                "UPDATE chapter_outlines SET positioning = ?1, updated_at = ?2 WHERE novel_id = ?3 AND chapter_id IS NOT DISTINCT FROM ?4",
+                "UPDATE chapter_outlines SET positioning = ?1, plot = ?2, updated_at = ?3 WHERE novel_id = ?4 AND chapter_id IS NOT DISTINCT FROM ?5",
             )
             .bind(&outline.positioning)
+            .bind(&outline.plot)
             .bind(now)
             .bind(&outline.novel_id)
             .bind(&outline.chapter_id)
@@ -63,11 +64,12 @@ impl ChapterOutlineRepository for SqliteChapterOutlineRepository {
         } else {
             // 创建新记录
             let id = sqlx::query_scalar::<_, i64>(
-                "INSERT INTO chapter_outlines (novel_id, chapter_id, positioning, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id",
+                "INSERT INTO chapter_outlines (novel_id, chapter_id, positioning, plot, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING id",
             )
             .bind(&outline.novel_id)
             .bind(&outline.chapter_id)
             .bind(&outline.positioning)
+            .bind(&outline.plot)
             .bind(now)
             .bind(now)
             .fetch_one(&self.pool)
@@ -78,6 +80,7 @@ impl ChapterOutlineRepository for SqliteChapterOutlineRepository {
                 novel_id: outline.novel_id,
                 chapter_id: outline.chapter_id,
                 positioning: outline.positioning.clone(),
+                plot: outline.plot.clone(),
                 created_at: now,
                 updated_at: now,
             })

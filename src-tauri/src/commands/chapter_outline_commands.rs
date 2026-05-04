@@ -19,6 +19,10 @@ pub struct EditChapterOutlineInput {
     /// 大纲内容（可选，如果未提供则不执行任何操作）
     #[serde(default)]
     pub positioning: Option<String>,
+
+    /// 剧情内容（可选）
+    #[serde(default)]
+    pub plot: Option<String>,
 }
 
 /// 编辑章节大纲
@@ -34,8 +38,10 @@ pub async fn edit_chapter_outline(
     state: State<'_, AppState>,
     input: EditChapterOutlineInput,
 ) -> Result<serde_json::Value, String> {
-    // 1. 如果未提供 positioning，则直接中止
-    let positioning = input.positioning.ok_or("positioning 字段不能为空")?;
+    // 1. 校验：至少需要提供 positioning 或 plot 中的一个
+    if input.positioning.is_none() && input.plot.is_none() {
+        return Err("positioning 或 plot 字段至少需要提供一个".to_string());
+    }
 
     // 2. 解析 novel_id
     let novel_uuid =
@@ -60,12 +66,13 @@ pub async fn edit_chapter_outline(
     use chrono::Utc;
 
     let outline = if let Some(existing_outline) = existing {
-        // 已有记录，更新 positioning
+        // 已有记录，更新 positioning 和 plot
         ChapterOutline {
             id: existing_outline.id,
             novel_id: novel_uuid,
             chapter_id: chapter_uuid,
-            positioning,
+            positioning: input.positioning.or(existing_outline.positioning),
+            plot: input.plot.or(existing_outline.plot),
             created_at: existing_outline.created_at,
             updated_at: Utc::now(),
         }
@@ -75,7 +82,8 @@ pub async fn edit_chapter_outline(
             id: 0, // 将在 upsert 中设置
             novel_id: novel_uuid,
             chapter_id: chapter_uuid,
-            positioning,
+            positioning: input.positioning,
+            plot: input.plot,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

@@ -36,7 +36,7 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
         try {
           setDoingSave(true)
           // 保存本章大纲
-          await editChapterOutline(novelId, chapterId, values.positioning)
+          await editChapterOutline(novelId, chapterId, values.positioning, values.plot)
           message.success('设定集保存成功')
         } catch (e) {
           message.error(`设定集保存失败: ${getErrorMsg(e)}`)
@@ -72,6 +72,7 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
   useEffect(() => {
     formRef.current?.setFieldsValue({
       positioning: outline?.positioning || '',
+      plot: outline?.plot || '',
     })
   }, [outline])
 
@@ -89,10 +90,14 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
       layout="vertical"
       initialValues={{
         positioning: outline?.positioning || '',
+        plot: outline?.plot || '',
       }}
     >
       <Form.Item label="本章定位" name="positioning">
         <Input.TextArea placeholder="请输入本章定位" rows={4} maxLength={200} showCount />
+      </Form.Item>
+      <Form.Item label="本章剧情" name="plot">
+        <Input.TextArea placeholder="请输入本章剧情" rows={4} maxLength={200} showCount />
       </Form.Item>
     </Form>
   )
