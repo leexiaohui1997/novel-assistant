@@ -31,20 +31,20 @@ export const CREATION_TABS: CreationTab[] = [
     title: '概览',
     icon: <ProjectOutlined />,
     checkActive: (ctx) => ctx.currentMatch.id === 'creation-basic',
-    clickHandler: (navigate) => navigate('./basic'),
+    clickHandler: (navigate) => navigate('./basic', { replace: true }),
   },
   {
     id: 'character',
     title: '角色',
     icon: <IdcardOutlined />,
     checkActive: (ctx) => ctx.currentMatch.id === 'creation-character',
-    clickHandler: (navigate) => navigate('./character'),
+    clickHandler: (navigate) => navigate('./character', { replace: true }),
   },
   {
     id: 'article',
     title: '文章',
     icon: <FileOutlined />,
     checkActive: (ctx) => ctx.currentMatch.id === 'creation-article',
-    clickHandler: (navigate) => navigate('./article'),
+    clickHandler: (navigate) => navigate('./article', { replace: true }),
   },
 ]
