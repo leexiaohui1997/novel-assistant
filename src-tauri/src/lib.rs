@@ -21,6 +21,7 @@ use commands::chapter_commands::{
     batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
     get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
 };
+use commands::chapter_outline_commands::{edit_chapter_outline, get_chapter_outline};
 use commands::character_commands::{
     create_character, delete_character, get_character_by_id, get_characters_by_novel,
     get_characters_with_pagination, update_character,
@@ -40,11 +41,12 @@ use commands::provider_commands::{
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use database::pool::init_pool;
 use database::repositories::{
-    AiCallLogRepository, ChapterRepository, ChapterVersionRepository, CharacterRepository,
-    CreationStateRepository, ModelRepository, NovelRepository, ProviderRepository,
-    SqliteAiCallLogRepository, SqliteChapterRepository, SqliteChapterVersionRepository,
-    SqliteCharacterRepository, SqliteCreationStateRepository, SqliteModelRepository,
-    SqliteNovelRepository, SqliteProviderRepository, SqliteTagRepository, TagRepository,
+    AiCallLogRepository, ChapterOutlineRepository, ChapterRepository, ChapterVersionRepository,
+    CharacterRepository, CreationStateRepository, ModelRepository, NovelRepository,
+    ProviderRepository, SqliteAiCallLogRepository, SqliteChapterOutlineRepository,
+    SqliteChapterRepository, SqliteChapterVersionRepository, SqliteCharacterRepository,
+    SqliteCreationStateRepository, SqliteModelRepository, SqliteNovelRepository,
+    SqliteProviderRepository, SqliteTagRepository, TagRepository,
 };
 use tauri::Builder;
 
@@ -58,6 +60,7 @@ pub struct AppState {
     pub provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
     pub model_repo: Arc<RwLock<Box<dyn ModelRepository + Send + Sync>>>,
     pub call_log_repo: Arc<RwLock<Box<dyn AiCallLogRepository + Send + Sync>>>,
+    pub chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
     pub fetcher_registry: Arc<RwLock<FetcherRegistry>>,
     // AI Actions 系统
     pub action_router: Arc<RwLock<ActionRouter>>,
@@ -87,6 +90,7 @@ pub async fn run() {
     let provider_repo = SqliteProviderRepository::new(pool.clone());
     let model_repo = SqliteModelRepository::new(pool.clone());
     let call_log_repo = SqliteAiCallLogRepository::new(pool.clone());
+    let chapter_outline_repo = SqliteChapterOutlineRepository::new(pool.clone());
 
     // 创建模型拉取策略注册表
     let fetcher_registry = FetcherRegistry::new();
@@ -111,6 +115,7 @@ pub async fn run() {
         provider_repo: Arc::new(RwLock::new(Box::new(provider_repo))),
         model_repo: Arc::new(RwLock::new(Box::new(model_repo))),
         call_log_repo: Arc::new(RwLock::new(Box::new(call_log_repo))),
+        chapter_outline_repo: Arc::new(RwLock::new(Box::new(chapter_outline_repo))),
         fetcher_registry: Arc::new(RwLock::new(fetcher_registry)),
         action_router: action_router.clone(),
         action_executor: Arc::new(ActionExecutor::new(
@@ -156,6 +161,8 @@ pub async fn run() {
             delete_chapter,
             get_chapters_with_pagination,
             get_chapter_versions,
+            edit_chapter_outline,
+            get_chapter_outline,
             create_character,
             get_characters_by_novel,
             get_characters_with_pagination,

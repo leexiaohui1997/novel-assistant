@@ -1,6 +1,7 @@
 pub mod action_commands;
 pub mod ai_commands;
 pub mod chapter_commands;
+pub mod chapter_outline_commands;
 pub mod character_commands;
 pub mod creation_state_commands;
 pub mod model_commands;

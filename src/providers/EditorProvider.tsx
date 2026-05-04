@@ -7,6 +7,7 @@ import { EditorContext } from './EditorContext'
 import type { EditorContextType, EditorOpenOptions } from './EditorContext'
 import type { EditorHandle } from '@/components/Editor'
 
+import { ChapterOutlineTrigger } from '@/components/ChapterOutlineDrawer'
 import Editor from '@/components/Editor'
 import VersionDrawer from '@/components/VersionDrawer'
 import {
@@ -20,6 +21,7 @@ import {
   type ChapterVersion,
   type Volume,
 } from '@/services/chapterService'
+import { Novel } from '@/services/novelService'
 import { logger } from '@/utils/logger'
 import { numToCn } from '@/utils/number'
 
@@ -315,6 +317,8 @@ const computeChapterSequence = (
 
 /** EditorHeader 属性 */
 interface EditorHeaderProps {
+  novel: Novel
+  chapter?: Chapter
   novelTitle: string
   selectedSequence: number
   onSelectSequence: (s: number) => void
@@ -333,6 +337,8 @@ interface EditorHeaderProps {
 
 /** 编辑器顶部栏 */
 const EditorHeader: React.FC<EditorHeaderProps> = ({
+  novel,
+  chapter,
   novelTitle,
   selectedSequence,
   onSelectSequence,
@@ -365,6 +371,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <ChapterOutlineTrigger novel={novel} chapter={chapter} />
         <Tooltip title="历史记录" placement="bottom" mouseEnterDelay={1} color="white">
           <Button
             type="text"
@@ -476,6 +483,8 @@ const EditorModal: React.FC<
         footer={null}
         title={
           <EditorHeader
+            novel={novel}
+            chapter={activeChapter}
             novelTitle={novel.title}
             selectedSequence={selectedSequence}
             onSelectSequence={setSelectedSequence}
