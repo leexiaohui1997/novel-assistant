@@ -806,6 +806,18 @@ impl ChapterRepository for SqliteChapterRepository {
             .await?;
         }
 
+        // 如果存在该小说的通用大纲（chapter_id 为 NULL），则将其关联到新章节
+        sqlx::query(
+            "UPDATE chapter_outlines 
+             SET chapter_id = ?1, updated_at = ?2 
+             WHERE novel_id = ?3 AND chapter_id IS NULL",
+        )
+        .bind(id)
+        .bind(now)
+        .bind(novel_id)
+        .execute(tx.as_mut())
+        .await?;
+
         tx.commit().await?;
         Ok(chapter)
     }
