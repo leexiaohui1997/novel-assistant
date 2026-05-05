@@ -1,6 +1,7 @@
 import { Button, Drawer, Tabs } from 'antd'
 import { useCallback, useImperativeHandle, useRef, useState } from 'react'
 
+import { Character } from './panels/Character'
 import { ChapterOutlinePanelHandle } from './panels/common'
 import { StoryBible } from './panels/StoryBible'
 
@@ -23,6 +24,7 @@ export function ChapterOutlineDrawer({ novel, chapter, ref }: ChapterOutlineDraw
 
   const [visible, setVisible] = useState(false)
   const [doingSave, setDoingSave] = useState(false)
+  const [defaultActiveKey, setDefaultActiveKey] = useState('story-bible')
 
   const open = useCallback(() => setVisible(true), [])
   const close = useCallback(() => setVisible(false), [])
@@ -59,12 +61,19 @@ export function ChapterOutlineDrawer({ novel, chapter, ref }: ChapterOutlineDraw
             label: '设定集',
             children: <StoryBible novelId={novel.id} chapterId={chapter?.id} ref={panelRef} />,
           },
+          {
+            key: 'character',
+            label: '角色卡',
+            children: <Character ref={panelRef} />,
+          },
         ]}
         classNames={{
           root: 'h-full',
           header: 'mb-0!',
           content: 'p-4',
         }}
+        defaultActiveKey={defaultActiveKey}
+        onChange={setDefaultActiveKey}
         destroyOnHidden
       />
     </Drawer>
