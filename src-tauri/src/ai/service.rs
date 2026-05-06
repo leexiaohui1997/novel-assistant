@@ -227,7 +227,26 @@ impl AiService {
             .map(|msg| msg.content.clone())
             .unwrap_or_default();
 
-        // 8 保存调用记录
+        // 8 检查并同步模型的深度思考支持状态
+        let mut model_status_changed = false;
+        let should_support = thinking_content.is_some();
+        if model.support_thinking != should_support {
+            model_status_changed = true;
+            let model_id = model.id;
+            let repo = self.model_repo.clone();
+            tokio::spawn(async move {
+                if let Err(e) = repo
+                    .write()
+                    .await
+                    .toggle_support_thinking(model_id, should_support)
+                    .await
+                {
+                    eprintln!("自动更新模型深度思考状态失败: {}", e);
+                }
+            });
+        }
+
+        // 9 保存调用记录
         let call_log = CreateAiCallLog {
             provider_id: model.provider_id,
             model_id: model.id,
@@ -257,6 +276,7 @@ impl AiService {
             content,
             thinking_content,
             response: response_json,
+            model_status_changed,
         })
     }
 }

@@ -100,6 +100,7 @@ export const ModelSelect: React.FC<ModelSelectProps> = ({
         <div className="flex items-center gap-1">
           <div className="text-xs">{model.alias}</div>
           {model.providerName && <Tag color="orange">{model.providerName}</Tag>}
+          {model.supportThinking && <Tag color="green">推理</Tag>}
         </div>
       )
     },

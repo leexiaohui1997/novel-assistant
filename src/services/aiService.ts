@@ -9,12 +9,14 @@ import { logger } from '@/utils/logger'
 export async function testModel(modelId: string): Promise<{
   success: boolean
   content: string
+  modelStatusChanged?: boolean
   usage?: Record<string, unknown>
 }> {
   try {
     const result = await invoke<{
       success: boolean
       content: string
+      modelStatusChanged?: boolean
       usage?: Record<string, unknown>
     }>('test_model', { modelId })
 

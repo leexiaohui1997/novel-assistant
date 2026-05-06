@@ -39,6 +39,7 @@ pub async fn test_model(
         "success": true,
         "content": response.content,
         "thinkingContent": response.thinking_content,
+        "modelStatusChanged": response.model_status_changed,
         "usage": response.response.get("usage")
     }))
 }

@@ -190,7 +190,7 @@ const ModelManage: React.FC = () => {
       fixed: 'right',
       render: (_, record) => (
         <>
-          <TestAction modelId={record.id} />
+          <TestAction modelId={record.id} onStatusChanged={refreshList} />
           <Button
             size="small"
             color="danger"

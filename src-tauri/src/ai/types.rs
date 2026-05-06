@@ -40,4 +40,7 @@ pub struct AiChatResponse {
 
     /// 原始响应对象（包含 usage 等信息）
     pub response: serde_json::Value,
+
+    /// 模型状态是否有变动（例如深度思考支持状态被自动纠正）
+    pub model_status_changed: bool,
 }

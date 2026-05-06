@@ -7,9 +7,10 @@ import { getErrorMsg } from '@/utils/error'
 
 interface TestActionProps {
   modelId: string
+  onStatusChanged?: () => void
 }
 
-export const TestAction = ({ modelId }: TestActionProps) => {
+export const TestAction = ({ modelId, onStatusChanged }: TestActionProps) => {
   const [messageApi, contextHolder] = message.useMessage()
   const [doingTest, setDoingTest] = useState(false)
 
@@ -25,6 +26,9 @@ export const TestAction = ({ modelId }: TestActionProps) => {
 
       if (result.success) {
         messageApi.success('测试成功')
+        if (result.modelStatusChanged) {
+          onStatusChanged?.()
+        }
       } else {
         messageApi.error('测试失败')
       }
@@ -33,7 +37,7 @@ export const TestAction = ({ modelId }: TestActionProps) => {
     } finally {
       setDoingTest(false)
     }
-  }, [modelId, messageApi])
+  }, [modelId, messageApi, onStatusChanged])
 
   return (
     <>
