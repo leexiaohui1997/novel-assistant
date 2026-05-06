@@ -19,6 +19,7 @@ export interface RouteHandle {
   /** 布局类名 */
   layoutClassNames?: {
     wrapper?: string
+    content?: string
   }
   activeMenuKey?: string
 }
@@ -61,6 +62,7 @@ export const ROUTES_CONFIG: RouteObject[] = [
           hideSidebar: true,
           layoutClassNames: {
             wrapper: 'p-0! overflow-hidden',
+            content: 'overflow-auto',
           },
         } satisfies RouteHandle,
         children: [

@@ -16,13 +16,15 @@ const Layout: React.FC = () => {
   return (
     <div className={`layout-container${hideSidebar ? ' layout-container--no-sidebar' : ''}`}>
       <Header />
-      <div className={`main-wrapper ${layoutClassNames.wrapper}`}>
-        {!hideSidebar && <Sidebar />}
-        <main className="main-content flex flex-col">
-          <Suspense fallback={<PageLoading />}>
-            <Outlet />
-          </Suspense>
-        </main>
+      <div className="layout-main">
+        <div className={`main-wrapper ${layoutClassNames.wrapper}`}>
+          {!hideSidebar && <Sidebar />}
+          <main className={`main-content flex flex-col ${layoutClassNames.content}`}>
+            <Suspense fallback={<PageLoading />}>
+              <Outlet />
+            </Suspense>
+          </main>
+        </div>
       </div>
     </div>
   )
