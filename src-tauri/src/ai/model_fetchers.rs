@@ -238,6 +238,14 @@ impl FetchStrategy for LongCatFetchStrategy {
                 model_id: "LongCat-Flash-Omni-2603".to_string(),
                 model_name: "LongCat-Flash-Omni-2603".to_string(),
             },
+            ModelInfo {
+                model_id: "LongCat-Flash-Chat-2602-Exp".to_string(),
+                model_name: "LongCat-Flash-Chat-2602-Exp".to_string(),
+            },
+            ModelInfo {
+                model_id: "LongCat-2.0-Preview".to_string(),
+                model_name: "LongCat-2.0-Preview".to_string(),
+            },
         ];
 
         Ok(models)
