@@ -35,6 +35,9 @@ pub struct AiChatResponse {
     /// AI 生成的内容
     pub content: String,
 
+    /// 思考内容（部分模型如 DeepSeek R1、Qwen3 会返回 reasoning_content）
+    pub thinking_content: Option<String>,
+
     /// 原始响应对象（包含 usage 等信息）
     pub response: serde_json::Value,
 }

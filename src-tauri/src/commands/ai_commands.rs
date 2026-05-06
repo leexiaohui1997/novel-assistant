@@ -38,6 +38,7 @@ pub async fn test_model(
     Ok(serde_json::json!({
         "success": true,
         "content": response.content,
+        "thinkingContent": response.thinking_content,
         "usage": response.response.get("usage")
     }))
 }

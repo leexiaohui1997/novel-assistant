@@ -116,6 +116,9 @@ impl ActionHandler for GenerateCharacterAction {
                         name: c.name.clone(),
                         gender: format!("{:?}", c.gender).to_lowercase(),
                         background: c.background.clone(),
+                        appearance: c.appearance.clone(),
+                        personality: c.personality.clone(),
+                        additional_info: c.additional_info.clone(),
                     })
                     .collect(),
             )

@@ -184,6 +184,16 @@ impl AiService {
             .unwrap_or("")
             .to_string();
 
+        // 提取思考内容（DeepSeek R1、Qwen3 等模型返回 reasoning_content）
+        let thinking_content = response_json
+            .get("choices")
+            .and_then(|choices| choices.as_array())
+            .and_then(|choices| choices.first())
+            .and_then(|choice| choice.get("message"))
+            .and_then(|message| message.get("reasoning_content"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
         // 5 获取 token 使用统计
         let (input_tokens, output_tokens, total_tokens) = response_json
             .get("usage")
@@ -229,6 +239,7 @@ impl AiService {
             duration_ms,
             message: last_user_message,
             response: Some(content.clone()),
+            thinking_content: thinking_content.clone(),
             status: "success".to_string(),
             error_message: None,
             call_time,
@@ -244,6 +255,7 @@ impl AiService {
 
         Ok(AiChatResponse {
             content,
+            thinking_content,
             response: response_json,
         })
     }

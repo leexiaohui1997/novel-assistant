@@ -29,8 +29,8 @@ impl AiCallLogRepository for SqliteAiCallLogRepository {
             INSERT INTO ai_call_logs (
                 id, provider_id, model_id, model_name, provider_name,
                 input_tokens, output_tokens, total_tokens, duration_ms,
-                message, response, status, error_message, call_time
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+                message, response, thinking_content, status, error_message, call_time
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
             RETURNING *
             "#,
         )
@@ -45,6 +45,7 @@ impl AiCallLogRepository for SqliteAiCallLogRepository {
         .bind(log.duration_ms)
         .bind(&log.message)
         .bind(log.response.as_deref())
+        .bind(log.thinking_content.as_deref())
         .bind(&log.status)
         .bind(log.error_message.as_deref())
         .bind(log.call_time)

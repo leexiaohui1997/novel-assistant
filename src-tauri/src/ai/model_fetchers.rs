@@ -6,12 +6,17 @@
 pub enum ProviderType {
     Default,
     SiliconFlow,
+    LongCat,
 }
 
 impl ProviderType {
     /// 返回所有供应商类型变体列表
     pub fn all() -> &'static [ProviderType] {
-        &[ProviderType::Default, ProviderType::SiliconFlow]
+        &[
+            ProviderType::Default,
+            ProviderType::SiliconFlow,
+            ProviderType::LongCat,
+        ]
     }
 
     /// 返回供应商类型的 snake_case 标识符
@@ -19,6 +24,7 @@ impl ProviderType {
         match self {
             ProviderType::Default => "default",
             ProviderType::SiliconFlow => "silicon_flow",
+            ProviderType::LongCat => "long_cat",
         }
     }
 
@@ -27,6 +33,7 @@ impl ProviderType {
         match self {
             ProviderType::Default => "默认策略",
             ProviderType::SiliconFlow => "SiliconFlow 策略",
+            ProviderType::LongCat => "美团龙猫策略",
         }
     }
 }
@@ -44,6 +51,7 @@ impl std::str::FromStr for ProviderType {
         match s {
             "default" => Ok(ProviderType::Default),
             "silicon_flow" => Ok(ProviderType::SiliconFlow),
+            "long_cat" => Ok(ProviderType::LongCat),
             _ => Err(format!("无效的 ProviderType 值: {}", s)),
         }
     }
@@ -189,6 +197,53 @@ impl FetchStrategy for SiliconFlowFetchStrategy {
     }
 }
 
+/// 美团龙猫拉取策略
+///
+/// 美团龙猫（LongCat）是美团推出的AI大模型服务，与其他供应商不同，
+/// 它没有提供标准的模型列表接口。因此，该策略直接返回固定的模型列表。
+///
+/// ## 支持的模型
+/// - LongCat-Flash-Lite: 轻量版模型，适合快速推理
+/// - LongCat-Flash-Chat: 对话优化模型，适合聊天场景
+/// - LongCat-Flash-Thinking-2601: 思考增强模型，支持复杂推理
+/// - LongCat-Flash-Omni-2603: 全能模型，综合性能最佳
+///
+/// ## 使用说明
+/// 该策略不需要调用外部API，直接返回预设的模型列表，
+/// 确保在没有标准接口的情况下也能正常使用美团龙猫服务。
+pub struct LongCatFetchStrategy;
+
+#[async_trait::async_trait]
+impl FetchStrategy for LongCatFetchStrategy {
+    async fn fetch_models(
+        &self,
+        _base_url: &str,
+        _api_key: &str,
+    ) -> Result<Vec<ModelInfo>, FetchError> {
+        // 美团龙猫没有模型拉取接口，直接返回固定的模型列表
+        let models = vec![
+            ModelInfo {
+                model_id: "LongCat-Flash-Lite".to_string(),
+                model_name: "LongCat-Flash-Lite".to_string(),
+            },
+            ModelInfo {
+                model_id: "LongCat-Flash-Chat".to_string(),
+                model_name: "LongCat-Flash-Chat".to_string(),
+            },
+            ModelInfo {
+                model_id: "LongCat-Flash-Thinking-2601".to_string(),
+                model_name: "LongCat-Flash-Thinking-2601".to_string(),
+            },
+            ModelInfo {
+                model_id: "LongCat-Flash-Omni-2603".to_string(),
+                model_name: "LongCat-Flash-Omni-2603".to_string(),
+            },
+        ];
+
+        Ok(models)
+    }
+}
+
 /// 模型拉取策略注册表
 ///
 /// 通过 HashMap 管理 ProviderType → FetchStrategy 的映射，
@@ -206,6 +261,7 @@ impl FetcherRegistry {
             ProviderType::SiliconFlow,
             Box::new(SiliconFlowFetchStrategy),
         );
+        strategies.insert(ProviderType::LongCat, Box::new(LongCatFetchStrategy));
         Self { strategies }
     }
 

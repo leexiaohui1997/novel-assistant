@@ -204,6 +204,18 @@ pub struct CharacterInfo {
     /// 背景（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub background: Option<String>,
+
+    /// 外貌（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub appearance: Option<String>,
+
+    /// 性格（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub personality: Option<String>,
+
+    /// 其它描述（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_info: Option<String>,
 }
 
 /// optimize_character 模板的上下文数据
