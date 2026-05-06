@@ -56,6 +56,9 @@ pub trait ModelRepository {
         id: Uuid,
         support_thinking: bool,
     ) -> Result<Model, DbError>;
+
+    /// 设置默认模型（互斥：同一供应商下只有一个默认）
+    async fn set_default_model(&self, id: Uuid) -> Result<Model, DbError>;
 }
 
 /// SQLite 模型仓储实现
@@ -254,6 +257,42 @@ impl ModelRepository for SqliteModelRepository {
             updated.id,
             support_thinking
         );
+        Ok(updated)
+    }
+
+    /// 设置默认模型
+    async fn set_default_model(&self, id: Uuid) -> Result<Model, DbError> {
+        let mut tx = self.pool.begin().await?;
+        let now = Utc::now();
+
+        // 1. 获取目标模型的 provider_id
+        let model = sqlx::query_as::<_, Model>("SELECT * FROM ai_models WHERE id = ?1")
+            .bind(id)
+            .fetch_one(tx.as_mut())
+            .await?;
+
+        let provider_id = model.provider_id;
+
+        // 2. 将该供应商下的所有模型设为非默认
+        sqlx::query(
+            "UPDATE ai_models SET is_default = FALSE, updated_at = ?1 WHERE provider_id = ?2",
+        )
+        .bind(now)
+        .bind(provider_id)
+        .execute(tx.as_mut())
+        .await?;
+
+        // 3. 将目标模型设为默认
+        let updated = sqlx::query_as::<_, Model>(
+            "UPDATE ai_models SET is_default = TRUE, updated_at = ?1 WHERE id = ?2 RETURNING *",
+        )
+        .bind(now)
+        .bind(id)
+        .fetch_one(tx.as_mut())
+        .await?;
+
+        tx.commit().await?;
+        tracing::info!("模型默认状态更新: {}", updated.id);
         Ok(updated)
     }
 }

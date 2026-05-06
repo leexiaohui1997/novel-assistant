@@ -141,3 +141,13 @@ pub async fn toggle_model_thinking(
         .await
         .map_err(|e| e.to_string())
 }
+
+/// 设置模型为默认模型
+#[tauri::command]
+pub async fn set_model_as_default(state: State<'_, AppState>, id: String) -> Result<Model, String> {
+    let repo = state.model_repo.read().await;
+    let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    repo.set_default_model(uuid)
+        .await
+        .map_err(|e| e.to_string())
+}

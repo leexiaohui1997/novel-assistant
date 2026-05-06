@@ -17,6 +17,8 @@ export interface ModelSelectProps extends Omit<SelectProps, 'options'> {
   onlyEnabled?: boolean
   /** 是否显示自动选择的模型 */
   withAuto?: boolean
+  /** 是否自动选中默认模型 */
+  useDefault?: boolean
 }
 
 /**
@@ -39,6 +41,7 @@ export const ModelSelect: React.FC<ModelSelectProps> = ({
   onChange,
   withAuto = false,
   onlyEnabled = true,
+  useDefault = false,
   ...selectProps
 }) => {
   const [models, setModels] = useState<Model[]>([])
@@ -72,6 +75,16 @@ export const ModelSelect: React.FC<ModelSelectProps> = ({
       cancelled = true
     }
   }, [onlyEnabled])
+
+  // 如果开启了 useDefault，在加载到模型后自动选中默认模型
+  useEffect(() => {
+    if (useDefault && !value && models.length > 0) {
+      const defaultModel = models.find((m) => m.isDefault)
+      if (defaultModel) {
+        onChange?.(defaultModel.id)
+      }
+    }
+  }, [models, useDefault, value, onChange])
 
   // 将模型数据转换为 Select 选项格式
   const options = useMemo(() => {

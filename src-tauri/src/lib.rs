@@ -30,7 +30,8 @@ use commands::character_commands::{
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
 use commands::model_commands::{
     add_models, delete_model, fetch_provider_models, get_all_models, get_models_with_pagination,
-    get_provider_types, toggle_model_enabled, toggle_model_thinking, update_model_alias,
+    get_provider_types, set_model_as_default, toggle_model_enabled, toggle_model_thinking,
+    update_model_alias,
 };
 use commands::novel_commands::{
     create_novel, delete_novel, get_novel_by_id, get_novels, get_novels_with_pagination,
@@ -195,6 +196,7 @@ pub async fn run() {
             delete_model,
             toggle_model_enabled,
             toggle_model_thinking,
+            set_model_as_default,
             update_model_alias,
             test_model,
             execute_action,

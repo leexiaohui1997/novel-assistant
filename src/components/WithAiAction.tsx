@@ -126,7 +126,7 @@ export function WithAiAction<T = unknown>({
                   styles={{}}
                 >
                   <Form.Item label="模型" name="modelId">
-                    <ModelSelect withAuto className="w-full" allowClear={false} />
+                    <ModelSelect withAuto useDefault className="w-full" allowClear={false} />
                   </Form.Item>
 
                   {showFeedback && (

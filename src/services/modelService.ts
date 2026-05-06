@@ -175,3 +175,18 @@ export async function toggleModelThinking(id: string, supportThinking: boolean):
     throw error
   }
 }
+
+/**
+ * 设置模型为默认模型
+ */
+export async function setModelAsDefault(id: string): Promise<Model> {
+  try {
+    logger.debug('调用设置默认模型 API:', { id })
+    const result = await invoke<Model>('set_model_as_default', { id })
+    logger.debug('默认模型设置成功:', result)
+    return result
+  } catch (error) {
+    logger.error('设置默认模型失败:', error)
+    throw error
+  }
+}

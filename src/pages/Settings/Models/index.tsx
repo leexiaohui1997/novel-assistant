@@ -1,5 +1,5 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { Button, Card, message, Modal, Switch, Table, Tag } from 'antd'
+import { Button, Card, message, Modal, Radio, Switch, Table, Tag } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 
 import AddModelModal, { AddModelModalHandle } from './AddModelModal'
@@ -12,6 +12,7 @@ import {
   deleteModel,
   getModelsWithPagination,
   Model,
+  setModelAsDefault,
   toggleModelEnabled,
   toggleModelThinking,
   updateModelAlias,
@@ -87,6 +88,18 @@ const ModelManage: React.FC = () => {
     } catch (error) {
       logger.error('切换深度思考状态失败:', error)
       messageApi.error('切换深度思考状态失败')
+    }
+  }
+
+  const handleSetDefault = async (record: Model) => {
+    if (record.isDefault) return
+    try {
+      await setModelAsDefault(record.id)
+      messageApi.success('默认模型设置成功')
+      refreshList()
+    } catch (error) {
+      logger.error('设置默认模型失败:', error)
+      messageApi.error('设置默认模型失败')
     }
   }
 
@@ -174,6 +187,15 @@ const ModelManage: React.FC = () => {
           unCheckedChildren="不支持"
           onChange={(checked) => handleToggleThinking(record, checked)}
         />
+      ),
+    },
+    {
+      title: '默认',
+      dataIndex: 'isDefault',
+      key: 'isDefault',
+      width: 80,
+      render: (isDefault: boolean, record) => (
+        <Radio checked={isDefault} onChange={() => handleSetDefault(record)} />
       ),
     },
     {
