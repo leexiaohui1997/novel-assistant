@@ -13,6 +13,7 @@ import {
   getModelsWithPagination,
   Model,
   toggleModelEnabled,
+  toggleModelThinking,
   updateModelAlias,
 } from '@/services/modelService'
 import { formatDateTime } from '@/utils/date'
@@ -76,6 +77,17 @@ const ModelManage: React.FC = () => {
   const handleUpdateAlias = async (record: Model, alias: string) => {
     await updateModelAlias(record.id, alias)
     refreshList()
+  }
+
+  const handleToggleThinking = async (record: Model, checked: boolean) => {
+    try {
+      await toggleModelThinking(record.id, checked)
+      messageApi.success(checked ? '已开启深度思考支持' : '已关闭深度思考支持')
+      refreshList()
+    } catch (error) {
+      logger.error('切换深度思考状态失败:', error)
+      messageApi.error('切换深度思考状态失败')
+    }
   }
 
   const handleDelete = (record: Model) => {
@@ -147,6 +159,20 @@ const ModelManage: React.FC = () => {
           checkedChildren="启用"
           unCheckedChildren="禁用"
           onChange={(checked) => handleToggleEnabled(record, checked)}
+        />
+      ),
+    },
+    {
+      title: '深度思考',
+      dataIndex: 'supportThinking',
+      key: 'supportThinking',
+      width: 110,
+      render: (supported: boolean, record) => (
+        <Switch
+          checked={supported}
+          checkedChildren="支持"
+          unCheckedChildren="不支持"
+          onChange={(checked) => handleToggleThinking(record, checked)}
         />
       ),
     },

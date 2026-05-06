@@ -127,3 +127,17 @@ pub async fn update_model_alias(
         .await
         .map_err(|e| e.to_string())
 }
+
+/// 切换模型深度思考支持状态
+#[tauri::command]
+pub async fn toggle_model_thinking(
+    state: State<'_, AppState>,
+    id: String,
+    support_thinking: bool,
+) -> Result<Model, String> {
+    let repo = state.model_repo.read().await;
+    let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    repo.toggle_support_thinking(uuid, support_thinking)
+        .await
+        .map_err(|e| e.to_string())
+}

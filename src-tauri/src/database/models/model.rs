@@ -14,6 +14,7 @@ pub struct Model {
     pub alias: String,
     pub is_default: bool,
     pub is_enabled: bool,
+    pub support_thinking: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -30,6 +31,7 @@ pub struct ModelWithProvider {
     pub alias: String,
     pub is_default: bool,
     pub is_enabled: bool,
+    pub support_thinking: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

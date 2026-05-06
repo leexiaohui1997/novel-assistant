@@ -27,6 +27,8 @@ export interface Model {
   isDefault: boolean
   /** 是否启用 */
   isEnabled: boolean
+  /** 是否支持深度思考 */
+  supportThinking: boolean
   /** 创建时间 */
   createdAt: string
   /** 更新时间 */
@@ -155,6 +157,21 @@ export async function updateModelAlias(id: string, alias: string): Promise<Model
     return result
   } catch (error) {
     logger.error('更新模型别名失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 切换模型深度思考支持状态
+ */
+export async function toggleModelThinking(id: string, supportThinking: boolean): Promise<Model> {
+  try {
+    logger.debug('调用切换模型深度思考状态 API:', { id, supportThinking })
+    const result = await invoke<Model>('toggle_model_thinking', { id, supportThinking })
+    logger.debug('模型深度思考状态更新成功:', result)
+    return result
+  } catch (error) {
+    logger.error('切换模型深度思考状态失败:', error)
     throw error
   }
 }

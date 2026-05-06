@@ -49,6 +49,13 @@ pub trait ModelRepository {
 
     /// 更新模型别名
     async fn update_alias(&self, id: Uuid, alias: &str) -> Result<Model, DbError>;
+
+    /// 切换深度思考支持状态
+    async fn toggle_support_thinking(
+        &self,
+        id: Uuid,
+        support_thinking: bool,
+    ) -> Result<Model, DbError>;
 }
 
 /// SQLite 模型仓储实现
@@ -82,8 +89,8 @@ impl ModelRepository for SqliteModelRepository {
         for item in models {
             let id = Uuid::new_v4();
             let model = sqlx::query_as::<_, Model>(
-                "INSERT INTO ai_models (id, provider_id, model_id, alias, is_default, is_enabled, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, 0, 1, ?5, ?5)
+                "INSERT INTO ai_models (id, provider_id, model_id, alias, is_default, is_enabled, support_thinking, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, 0, 1, 0, ?5, ?5)
                  RETURNING *",
             )
             .bind(id)
@@ -137,7 +144,7 @@ impl ModelRepository for SqliteModelRepository {
 
         let query = format!(
             "SELECT m.id, m.provider_id, p.name AS provider_name, m.model_id, m.alias, \
-             m.is_default, m.is_enabled, m.created_at, m.updated_at \
+             m.is_default, m.is_enabled, m.support_thinking, m.created_at, m.updated_at \
              FROM ai_models m \
              INNER JOIN ai_providers p ON p.id = m.provider_id \
              {} \
@@ -161,7 +168,7 @@ impl ModelRepository for SqliteModelRepository {
             params,
             "SELECT COUNT(*) FROM ai_models",
             "SELECT m.id, m.provider_id, p.name AS provider_name, m.model_id, m.alias, \
-             m.is_default, m.is_enabled, m.created_at, m.updated_at \
+             m.is_default, m.is_enabled, m.support_thinking, m.created_at, m.updated_at \
              FROM ai_models m \
              INNER JOIN ai_providers p ON p.id = m.provider_id \
              ORDER BY m.created_at DESC \
@@ -223,6 +230,30 @@ impl ModelRepository for SqliteModelRepository {
         .await?;
 
         tracing::info!("模型别名更新: {} -> {}", updated.id, alias);
+        Ok(updated)
+    }
+
+    /// 切换深度思考支持状态
+    async fn toggle_support_thinking(
+        &self,
+        id: Uuid,
+        support_thinking: bool,
+    ) -> Result<Model, DbError> {
+        let now = Utc::now();
+        let updated = sqlx::query_as::<_, Model>(
+            "UPDATE ai_models SET support_thinking = ?1, updated_at = ?2 WHERE id = ?3 RETURNING *",
+        )
+        .bind(support_thinking)
+        .bind(now)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        tracing::info!(
+            "模型深度思考状态更新: {} -> {}",
+            updated.id,
+            support_thinking
+        );
         Ok(updated)
     }
 }
