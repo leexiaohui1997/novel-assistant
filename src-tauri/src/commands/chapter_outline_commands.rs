@@ -23,6 +23,10 @@ pub struct EditChapterOutlineInput {
     /// 剧情内容（可选）
     #[serde(default)]
     pub plot: Option<String>,
+
+    /// 关联角色 ID 列表（可选）
+    #[serde(default)]
+    pub character_ids: Option<Vec<String>>,
 }
 
 /// 编辑章节大纲
@@ -98,8 +102,35 @@ pub async fn edit_chapter_outline(
         .await
         .map_err(|e| format!("保存大纲失败: {}", e))?;
 
-    // 7. 返回结果
-    Ok(serde_json::to_value(result).map_err(|e| format!("序列化结果失败: {}", e))?)
+    // 7. 同步角色关联（如果提供了 character_ids）
+    if let Some(ids) = &input.character_ids {
+        let parsed_ids: Vec<Uuid> = ids
+            .iter()
+            .map(|id| Uuid::parse_str(id).map_err(|e| format!("角色 ID 格式错误: {}", e)))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        state
+            .chapter_outline_repo
+            .read()
+            .await
+            .sync_characters(result.id, &parsed_ids)
+            .await
+            .map_err(|e| format!("同步角色关联失败: {}", e))?;
+    }
+
+    // 8. 返回结果（含角色关联）
+    let with_chars = state
+        .chapter_outline_repo
+        .read()
+        .await
+        .find_with_characters(&result.novel_id, result.chapter_id.as_ref())
+        .await
+        .map_err(|e| format!("查询大纲详情失败: {}", e))?;
+
+    match with_chars {
+        Some(wc) => Ok(serde_json::to_value(wc).map_err(|e| format!("序列化结果失败: {}", e))?),
+        None => Ok(serde_json::to_value(result).map_err(|e| format!("序列化结果失败: {}", e))?),
+    }
 }
 
 /// 获取章节大纲的输入参数
@@ -136,10 +167,10 @@ pub async fn get_chapter_outline(
         .map(|id| Uuid::parse_str(&id).map_err(|e| format!("章节 ID 格式错误: {}", e)))
         .transpose()?;
 
-    // 3. 查询大纲
+    // 3. 查询大纲（含关联角色）
     let outline_repo = state.chapter_outline_repo.read().await;
     let outline = outline_repo
-        .find_by_novel_and_chapter(&novel_uuid, chapter_uuid.as_ref())
+        .find_with_characters(&novel_uuid, chapter_uuid.as_ref())
         .await
         .map_err(|e| format!("查询大纲失败: {}", e))?;
     drop(outline_repo);

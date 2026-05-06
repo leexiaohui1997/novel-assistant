@@ -8,6 +8,7 @@ export type ChapterOutline = {
   chapterId?: string
   positioning?: string
   plot?: string
+  characterIds?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -24,9 +25,10 @@ export async function editChapterOutline(
   chapterId: string | undefined,
   positioning: string,
   plot?: string,
+  characterIds?: string[],
 ): Promise<ChapterOutline> {
   try {
-    logger.debug('调用编辑章节大纲 API:', { novelId, chapterId, positioning, plot })
+    logger.debug('调用编辑章节大纲 API:', { novelId, chapterId, positioning, plot, characterIds })
 
     const result = await invoke<ChapterOutline>('edit_chapter_outline', {
       input: {
@@ -34,6 +36,7 @@ export async function editChapterOutline(
         chapter_id: chapterId,
         positioning,
         plot,
+        character_ids: characterIds,
       },
     })
 

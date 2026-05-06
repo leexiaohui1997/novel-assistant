@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::database::error::DbError;
 use crate::database::models::chapter_outline::ChapterOutline;
+use crate::database::models::chapter_outline::ChapterOutlineWithCharacters;
 use crate::database::repositories::chapter_outline_repo::ChapterOutlineRepository;
 
 /// SQLite 章节大纲仓储实现
@@ -84,6 +85,62 @@ impl ChapterOutlineRepository for SqliteChapterOutlineRepository {
                 created_at: now,
                 updated_at: now,
             })
+        }
+    }
+
+    async fn find_character_ids(&self, outline_id: i64) -> Result<Vec<Uuid>, DbError> {
+        let ids: Vec<Uuid> = sqlx::query_scalar(
+            "SELECT character_id FROM chapter_outline_characters WHERE chapter_outline_id = ?1",
+        )
+        .bind(outline_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(ids)
+    }
+
+    async fn sync_characters(
+        &self,
+        outline_id: i64,
+        character_ids: &[Uuid],
+    ) -> Result<(), DbError> {
+        // 先删后插，事务保证原子性
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query("DELETE FROM chapter_outline_characters WHERE chapter_outline_id = ?1")
+            .bind(outline_id)
+            .execute(&mut *tx)
+            .await?;
+
+        for cid in character_ids {
+            sqlx::query(
+                "INSERT INTO chapter_outline_characters (chapter_outline_id, character_id) VALUES (?1, ?2)",
+            )
+            .bind(outline_id)
+            .bind(cid)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    async fn find_with_characters(
+        &self,
+        novel_id: &Uuid,
+        chapter_id: Option<&Uuid>,
+    ) -> Result<Option<ChapterOutlineWithCharacters>, DbError> {
+        let outline = self.find_by_novel_and_chapter(novel_id, chapter_id).await?;
+
+        match outline {
+            Some(o) => {
+                let character_ids = self.find_character_ids(o.id).await?;
+                Ok(Some(ChapterOutlineWithCharacters {
+                    outline: o,
+                    character_ids,
+                }))
+            }
+            None => Ok(None),
         }
     }
 }

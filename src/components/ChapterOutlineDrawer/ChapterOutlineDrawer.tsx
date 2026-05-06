@@ -1,7 +1,6 @@
 import { Button, Drawer, Tabs } from 'antd'
 import { useCallback, useImperativeHandle, useRef, useState } from 'react'
 
-import { Character } from './panels/Character'
 import { ChapterOutlinePanelHandle } from './panels/common'
 import { StoryBible } from './panels/StoryBible'
 
@@ -60,11 +59,6 @@ export function ChapterOutlineDrawer({ novel, chapter, ref }: ChapterOutlineDraw
             key: 'story-bible',
             label: '设定集',
             children: <StoryBible novelId={novel.id} chapterId={chapter?.id} ref={panelRef} />,
-          },
-          {
-            key: 'character',
-            label: '角色卡',
-            children: <Character ref={panelRef} />,
           },
         ]}
         classNames={{

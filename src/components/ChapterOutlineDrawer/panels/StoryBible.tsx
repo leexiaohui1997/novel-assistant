@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } 
 
 import { ChapterOutlinePanelHandle } from './common'
 
+import { CharacterSelect } from '@/components/CharacterSelect'
 import {
   ChapterOutline,
   editChapterOutline,
@@ -36,7 +37,13 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
         try {
           setDoingSave(true)
           // 保存本章大纲
-          await editChapterOutline(novelId, chapterId, values.positioning, values.plot)
+          await editChapterOutline(
+            novelId,
+            chapterId,
+            values.positioning,
+            values.plot,
+            values.characterIds,
+          )
           message.success('设定集保存成功')
         } catch (e) {
           message.error(`设定集保存失败: ${getErrorMsg(e)}`)
@@ -73,6 +80,7 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
     formRef.current?.setFieldsValue({
       positioning: outline?.positioning || '',
       plot: outline?.plot || '',
+      characterIds: outline?.characterIds || [],
     })
   }, [outline])
 
@@ -91,6 +99,7 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
       initialValues={{
         positioning: outline?.positioning || '',
         plot: outline?.plot || '',
+        characterIds: outline?.characterIds || [],
       }}
     >
       <Form.Item label="本章定位" name="positioning">
@@ -98,6 +107,9 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
       </Form.Item>
       <Form.Item label="本章剧情" name="plot">
         <Input.TextArea placeholder="请输入本章剧情" rows={4} maxLength={200} showCount />
+      </Form.Item>
+      <Form.Item label="出场角色" name="characterIds">
+        <CharacterSelect novelId={novelId} placeholder="请选择本章出场角色" />
       </Form.Item>
     </Form>
   )
