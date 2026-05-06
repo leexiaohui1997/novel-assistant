@@ -8,6 +8,7 @@
 // 2. 实现 `ActionHandler` trait
 // 3. 在本文件中导出并注册到 Router
 
+pub mod edit_chapter_characters;
 pub mod edit_chapter_plot;
 pub mod edit_chapter_positioning;
 pub mod generate_character;
@@ -17,6 +18,7 @@ pub mod optimize_character;
 pub mod recommend_tags;
 
 // 重新导出所有内置 Action
+pub use edit_chapter_characters::EditChapterCharactersAction;
 pub use edit_chapter_plot::EditChapterPlotAction;
 pub use edit_chapter_positioning::EditChapterPositioningAction;
 pub use generate_character::GenerateCharacterAction;

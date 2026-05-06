@@ -1,6 +1,7 @@
 import { App, Form, FormInstance, Input, Spin } from 'antd'
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
+import { CharactersAction } from '../actions/Characters'
 import { PlotAction } from '../actions/Plot'
 import { PositioningAction } from '../actions/Positioning'
 
@@ -118,7 +119,10 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
       >
         <Input.TextArea placeholder="请输入本章剧情" rows={4} maxLength={200} showCount />
       </Form.Item>
-      <Form.Item label="出场角色" name="characterIds">
+      <Form.Item
+        label={<CharactersAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
+        name="characterIds"
+      >
         <CharacterSelect novelId={novelId} placeholder="请选择本章出场角色" />
       </Form.Item>
     </Form>

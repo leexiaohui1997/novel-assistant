@@ -2,9 +2,27 @@
 //
 // 使用 Tera 模板引擎管理 AI 提示词模板
 
-use serde::Serialize;
+mod edit_chapter_characters;
+mod edit_chapter_plot;
+mod edit_chapter_positioning;
+mod generate_character;
+mod generate_introduction;
+mod generate_title;
+mod optimize_character;
+mod recommend_tags;
+mod types;
+
 use tera::{Context, Tera};
-use uuid::Uuid;
+
+pub use edit_chapter_characters::EditChapterCharactersContext;
+pub use edit_chapter_plot::EditChapterPlotContext;
+pub use edit_chapter_positioning::EditChapterPositioningContext;
+pub use generate_character::GenerateCharacterContext;
+pub use generate_introduction::GenerateIntroductionContext;
+pub use generate_title::GenerateTitleContext;
+pub use optimize_character::OptimizeCharacterContext;
+pub use recommend_tags::RecommendTagsContext;
+pub use types::{CharacterDetail, CharacterInfo, CharacterWithIdInfo};
 
 /// 提示词模板管理器
 pub struct PromptTemplates {
@@ -14,12 +32,8 @@ pub struct PromptTemplates {
 impl PromptTemplates {
     /// 创建新的提示词模板管理器
     pub fn new() -> Result<Self, tera::Error> {
-        // 从 templates 目录自动加载所有 .tera 模板文件
         let mut tera = Tera::default();
 
-        // 使用 glob 模式自动发现 templates 目录下的所有 .tera 文件
-        // 模板名称会自动根据文件名生成（不含扩展名）
-        // 例如: recommend_tags.tera -> "recommend_tags"
         let template_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*.tera");
 
         for entry in glob::glob(template_dir)
@@ -27,7 +41,6 @@ impl PromptTemplates {
         {
             match entry {
                 Ok(path) => {
-                    // 从文件路径提取模板名称（去除扩展名和路径）
                     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                         let name: Option<&str> = Some(stem);
                         tera.add_template_file(&path, name)?;
@@ -47,9 +60,7 @@ impl PromptTemplates {
         &self,
         context: &RecommendTagsContext,
     ) -> Result<String, tera::Error> {
-        // 使用 Serialize trait 自动转换，无需手动 insert
         let tera_context = Context::from_serialize(context)?;
-
         self.tera.render("recommend_tags", &tera_context)
     }
 
@@ -58,9 +69,7 @@ impl PromptTemplates {
         &self,
         context: &GenerateIntroductionContext,
     ) -> Result<String, tera::Error> {
-        // 使用 Serialize trait 自动转换，无需手动 insert
         let tera_context = Context::from_serialize(context)?;
-
         self.tera.render("generate_introduction", &tera_context)
     }
 
@@ -69,9 +78,7 @@ impl PromptTemplates {
         &self,
         context: &GenerateTitleContext,
     ) -> Result<String, tera::Error> {
-        // 使用 Serialize trait 自动转换，无需手动 insert
         let tera_context = Context::from_serialize(context)?;
-
         self.tera.render("generate_title", &tera_context)
     }
 
@@ -80,9 +87,7 @@ impl PromptTemplates {
         &self,
         context: &GenerateCharacterContext,
     ) -> Result<String, tera::Error> {
-        // 使用 Serialize trait 自动转换，无需手动 insert
         let tera_context = Context::from_serialize(context)?;
-
         self.tera.render("generate_character", &tera_context)
     }
 
@@ -91,9 +96,7 @@ impl PromptTemplates {
         &self,
         context: &OptimizeCharacterContext,
     ) -> Result<String, tera::Error> {
-        // 使用 Serialize trait 自动转换，无需手动 insert
         let tera_context = Context::from_serialize(context)?;
-
         self.tera.render("optimize_character", &tera_context)
     }
 
@@ -114,312 +117,13 @@ impl PromptTemplates {
         let tera_context = Context::from_serialize(context)?;
         self.tera.render("edit_chapter_plot", &tera_context)
     }
-}
 
-/// recommend_tags 模板的上下文数据
-#[derive(Debug, Serialize)]
-pub struct RecommendTagsContext {
-    /// 频道名称（男频/女频）
-    pub channel_name: String,
-
-    /// 标题（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-
-    /// 简介（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub introduction: Option<String>,
-
-    /// 已选标签信息（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub selected_tags_info: Option<String>,
-
-    /// 可用标签列表
-    pub main_categories: String,
-    pub themes: String,
-    pub characters: String,
-    pub plots: String,
-
-    /// 限制数量
-    pub main_limit: usize,
-    pub theme_limit: usize,
-    pub character_limit: usize,
-    pub plot_limit: usize,
-
-    /// 剩余可推荐数量
-    pub main_remaining: usize,
-    pub theme_remaining: usize,
-    pub character_remaining: usize,
-    pub plot_remaining: usize,
-}
-
-/// generate_introduction 模板的上下文数据
-#[derive(Debug, Serialize)]
-pub struct GenerateIntroductionContext {
-    /// 标题（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-
-    /// 频道名称（男频/女频，可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub channel_name: Option<String>,
-
-    /// 已选标签信息（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub selected_tags: Option<String>,
-
-    /// 用户意见（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_feedback: Option<String>,
-}
-
-/// generate_title 模板的上下文数据
-#[derive(Debug, Serialize)]
-pub struct GenerateTitleContext {
-    /// 频道名称（男频/女频，可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub channel_name: Option<String>,
-
-    /// 标签信息（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<String>,
-
-    /// 作品简介（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub introduction: Option<String>,
-}
-
-/// generate_character 模板的上下文数据
-#[derive(Debug, Serialize)]
-pub struct GenerateCharacterContext {
-    /// 小说标题
-    pub title: String,
-
-    /// 频道名称（男频/女频）
-    pub channel_name: String,
-
-    /// 标签信息（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<String>,
-
-    /// 作品简介（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub introduction: Option<String>,
-
-    /// 已有角色列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub existing_characters: Option<Vec<CharacterInfo>>,
-}
-
-/// 角色信息（用于提示词上下文）
-#[derive(Debug, Clone, Serialize)]
-pub struct CharacterInfo {
-    /// 角色 ID（仅用于内部筛选，不输出到模板）
-    #[serde(skip)]
-    pub id: Uuid,
-
-    /// 角色名称
-    pub name: String,
-
-    /// 性别
-    pub gender: String,
-
-    /// 背景（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub background: Option<String>,
-
-    /// 外貌（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub appearance: Option<String>,
-
-    /// 性格（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub personality: Option<String>,
-
-    /// 其它描述（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub additional_info: Option<String>,
-}
-
-/// optimize_character 模板的上下文数据
-#[derive(Debug, Serialize)]
-pub struct OptimizeCharacterContext {
-    /// 小说标题
-    pub title: String,
-
-    /// 频道名称（男频/女频）
-    pub channel_name: String,
-
-    /// 标签信息（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<String>,
-
-    /// 作品简介（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub introduction: Option<String>,
-
-    /// 待优化的角色信息
-    pub character: CharacterDetail,
-
-    /// 需要优化的字段列表
-    pub optimize_fields: Vec<String>,
-
-    /// 用户优化意见（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_feedback: Option<String>,
-}
-
-/// 角色详细信息（用于优化）
-#[derive(Debug, Serialize)]
-pub struct CharacterDetail {
-    /// 角色名称
-    pub name: String,
-
-    /// 性别
-    pub gender: String,
-
-    /// 背景（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub background: Option<String>,
-
-    /// 外貌（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub appearance: Option<String>,
-
-    /// 性格（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub personality: Option<String>,
-
-    /// 其它描述（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub additional_info: Option<String>,
-}
-
-/// edit_chapter_positioning 模板的上下文数据
-#[derive(Debug, Serialize)]
-pub struct EditChapterPositioningContext {
-    /// 小说标题
-    pub title: String,
-
-    /// 频道名称（男频/女频）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub channel_name: Option<String>,
-
-    /// 标签（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<String>,
-
-    /// 小说简介（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-
-    /// 章节序号（1-based，用于显示"第N章"）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chapter_sequence: Option<i64>,
-
-    /// 卷序号（1-based，用于显示"第N卷"）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub volume_sequence: Option<i64>,
-
-    /// 卷名（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub volume_name: Option<String>,
-
-    /// 大纲定位（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub outline_positioning: Option<String>,
-
-    /// 本章剧情（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub outline_plot: Option<String>,
-
-    /// 出场角色（可选，大纲关联的角色子集）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub outline_characters: Option<Vec<CharacterInfo>>,
-
-    /// 角色列表（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub characters: Option<Vec<CharacterInfo>>,
-
-    /// 章节标题（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chapter_title: Option<String>,
-
-    /// 章节正文（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chapter_content: Option<String>,
-
-    /// 前情介绍（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub previous_plots: Option<String>,
-
-    /// 用户意见（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_feedback: Option<String>,
-}
-
-/// edit_chapter_plot 模板的上下文数据
-///
-/// 与 EditChapterPositioningContext 字段一致，
-/// 但模板中"任务要求"和"写作要求"不同，因此独立定义
-#[derive(Debug, Serialize)]
-pub struct EditChapterPlotContext {
-    /// 小说标题
-    pub title: String,
-
-    /// 频道名称（男频/女频）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub channel_name: Option<String>,
-
-    /// 标签（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<String>,
-
-    /// 小说简介（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-
-    /// 章节序号（1-based，用于显示"第N章"）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chapter_sequence: Option<i64>,
-
-    /// 卷序号（1-based，用于显示"第N卷"）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub volume_sequence: Option<i64>,
-
-    /// 卷名（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub volume_name: Option<String>,
-
-    /// 大纲定位（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub outline_positioning: Option<String>,
-
-    /// 本章剧情（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub outline_plot: Option<String>,
-
-    /// 出场角色（可选，大纲关联的角色子集）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub outline_characters: Option<Vec<CharacterInfo>>,
-
-    /// 角色列表（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub characters: Option<Vec<CharacterInfo>>,
-
-    /// 章节标题（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chapter_title: Option<String>,
-
-    /// 章节正文（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chapter_content: Option<String>,
-
-    /// 前情介绍（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub previous_plots: Option<String>,
-
-    /// 用户意见（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_feedback: Option<String>,
+    /// 渲染 edit_chapter_characters 提示词
+    pub fn render_edit_chapter_characters(
+        &self,
+        context: &EditChapterCharactersContext,
+    ) -> Result<String, tera::Error> {
+        let tera_context = Context::from_serialize(context)?;
+        self.tera.render("edit_chapter_characters", &tera_context)
+    }
 }
