@@ -1,6 +1,7 @@
 import { App, Form, FormInstance, Input, Spin } from 'antd'
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
+import { PlotAction } from '../actions/Plot'
 import { PositioningAction } from '../actions/Positioning'
 
 import { ChapterOutlinePanelHandle } from './common'
@@ -111,7 +112,10 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
       >
         <Input.TextArea placeholder="请输入本章定位" rows={4} maxLength={200} showCount />
       </Form.Item>
-      <Form.Item label="本章剧情" name="plot">
+      <Form.Item
+        label={<PlotAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
+        name="plot"
+      >
         <Input.TextArea placeholder="请输入本章剧情" rows={4} maxLength={200} showCount />
       </Form.Item>
       <Form.Item label="出场角色" name="characterIds">
