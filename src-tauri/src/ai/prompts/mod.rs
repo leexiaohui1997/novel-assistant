@@ -4,6 +4,7 @@
 
 use serde::Serialize;
 use tera::{Context, Tera};
+use uuid::Uuid;
 
 /// 提示词模板管理器
 pub struct PromptTemplates {
@@ -94,6 +95,15 @@ impl PromptTemplates {
         let tera_context = Context::from_serialize(context)?;
 
         self.tera.render("optimize_character", &tera_context)
+    }
+
+    /// 渲染 edit_chapter_positioning 提示词
+    pub fn render_edit_chapter_positioning(
+        &self,
+        context: &EditChapterPositioningContext,
+    ) -> Result<String, tera::Error> {
+        let tera_context = Context::from_serialize(context)?;
+        self.tera.render("edit_chapter_positioning", &tera_context)
     }
 }
 
@@ -193,8 +203,12 @@ pub struct GenerateCharacterContext {
 }
 
 /// 角色信息（用于提示词上下文）
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct CharacterInfo {
+    /// 角色 ID（仅用于内部筛选，不输出到模板）
+    #[serde(skip)]
+    pub id: Uuid,
+
     /// 角色名称
     pub name: String,
 
@@ -270,4 +284,67 @@ pub struct CharacterDetail {
     /// 其它描述（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_info: Option<String>,
+}
+
+/// edit_chapter_positioning 模板的上下文数据
+#[derive(Debug, Serialize)]
+pub struct EditChapterPositioningContext {
+    /// 小说标题
+    pub title: String,
+
+    /// 频道名称（男频/女频）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channel_name: Option<String>,
+
+    /// 标签（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<String>,
+
+    /// 小说简介（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+
+    /// 章节序号（1-based，用于显示"第N章"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chapter_sequence: Option<i64>,
+
+    /// 卷序号（1-based，用于显示"第N卷"）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume_sequence: Option<i64>,
+
+    /// 卷名（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume_name: Option<String>,
+
+    /// 大纲定位（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub outline_positioning: Option<String>,
+
+    /// 本章剧情（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub outline_plot: Option<String>,
+
+    /// 出场角色（可选，大纲关联的角色子集）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub outline_characters: Option<Vec<CharacterInfo>>,
+
+    /// 角色列表（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub characters: Option<Vec<CharacterInfo>>,
+
+    /// 章节标题（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chapter_title: Option<String>,
+
+    /// 章节正文（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chapter_content: Option<String>,
+
+    /// 前情介绍（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous_plots: Option<String>,
+
+    /// 用户意见（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_feedback: Option<String>,
 }

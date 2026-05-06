@@ -31,4 +31,10 @@ pub trait ChapterOutlineRepository {
         novel_id: &Uuid,
         chapter_id: Option<&Uuid>,
     ) -> Result<Option<ChapterOutlineWithCharacters>, DbError>;
+
+    /// 查询指定小说下所有章节大纲（含关联角色ID列表），按章节 sequence 升序
+    async fn find_all_by_novel(
+        &self,
+        novel_id: &Uuid,
+    ) -> Result<Vec<ChapterOutlineWithCharacters>, DbError>;
 }

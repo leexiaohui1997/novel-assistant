@@ -113,6 +113,7 @@ impl ActionHandler for GenerateCharacterAction {
                 characters
                     .iter()
                     .map(|c| CharacterInfo {
+                        id: c.id,
                         name: c.name.clone(),
                         gender: format!("{:?}", c.gender).to_lowercase(),
                         background: c.background.clone(),

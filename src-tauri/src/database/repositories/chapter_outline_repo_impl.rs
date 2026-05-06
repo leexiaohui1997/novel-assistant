@@ -143,4 +143,29 @@ impl ChapterOutlineRepository for SqliteChapterOutlineRepository {
             None => Ok(None),
         }
     }
+
+    async fn find_all_by_novel(
+        &self,
+        novel_id: &Uuid,
+    ) -> Result<Vec<ChapterOutlineWithCharacters>, DbError> {
+        let outlines = sqlx::query_as::<_, ChapterOutline>(
+            "SELECT co.* FROM chapter_outlines co
+             INNER JOIN chapters c ON c.id = co.chapter_id
+             WHERE co.novel_id = ?1 AND c.sequence >= 0
+             ORDER BY c.sequence ASC",
+        )
+        .bind(novel_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut result = Vec::with_capacity(outlines.len());
+        for o in outlines {
+            let character_ids = self.find_character_ids(o.id).await?;
+            result.push(ChapterOutlineWithCharacters {
+                outline: o,
+                character_ids,
+            });
+        }
+        Ok(result)
+    }
 }

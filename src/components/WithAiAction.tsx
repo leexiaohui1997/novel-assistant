@@ -1,5 +1,6 @@
 import { ThunderboltOutlined } from '@ant-design/icons'
 import { Button, Divider, Form, FormInstance, Input, message, Popover } from 'antd'
+import { SizeType } from 'antd/es/config-provider/SizeContext'
 import { TooltipPlacement } from 'antd/es/tooltip'
 import React, { useCallback, useRef, useState } from 'react'
 
@@ -26,6 +27,8 @@ export type WithAiActionProps<T = unknown> = {
   placement?: TooltipPlacement
   /** 是否提供意见输入框 */
   showFeedback?: boolean
+  /** 触发按钮尺寸 */
+  triggerSize?: SizeType
   /** 样式类名 */
   classNames?: {
     root?: string
@@ -47,9 +50,10 @@ export function WithAiAction<T = unknown>({
   disabled = false,
   aiAction,
   onResult,
-  classNames,
+  classNames = {},
   placement = 'leftTop',
   showFeedback = false,
+  triggerSize = 'medium',
   ...props
 }: WithAiActionProps<T>) {
   // Ant Design Message 实例
@@ -83,14 +87,14 @@ export function WithAiAction<T = unknown>({
     <>
       {contextHolder}
       {/* 布局容器：左侧子组件 + 右侧 AI 按钮 */}
-      <div className={`flex items-start gap-2 ${classNames?.root}`}>
+      <div className={`flex items-start gap-2 ${classNames.root}`}>
         {/* 子组件区域：占据剩余空间 */}
-        <div className={`${classNames?.left ?? 'flex-1 w-0'}`}>
+        <div className={`${classNames.left ?? 'flex-1 w-0'}`}>
           {React.isValidElement(children) ? React.cloneElement(children, props) : children}
         </div>
 
         {/* 按钮区域：固定宽度 */}
-        <div className={`flex items-center gap-1 ${classNames?.right}`}>
+        <div className={`flex items-center gap-1 ${classNames.right}`}>
           <Popover
             trigger="click"
             placement={placement}
@@ -136,6 +140,7 @@ export function WithAiAction<T = unknown>({
             classNames={{ content: 'min-w-75!' }}
           >
             <Button
+              size={triggerSize}
               icon={<ThunderboltOutlined />}
               variant="filled"
               color="primary"

@@ -9,7 +9,10 @@ use super::context::ActionContext;
 use super::error::ActionError;
 use super::router::ActionRouter;
 use crate::ai::service::AiService;
-use crate::database::repositories::{CharacterRepository, NovelRepository, TagRepository};
+use crate::database::repositories::{
+    ChapterOutlineRepository, ChapterRepository, CharacterRepository, NovelRepository,
+    TagRepository,
+};
 
 /// Action 执行器
 ///
@@ -30,6 +33,12 @@ pub struct ActionExecutor {
 
     /// 角色仓储引用
     character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
+
+    /// 章节仓储引用
+    chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
+
+    /// 章节大纲仓储引用
+    chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
 }
 
 impl ActionExecutor {
@@ -40,6 +49,8 @@ impl ActionExecutor {
         tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
         novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
         character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
+        chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
+        chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
     ) -> Self {
         Self {
             router,
@@ -47,6 +58,8 @@ impl ActionExecutor {
             tag_repo,
             novel_repo,
             character_repo,
+            chapter_repo,
+            chapter_outline_repo,
         }
     }
 
@@ -92,6 +105,8 @@ impl ActionExecutor {
             self.tag_repo.clone(),
             self.novel_repo.clone(),
             self.character_repo.clone(),
+            self.chapter_repo.clone(),
+            self.chapter_outline_repo.clone(),
         );
 
         // 3. 如果提供了 model_id，添加到 context 中

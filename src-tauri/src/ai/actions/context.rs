@@ -7,7 +7,10 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::ai::service::AiService;
-use crate::database::repositories::{CharacterRepository, NovelRepository, TagRepository};
+use crate::database::repositories::{
+    ChapterOutlineRepository, ChapterRepository, CharacterRepository, NovelRepository,
+    TagRepository,
+};
 
 /// Action 执行上下文
 ///
@@ -28,6 +31,12 @@ pub struct ActionContext {
     /// 角色仓储引用（用于查询角色列表）
     pub character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
 
+    /// 章节仓储引用（用于查询章节内容）
+    pub chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
+
+    /// 章节大纲仓储引用（用于查询大纲信息）
+    pub chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
+
     /// 指定的模型 ID（可选）
     pub model_id: Option<String>,
 
@@ -43,6 +52,8 @@ impl ActionContext {
         tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
         novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
         character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
+        chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
+        chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
     ) -> Self {
         Self {
             input,
@@ -50,6 +61,8 @@ impl ActionContext {
             tag_repo,
             novel_repo,
             character_repo,
+            chapter_repo,
+            chapter_outline_repo,
             model_id: None,
             metadata: HashMap::new(),
         }

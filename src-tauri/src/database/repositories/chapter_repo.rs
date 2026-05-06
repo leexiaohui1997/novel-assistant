@@ -89,6 +89,15 @@ pub trait ChapterRepository {
         novel_id: Uuid,
         volume_sequence: i64,
     ) -> Result<Option<i64>, DbError>;
+
+    /// 根据章节 ID 查询单个章节
+    async fn find_by_id(&self, chapter_id: Uuid) -> Result<Option<Chapter>, DbError>;
+
+    /// 查询指定小说下所有非草稿章节，按 sequence 升序返回
+    async fn find_all_non_draft(&self, novel_id: Uuid) -> Result<Vec<Chapter>, DbError>;
+
+    /// 根据章节 ID 查询其所属分卷，无关联时返回 None
+    async fn find_volume_by_chapter(&self, chapter_id: Uuid) -> Result<Option<Volume>, DbError>;
 }
 
 pub struct SqliteChapterRepository {
@@ -922,5 +931,35 @@ impl ChapterRepository for SqliteChapterRepository {
         }
         self.max_sequence_by_volume_sequence(novel_id, volume_sequence)
             .await
+    }
+
+    async fn find_by_id(&self, chapter_id: Uuid) -> Result<Option<Chapter>, DbError> {
+        let chapter = sqlx::query_as::<_, Chapter>("SELECT * FROM chapters WHERE id = ?1")
+            .bind(chapter_id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(chapter)
+    }
+
+    async fn find_all_non_draft(&self, novel_id: Uuid) -> Result<Vec<Chapter>, DbError> {
+        let chapters = sqlx::query_as::<_, Chapter>(
+            "SELECT * FROM chapters WHERE novel_id = ?1 AND sequence >= 0 ORDER BY sequence ASC",
+        )
+        .bind(novel_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(chapters)
+    }
+
+    async fn find_volume_by_chapter(&self, chapter_id: Uuid) -> Result<Option<Volume>, DbError> {
+        let volume = sqlx::query_as::<_, Volume>(
+            "SELECT v.* FROM volumes v
+             INNER JOIN volume_chapters vc ON vc.volume_id = v.id
+             WHERE vc.chapter_id = ?1",
+        )
+        .bind(chapter_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(volume)
     }
 }

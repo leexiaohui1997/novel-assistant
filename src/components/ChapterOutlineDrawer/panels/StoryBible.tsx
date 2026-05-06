@@ -1,6 +1,8 @@
 import { App, Form, FormInstance, Input, Spin } from 'antd'
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
+import { PositioningAction } from '../actions/Positioning'
+
 import { ChapterOutlinePanelHandle } from './common'
 
 import { CharacterSelect } from '@/components/CharacterSelect'
@@ -95,6 +97,7 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
   return (
     <Form
       ref={formRef}
+      classNames={{ label: 'w-full' }}
       layout="vertical"
       initialValues={{
         positioning: outline?.positioning || '',
@@ -102,7 +105,10 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
         characterIds: outline?.characterIds || [],
       }}
     >
-      <Form.Item label="本章定位" name="positioning">
+      <Form.Item
+        label={<PositioningAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
+        name="positioning"
+      >
         <Input.TextArea placeholder="请输入本章定位" rows={4} maxLength={200} showCount />
       </Form.Item>
       <Form.Item label="本章剧情" name="plot">

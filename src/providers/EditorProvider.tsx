@@ -3,6 +3,7 @@ import { Button, Input, Modal, Select, Tooltip, message } from 'antd'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { EditorContext } from './EditorContext'
+import { EditorFormContext } from './EditorFormContext'
 
 import type { EditorContextType, EditorOpenOptions } from './EditorContext'
 import type { EditorHandle } from '@/components/Editor'
@@ -473,8 +474,13 @@ const EditorModal: React.FC<
   // 快捷键：Ctrl / Cmd + S 保存
   useSaveShortcut(handleSave)
 
+  const formContextValue = useMemo(
+    () => ({ novel, chapter: activeChapter, title, content }),
+    [novel, activeChapter, title, content],
+  )
+
   return (
-    <>
+    <EditorFormContext.Provider value={formContextValue}>
       {messageCtx}
       {modalCtx}
       <Modal
@@ -543,7 +549,7 @@ const EditorModal: React.FC<
         chapterId={activeChapter?.id}
         onApply={handleApplyVersion}
       />
-    </>
+    </EditorFormContext.Provider>
   )
 }
 
