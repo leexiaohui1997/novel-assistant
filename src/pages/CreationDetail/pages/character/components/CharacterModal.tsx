@@ -78,6 +78,7 @@ export function CharacterModal({
         <WithAiAction
           tip="AI 创建角色"
           placement="rightTop"
+          showFeedback
           classNames={{
             root: 'items-center!',
             left: '',

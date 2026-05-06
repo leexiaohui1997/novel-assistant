@@ -40,6 +40,9 @@ pub struct ActionContext {
     /// 指定的模型 ID（可选）
     pub model_id: Option<String>,
 
+    /// 用户意见（可选）
+    pub user_feedback: Option<String>,
+
     /// 扩展元数据（未来可添加用户信息、会话 ID 等）
     pub metadata: HashMap<String, serde_json::Value>,
 }
@@ -64,6 +67,7 @@ impl ActionContext {
             chapter_repo,
             chapter_outline_repo,
             model_id: None,
+            user_feedback: None,
             metadata: HashMap::new(),
         }
     }
@@ -71,5 +75,10 @@ impl ActionContext {
     /// 设置模型 ID
     pub fn set_model_id(&mut self, model_id: String) {
         self.model_id = Some(model_id);
+    }
+
+    /// 设置用户意见
+    pub fn set_user_feedback(&mut self, feedback: String) {
+        self.user_feedback = Some(feedback);
     }
 }

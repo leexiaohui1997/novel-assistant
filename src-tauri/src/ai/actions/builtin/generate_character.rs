@@ -133,6 +133,7 @@ impl ActionHandler for GenerateCharacterAction {
             tags,
             introduction: Some(novel.novel.description),
             existing_characters,
+            user_feedback: ctx.user_feedback.clone(),
         };
 
         // 6. 使用 Tera 模板渲染提示词

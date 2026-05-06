@@ -100,7 +100,7 @@ impl ActionExecutor {
 
         // 2. 构建 Context
         let mut ctx = ActionContext::new(
-            action_params,
+            action_params.clone(),
             self.ai_service.clone(),
             self.tag_repo.clone(),
             self.novel_repo.clone(),
@@ -114,7 +114,14 @@ impl ActionExecutor {
             ctx.set_model_id(id);
         }
 
-        // 4. 执行 Handler
+        // 4. 如果 action_params 中包含 user_feedback，提取并设置到 context
+        if let Some(feedback) = action_params.get("user_feedback").and_then(|v| v.as_str()) {
+            if !feedback.is_empty() {
+                ctx.set_user_feedback(feedback.to_string());
+            }
+        }
+
+        // 5. 执行 Handler
         let response = handler.handle(ctx).await?;
 
         // 5. 返回数据

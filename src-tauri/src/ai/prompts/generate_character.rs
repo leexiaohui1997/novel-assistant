@@ -22,4 +22,8 @@ pub struct GenerateCharacterContext {
     /// 已有角色列表
     #[serde(skip_serializing_if = "Option::is_none")]
     pub existing_characters: Option<Vec<CharacterInfo>>,
+
+    /// 用户意见（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_feedback: Option<String>,
 }
