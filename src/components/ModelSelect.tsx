@@ -110,10 +110,12 @@ export const ModelSelect: React.FC<ModelSelectProps> = ({
       if (!model) return <div className="text-xs">{oriOption.label}</div>
 
       return (
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col gap-1">
           <div className="text-xs">{model.alias}</div>
-          {model.providerName && <Tag color="orange">{model.providerName}</Tag>}
-          {model.supportThinking && <Tag color="green">推理</Tag>}
+          <div className="flex items-center gap-1">
+            {model.providerName && <Tag color="orange">{model.providerName}</Tag>}
+            {model.supportThinking && <Tag color="green">深度思考</Tag>}
+          </div>
         </div>
       )
     },

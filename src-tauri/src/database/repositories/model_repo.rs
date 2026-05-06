@@ -265,22 +265,17 @@ impl ModelRepository for SqliteModelRepository {
         let mut tx = self.pool.begin().await?;
         let now = Utc::now();
 
-        // 1. 获取目标模型的 provider_id
-        let model = sqlx::query_as::<_, Model>("SELECT * FROM ai_models WHERE id = ?1")
+        // 1. 验证模型是否存在
+        sqlx::query_as::<_, Model>("SELECT * FROM ai_models WHERE id = ?1")
             .bind(id)
             .fetch_one(tx.as_mut())
             .await?;
 
-        let provider_id = model.provider_id;
-
-        // 2. 将该供应商下的所有模型设为非默认
-        sqlx::query(
-            "UPDATE ai_models SET is_default = FALSE, updated_at = ?1 WHERE provider_id = ?2",
-        )
-        .bind(now)
-        .bind(provider_id)
-        .execute(tx.as_mut())
-        .await?;
+        // 2. 将所有模型设为非默认
+        sqlx::query("UPDATE ai_models SET is_default = FALSE, updated_at = ?1")
+            .bind(now)
+            .execute(tx.as_mut())
+            .await?;
 
         // 3. 将目标模型设为默认
         let updated = sqlx::query_as::<_, Model>(
