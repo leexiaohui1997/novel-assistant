@@ -44,6 +44,12 @@ export enum CharacterType {
   Supporting = 'supporting',
   /** 次要配角 */
   MinorSupporting = 'minor_supporting',
+  /** 重要敌对 */
+  MajorAntagonist = 'major_antagonist',
+  /** 次要敌对 */
+  MinorAntagonist = 'minor_antagonist',
+  /** 敌对阵营 */
+  AntagonistFaction = 'antagonist_faction',
 }
 
 /**
@@ -55,6 +61,9 @@ export const CharacterTypeLabels: Record<CharacterType, string> = {
   [CharacterType.ThirdProtagonist]: '三号主角',
   [CharacterType.Supporting]: '配角',
   [CharacterType.MinorSupporting]: '次要配角',
+  [CharacterType.MajorAntagonist]: '重要敌对',
+  [CharacterType.MinorAntagonist]: '次要敌对',
+  [CharacterType.AntagonistFaction]: '敌对阵营',
 }
 
 /**
@@ -74,6 +83,18 @@ export const CharacterTypeOptions: DefaultOptionType[] = [
   {
     value: CharacterType.MinorSupporting,
     label: CharacterTypeLabels[CharacterType.MinorSupporting],
+  },
+  {
+    value: CharacterType.MajorAntagonist,
+    label: CharacterTypeLabels[CharacterType.MajorAntagonist],
+  },
+  {
+    value: CharacterType.MinorAntagonist,
+    label: CharacterTypeLabels[CharacterType.MinorAntagonist],
+  },
+  {
+    value: CharacterType.AntagonistFaction,
+    label: CharacterTypeLabels[CharacterType.AntagonistFaction],
   },
 ]
 
