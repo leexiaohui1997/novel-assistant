@@ -173,6 +173,9 @@ pub(crate) fn character_type_label(ct: CharacterType) -> String {
         CharacterType::ThirdProtagonist => "三号主角",
         CharacterType::Supporting => "配角",
         CharacterType::MinorSupporting => "次要配角",
+        CharacterType::MajorAntagonist => "重要敌对",
+        CharacterType::MinorAntagonist => "次要敌对",
+        CharacterType::AntagonistFaction => "敌对阵营",
     }
     .to_string()
 }

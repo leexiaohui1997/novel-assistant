@@ -31,6 +31,9 @@ string_enum! {
         ThirdProtagonist,  // 三号主角
         Supporting,        // 配角
         MinorSupporting,   // 次要配角
+        MajorAntagonist,   // 重要敌对
+        MinorAntagonist,   // 次要敌对
+        AntagonistFaction, // 敌对阵营
     }
 }
 
