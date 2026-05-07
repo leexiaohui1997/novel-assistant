@@ -14,4 +14,8 @@ pub struct GenerateTitleContext {
     /// 作品简介（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub introduction: Option<String>,
+
+    /// 用户意见（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_feedback: Option<String>,
 }

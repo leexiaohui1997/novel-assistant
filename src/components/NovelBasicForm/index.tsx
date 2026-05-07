@@ -95,6 +95,7 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
             ) : (
               <WithAiAction
                 tip="AI 生成书名"
+                showFeedback
                 aiAction={{
                   actionName: 'generate_title',
                   getParams: () => ({
@@ -151,6 +152,7 @@ const NovelBasicForm: React.FC<NovelBasicFormProps> = ({
                 ) : (
                   <WithAiAction
                     tip="AI 推荐标签"
+                    showFeedback
                     aiAction={{
                       actionName: 'recommend_tags',
                       getParams: () => ({

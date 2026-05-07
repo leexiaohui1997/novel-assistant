@@ -21,6 +21,10 @@ pub struct GenerateTitleInput {
 
     /// 作品简介（可选）
     pub introduction: Option<String>,
+
+    /// 用户意见（可选）
+    #[serde(default)]
+    pub user_feedback: Option<String>,
 }
 
 /// 生成作品书名 Action
@@ -89,6 +93,7 @@ impl ActionHandler for GenerateTitleAction {
             channel_name: channel_name.map(|s| s.to_string()),
             tags: selected_tags_info,
             introduction: input.introduction.clone(),
+            user_feedback: input.user_feedback,
         };
 
         let prompt = templates

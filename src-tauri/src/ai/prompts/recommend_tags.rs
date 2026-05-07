@@ -35,4 +35,8 @@ pub struct RecommendTagsContext {
     pub theme_remaining: usize,
     pub character_remaining: usize,
     pub plot_remaining: usize,
+
+    /// 用户意见（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_feedback: Option<String>,
 }

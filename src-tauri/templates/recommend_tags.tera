@@ -16,6 +16,13 @@
 {{ selected_tags_info }}
 {%- endif %}
 
+{%- if user_feedback %}
+
+## 用户意见
+
+{{ user_feedback }}
+{%- endif %}
+
 ## 可用标签列表
 
 - 主分类（限选{{ main_limit }}个）：{{ main_categories }}
@@ -32,6 +39,9 @@
 5. 只从上述可用标签中选择，不要创造新标签
 6. 标签选择要符合小说内容和频道特点
 7. 严格按照要求的数量推荐，不要多推荐也不要少推荐，**不需要包含已选择的标签**
+{%- if user_feedback %}
+8. 推荐结果必须结合以上"用户意见"
+{%- endif %}
 
 ## 输出格式
 

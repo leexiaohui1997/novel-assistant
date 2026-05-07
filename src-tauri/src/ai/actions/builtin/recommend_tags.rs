@@ -67,6 +67,10 @@ pub struct RecommendTagsInput {
 
     /// 已选择的标签 ID 列表（可选）
     pub tag_ids: Option<Vec<i64>>,
+
+    /// 用户意见（可选）
+    #[serde(default)]
+    pub user_feedback: Option<String>,
 }
 
 /// 推荐标签 Action
@@ -229,6 +233,7 @@ impl ActionHandler for RecommendTagsAction {
             theme_remaining,
             character_remaining,
             plot_remaining,
+            user_feedback: input.user_feedback.clone(),
         };
 
         let prompt = templates
