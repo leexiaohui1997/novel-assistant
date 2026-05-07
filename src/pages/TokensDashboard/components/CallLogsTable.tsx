@@ -1,9 +1,10 @@
 import { BarChartOutlined } from '@ant-design/icons'
 import { App, Button, Card, Table } from 'antd'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { ColumnsType } from 'antd/es/table'
 
+import { AiCallLogDrawer, AiCallLogDrawerHandle } from '@/components/AiCallLog/AiCallLogDrawer'
 import {
   fetchAiCallLogs,
   type AiCallLogItem,
@@ -87,6 +88,7 @@ const CallLogsTable: React.FC<CallLogsTableProps> = ({ range }) => {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const seqRef = useRef(0)
+  const drawerRef = useRef<AiCallLogDrawerHandle>(null)
 
   // 时间范围变化时重置到第 1 页
   useEffect(() => {
@@ -115,31 +117,35 @@ const CallLogsTable: React.FC<CallLogsTableProps> = ({ range }) => {
   }, [range, page, message])
 
   // 详情按钮占位：待实现
-  const handleDetail = (_record: AiCallLogItem) => {
-    // TODO: 后续实现详情弹窗
-  }
+  const handleDetail = useCallback((record: AiCallLogItem) => {
+    drawerRef.current?.open(record)
+  }, [])
 
-  const columns = useMemo(() => buildColumns(handleDetail), [])
+  // eslint-disable-next-line react-hooks/refs
+  const columns = useMemo(() => buildColumns(handleDetail), [handleDetail])
 
   return (
-    <Card title="详细使用记录">
-      <Table<AiCallLogItem>
-        rowKey="id"
-        columns={columns}
-        dataSource={rows}
-        loading={loading}
-        pagination={{
-          current: page,
-          pageSize: DEFAULT_PAGE_SIZE,
-          total,
-          showSizeChanger: false,
-          showTotal: (t) => `共 ${t} 条`,
-          onChange: (nextPage) => setPage(nextPage),
-        }}
-        scroll={{ x: 'max-content' }}
-        size="middle"
-      />
-    </Card>
+    <>
+      <Card title="详细使用记录">
+        <Table<AiCallLogItem>
+          rowKey="id"
+          columns={columns}
+          dataSource={rows}
+          loading={loading}
+          pagination={{
+            current: page,
+            pageSize: DEFAULT_PAGE_SIZE,
+            total,
+            showSizeChanger: false,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (nextPage) => setPage(nextPage),
+          }}
+          scroll={{ x: 'max-content' }}
+          size="middle"
+        />
+      </Card>
+      <AiCallLogDrawer ref={drawerRef} />
+    </>
   )
 }
 
