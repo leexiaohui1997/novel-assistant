@@ -90,6 +90,10 @@ impl ActionHandler for GenerateCharacterAction {
                         id: c.id,
                         name: c.name.clone(),
                         gender: format!("{:?}", c.gender).to_lowercase(),
+                        character_type: c
+                            .character_type
+                            .clone()
+                            .map(context_helpers::character_type_label),
                         background: c.background.clone(),
                         appearance: c.appearance.clone(),
                         personality: c.personality.clone(),

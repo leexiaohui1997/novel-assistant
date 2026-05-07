@@ -137,6 +137,7 @@ async fn fetch_character_list(
             id: c.id.to_string(),
             name: c.name,
             gender: c.gender,
+            character_type: c.character_type,
             background: c.background,
             appearance: c.appearance,
             personality: c.personality,

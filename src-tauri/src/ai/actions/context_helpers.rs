@@ -10,6 +10,7 @@ use crate::ai::prompts::CharacterInfo;
 use crate::database::error::DbError;
 use crate::database::models::chapter::Chapter;
 use crate::database::models::chapter_outline::ChapterOutlineWithCharacters;
+use crate::database::models::character::CharacterType;
 use crate::database::models::tag::{Tag, TagType};
 use crate::database::repositories::{
     ChapterOutlineRepository, ChapterRepository, CharacterRepository, NovelRepository,
@@ -141,7 +142,7 @@ pub async fn fetch_chapter_outline(
     }))
 }
 
-/// 根据 novel_id 查询所有角色列表（姓名、性别、背景、外貌、性格、其它）
+/// 根据 novel_id 查询所有角色列表（姓名、性别、角色类型、背景、外貌、性格、其它）
 pub async fn fetch_characters(
     character_repo: &Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
     novel_id: Uuid,
@@ -155,12 +156,25 @@ pub async fn fetch_characters(
             id: c.id,
             name: c.name,
             gender: format!("{:?}", c.gender),
+            character_type: c.character_type.map(character_type_label),
             background: c.background,
             appearance: c.appearance,
             personality: c.personality,
             additional_info: c.additional_info,
         })
         .collect())
+}
+
+/// 将角色类型枚举转为中文标签，便于 AI 理解
+pub(crate) fn character_type_label(ct: CharacterType) -> String {
+    match ct {
+        CharacterType::Protagonist => "主角",
+        CharacterType::SecondProtagonist => "二号主角",
+        CharacterType::ThirdProtagonist => "三号主角",
+        CharacterType::Supporting => "配角",
+        CharacterType::MinorSupporting => "次要配角",
+    }
+    .to_string()
 }
 
 /// 根据 novel_id + chapter_id 查询章节标题和正文；入参优先覆盖

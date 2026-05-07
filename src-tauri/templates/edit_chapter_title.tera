@@ -11,7 +11,7 @@
 
 {%- if characters %}
 {% for c in characters -%}
-- **{{ c.name }}**（{{ c.gender }}）
+- **{{ c.name }}**（{%- if c.character_type %}{{ c.character_type }}｜{%- endif %}{{ c.gender }}）
 {%- if c.background %}
   背景：{{ c.background }}
 {%- endif %}

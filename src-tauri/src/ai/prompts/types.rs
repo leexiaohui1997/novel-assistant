@@ -14,6 +14,10 @@ pub struct CharacterInfo {
     /// 性别
     pub gender: String,
 
+    /// 角色类型（可选，如：主角、配角等，已转为中文标签）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub character_type: Option<String>,
+
     /// 背景（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub background: Option<String>,
@@ -68,6 +72,10 @@ pub struct CharacterWithIdInfo {
 
     /// 性别
     pub gender: String,
+
+    /// 角色类型（可选，如：主角、配角等，已转为中文标签）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub character_type: Option<String>,
 
     /// 背景（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
