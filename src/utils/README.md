@@ -105,6 +105,15 @@
 
 ---
 
+## 校验工具 (check.ts)
+
+### isJson
+
+校验字符串是否为合法的 JSON 格式
+文件：`src/utils/check.ts`
+
+---
+
 ## 时间范围工具 (timeRange.ts)
 
 ### getRangeByGranularity
