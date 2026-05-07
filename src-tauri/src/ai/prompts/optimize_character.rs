@@ -28,4 +28,7 @@ pub struct OptimizeCharacterContext {
     /// 用户优化意见（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_feedback: Option<String>,
+
+    /// 角色类型枚举定义（用于动态注入模板）
+    pub character_type_options: Vec<super::generate_character::CharacterTypeOption>,
 }

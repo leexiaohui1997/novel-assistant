@@ -180,6 +180,18 @@ pub(crate) fn character_type_label(ct: CharacterType) -> String {
     .to_string()
 }
 
+/// 获取所有角色类型选项（用于动态注入模板）
+pub(crate) fn get_character_type_options() -> Vec<crate::ai::prompts::CharacterTypeOption> {
+    use crate::database::models::character::ALL_CHARACTER_TYPES;
+    ALL_CHARACTER_TYPES
+        .iter()
+        .map(|&ct| crate::ai::prompts::CharacterTypeOption {
+            value: format!("{:?}", ct).to_lowercase(),
+            label: character_type_label(ct),
+        })
+        .collect()
+}
+
 /// 根据 novel_id + chapter_id 查询章节标题和正文；入参优先覆盖
 pub async fn fetch_chapter_content(
     chapter_repo: &Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,

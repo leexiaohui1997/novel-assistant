@@ -152,6 +152,7 @@ impl ActionHandler for GenerateCharacterAction {
             },
             existing_characters,
             user_feedback: ctx.user_feedback.clone(),
+            character_type_options: context_helpers::get_character_type_options(),
         };
 
         // 6. 使用 Tera 模板渲染提示词

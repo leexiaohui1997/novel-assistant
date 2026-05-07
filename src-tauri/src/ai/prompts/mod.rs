@@ -21,6 +21,7 @@ pub use edit_chapter_plot::EditChapterPlotContext;
 pub use edit_chapter_positioning::EditChapterPositioningContext;
 pub use edit_chapter_title::EditChapterTitleContext;
 pub use generate_chapter_content::GenerateChapterContentContext;
+pub use generate_character::CharacterTypeOption;
 pub use generate_character::GenerateCharacterContext;
 pub use generate_introduction::GenerateIntroductionContext;
 pub use generate_title::GenerateTitleContext;

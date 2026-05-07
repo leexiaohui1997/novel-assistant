@@ -76,12 +76,10 @@
 
 - 只返回需要优化的字段，不需要优化的字段不要出现在 JSON 中
 - gender 字段如果需要优化，只能使用："male"（男）、"female"（女）、"other"（其他）、"unknown"（未知）
-- character_type 字段如果需要优化，只能使用以下 5 个枚举值之一（英文 snake_case，不要输出中文标签）：
-  - `protagonist`（主角）
-  - `second_protagonist`（二号主角）
-  - `third_protagonist`（三号主角）
-  - `supporting`（配角）
-  - `minor_supporting`（次要配角）
+- character_type 字段如果需要优化，只能使用以下选项之一（英文 snake_case，不要输出中文标签）：
+{%- for option in character_type_options %}
+  - `{{ option.value }}`（{{ option.label }}）
+{%- endfor %}
 - 所有文本内容使用中文
 - 确保 JSON 格式正确，可以被解析
 - 不要输出 Markdown 代码块标记（```json），直接输出纯 JSON

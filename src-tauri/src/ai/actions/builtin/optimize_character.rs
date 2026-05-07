@@ -175,6 +175,7 @@ impl ActionHandler for OptimizeCharacterAction {
             },
             optimize_fields: input.optimize_fields,
             user_feedback: input.user_feedback,
+            character_type_options: context_helpers::get_character_type_options(),
         };
 
         // 5. 使用 Tera 模板渲染提示词

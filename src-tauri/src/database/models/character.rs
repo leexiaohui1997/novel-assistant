@@ -37,6 +37,18 @@ string_enum! {
     }
 }
 
+/// 所有角色类型枚举成员列表（用于动态注入模板等场景）
+pub const ALL_CHARACTER_TYPES: &[CharacterType] = &[
+    CharacterType::Protagonist,
+    CharacterType::SecondProtagonist,
+    CharacterType::ThirdProtagonist,
+    CharacterType::Supporting,
+    CharacterType::MinorSupporting,
+    CharacterType::MajorAntagonist,
+    CharacterType::MinorAntagonist,
+    CharacterType::AntagonistFaction,
+];
+
 /// 角色实体模型
 /// 对应数据库中的 characters 表，存储小说中的角色信息
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]

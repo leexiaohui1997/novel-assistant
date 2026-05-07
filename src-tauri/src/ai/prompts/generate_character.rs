@@ -26,4 +26,16 @@ pub struct GenerateCharacterContext {
     /// 用户意见（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_feedback: Option<String>,
+
+    /// 角色类型枚举定义（用于动态注入模板）
+    pub character_type_options: Vec<CharacterTypeOption>,
+}
+
+/// 角色类型选项
+#[derive(Debug, Serialize)]
+pub struct CharacterTypeOption {
+    /// 枚举值（snake_case）
+    pub value: String,
+    /// 中文标签
+    pub label: String,
 }
