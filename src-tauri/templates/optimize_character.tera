@@ -15,6 +15,9 @@
 
 - 名称：{{ character.name }}
 - 性别：{{ character.gender }}
+{%- if character.character_type %}
+- 角色类型：{{ character.character_type }}
+{%- endif -%}
 {%- if character.background %}
 - 背景：{{ character.background }}
 {%- endif -%}
@@ -61,6 +64,7 @@
 ```json
 {
   "name": "优化后的角色名称（如果需要优化）",
+  "character_type": "supporting",
   "background": "优化后的背景描述",
   "appearance": "优化后的外貌描写",
   "personality": "优化后的性格特征",
@@ -72,6 +76,12 @@
 
 - 只返回需要优化的字段，不需要优化的字段不要出现在 JSON 中
 - gender 字段如果需要优化，只能使用："male"（男）、"female"（女）、"other"（其他）、"unknown"（未知）
+- character_type 字段如果需要优化，只能使用以下 5 个枚举值之一（英文 snake_case，不要输出中文标签）：
+  - `protagonist`（主角）
+  - `second_protagonist`（二号主角）
+  - `third_protagonist`（三号主角）
+  - `supporting`（配角）
+  - `minor_supporting`（次要配角）
 - 所有文本内容使用中文
 - 确保 JSON 格式正确，可以被解析
 - 不要输出 Markdown 代码块标记（```json），直接输出纯 JSON

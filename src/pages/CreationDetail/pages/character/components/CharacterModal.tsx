@@ -43,11 +43,44 @@ const pickValidCharacterType = (value?: string): CharacterType | undefined => {
 interface OptimizedCharacter {
   name?: string
   gender?: CharacterGender
+  character_type?: string
   background?: string
   appearance?: string
   personality?: string
   additional_info?: string
 }
+
+/**
+ * 从 AI 优化结果中读取指定字段的安全值。
+ *
+ * 对于 `character_type` 字段额外做枚举白名单过滤，非法值归一为 undefined，
+ * 由调用方按「无需优化」分支处理。抽成独立函数以控制 handleOptimizeResult 的圈复杂度。
+ */
+const resolveOptimizedValue = (
+  result: OptimizedCharacter,
+  field: keyof OptimizedCharacter,
+): OptimizedCharacter[keyof OptimizedCharacter] => {
+  if (field === 'character_type') {
+    return pickValidCharacterType(result.character_type)
+  }
+  return result[field]
+}
+
+/**
+ * 构造 optimize_character action 请求中的 character 对象。
+ *
+ * 抽成纯函数以隔离 `getParams` 的圈复杂度。
+ * 入参为当前表单值（可能为空）。
+ */
+const buildOptimizeCharacterPayload = (values?: Record<string, unknown>) => ({
+  name: (values?.name as string) || '',
+  gender: (values?.gender as string) || 'unknown',
+  character_type: values?.characterType as string | undefined,
+  background: values?.background as string | undefined,
+  appearance: values?.appearance as string | undefined,
+  personality: values?.personality as string | undefined,
+  additional_info: values?.additionalInfo as string | undefined,
+})
 
 /**
  * CharacterModal 组件的 Props
@@ -157,8 +190,9 @@ export function CharacterModal({
   const handleOptimizeResult = useCallback(
     (result: OptimizedCharacter, field: keyof OptimizedCharacter, fieldLabel: string) => {
       logger.debug(`AI 优化${fieldLabel}结果:`, result)
-      if (result[field]) {
-        formRef.current?.setFieldValue(camelCase(field), result[field])
+      const value = resolveOptimizedValue(result, field)
+      if (value) {
+        formRef.current?.setFieldValue(camelCase(field), value)
         message.success(`已优化${fieldLabel}`)
       } else {
         message.info(`AI 认为${fieldLabel}无需优化`)
@@ -186,21 +220,11 @@ export function CharacterModal({
         showFeedback
         aiAction={{
           actionName: 'optimize_character',
-          getParams: () => {
-            const currentValues = formRef.current?.getFieldsValue()
-            return {
-              novel_id: novelId,
-              character: {
-                name: currentValues?.name || '',
-                gender: currentValues?.gender || 'unknown',
-                background: currentValues?.background,
-                appearance: currentValues?.appearance,
-                personality: currentValues?.personality,
-                additional_info: currentValues?.additionalInfo,
-              },
-              optimize_fields: [props.field],
-            }
-          },
+          getParams: () => ({
+            novel_id: novelId,
+            character: buildOptimizeCharacterPayload(formRef.current?.getFieldsValue()),
+            optimize_fields: [props.field],
+          }),
         }}
         onResult={(result: OptimizedCharacter) =>
           handleOptimizeResult(result, props.field, props.fieldLabel)
@@ -309,7 +333,14 @@ export function CharacterModal({
         </Form.Item>
 
         <Form.Item label="角色类型" name="characterType">
-          <Select placeholder="请选择角色类型（可选）" options={CharacterTypeOptions} allowClear />
+          {withOptimizeField(
+            <Select placeholder="请选择角色类型" options={CharacterTypeOptions} allowClear />,
+            {
+              tip: 'AI 优化角色类型',
+              field: 'character_type',
+              fieldLabel: '角色类型',
+            },
+          )}
         </Form.Item>
 
         <Form.Item label="角色背景" name="background">

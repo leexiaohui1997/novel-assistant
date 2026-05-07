@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::ai::actions::{
     context_helpers, ActionContext, ActionError, ActionHandler, ActionResponse,
 };
+use crate::database::models::character::CharacterType;
 
 /// 优化角色输入参数
 #[derive(Debug, Deserialize)]
@@ -33,6 +34,10 @@ pub struct CharacterInput {
 
     /// 性别
     pub gender: String,
+
+    /// 角色类型（可选，snake_case 字符串，如 "protagonist"）
+    #[serde(default)]
+    pub character_type: Option<String>,
 
     /// 背景（可选）
     #[serde(default)]
@@ -62,6 +67,10 @@ pub struct OptimizedCharacter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gender: Option<String>,
 
+    /// 角色类型（可选，如果需要优化）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub character_type: Option<String>,
+
     /// 背景（可选，如果需要优化）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub background: Option<String>,
@@ -77,6 +86,32 @@ pub struct OptimizedCharacter {
     /// 其它描述（可选，如果需要优化）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_info: Option<String>,
+}
+
+/// 将 snake_case 字符串解析为 `CharacterType` 枚举
+///
+/// 使用 serde_json 进行反序列化，严格匹配 5 个合法枚举值。
+/// 用途：兼作白名单校验 + 枚举转换。
+fn parse_character_type(value: &str) -> Result<CharacterType, String> {
+    serde_json::from_value::<CharacterType>(serde_json::Value::String(value.to_string()))
+        .map_err(|_| format!("无效的角色类型值: {}", value))
+}
+
+/// 将输入的 snake_case 字符串转为中文标签（例如 "supporting" -> "配角"）
+///
+/// 若字符串非法，返回 `None`（因为此处是「入参参考」而非硬校验；
+/// 硬校验针对 AI 返回值执行）。
+fn to_character_type_label(value: &str) -> Option<String> {
+    parse_character_type(value)
+        .ok()
+        .map(context_helpers::character_type_label)
+}
+
+/// 校验 AI 返回的 `character_type` 值是否属于合法枚举值
+fn validate_character_type(value: &str) -> Result<(), ActionError> {
+    parse_character_type(value)
+        .map(|_| ())
+        .map_err(ActionError::ExecutionFailed)
 }
 
 /// 优化角色信息 Action
@@ -128,6 +163,11 @@ impl ActionHandler for OptimizeCharacterAction {
             character: CharacterDetail {
                 name: input.character.name,
                 gender: input.character.gender,
+                character_type: input
+                    .character
+                    .character_type
+                    .as_deref()
+                    .and_then(to_character_type_label),
                 background: input.character.background,
                 appearance: input.character.appearance,
                 personality: input.character.personality,
@@ -196,7 +236,12 @@ impl ActionHandler for OptimizeCharacterAction {
             }
         }
 
-        // 9. 返回优化后的角色数据
+        // 9. 验证角色类型字段（如果存在）
+        if let Some(ct) = &optimized_character.character_type {
+            validate_character_type(ct)?;
+        }
+
+        // 10. 返回优化后的角色数据
         Ok(ActionResponse {
             data: serde_json::to_value(optimized_character)
                 .map_err(|e| ActionError::ExecutionFailed(format!("序列化角色数据失败: {}", e)))?,
