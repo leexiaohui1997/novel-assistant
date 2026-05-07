@@ -1,5 +1,5 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { Button, Card, message, Modal, Radio, Switch, Table, Tag } from 'antd'
+import { App, Button, Card, Radio, Switch, Table, Tag } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 
 import AddModelModal, { AddModelModalHandle } from './AddModelModal'
@@ -22,8 +22,7 @@ import { logger } from '@/utils/logger'
 
 const ModelManage: React.FC = () => {
   const addModalRef = useRef<AddModelModalHandle>(null)
-  const [messageApi, messageContext] = message.useMessage()
-  const [modalApi, modalContext] = Modal.useModal()
+  const { message, modal } = App.useApp()
 
   const [models, setModels] = useState<Model[]>([])
   const [total, setTotal] = useState(0)
@@ -49,7 +48,7 @@ const ModelManage: React.FC = () => {
       } catch (error) {
         if (!cancelled) {
           logger.error('获取模型列表失败:', error)
-          messageApi.error('获取模型列表失败')
+          message.error('获取模型列表失败')
         }
       } finally {
         if (!cancelled) {
@@ -62,16 +61,16 @@ const ModelManage: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [page, pageSize, refreshCounter, messageApi])
+  }, [page, pageSize, refreshCounter, message])
 
   const handleToggleEnabled = async (record: Model, checked: boolean) => {
     try {
       await toggleModelEnabled(record.id, checked)
-      messageApi.success(checked ? '已启用' : '已禁用')
+      message.success(checked ? '已启用' : '已禁用')
       refreshList()
     } catch (error) {
       logger.error('切换启用状态失败:', error)
-      messageApi.error('切换启用状态失败')
+      message.error('切换启用状态失败')
     }
   }
 
@@ -83,11 +82,11 @@ const ModelManage: React.FC = () => {
   const handleToggleThinking = async (record: Model, checked: boolean) => {
     try {
       await toggleModelThinking(record.id, checked)
-      messageApi.success(checked ? '已开启深度思考支持' : '已关闭深度思考支持')
+      message.success(checked ? '已开启深度思考支持' : '已关闭深度思考支持')
       refreshList()
     } catch (error) {
       logger.error('切换深度思考状态失败:', error)
-      messageApi.error('切换深度思考状态失败')
+      message.error('切换深度思考状态失败')
     }
   }
 
@@ -95,16 +94,16 @@ const ModelManage: React.FC = () => {
     if (record.isDefault) return
     try {
       await setModelAsDefault(record.id)
-      messageApi.success('默认模型设置成功')
+      message.success('默认模型设置成功')
       refreshList()
     } catch (error) {
       logger.error('设置默认模型失败:', error)
-      messageApi.error('设置默认模型失败')
+      message.error('设置默认模型失败')
     }
   }
 
   const handleDelete = (record: Model) => {
-    modalApi.confirm({
+    modal.confirm({
       title: '确认删除',
       content: `确定要删除模型「${record.alias}」吗？删除后不可恢复。`,
       okText: '确认',
@@ -113,11 +112,11 @@ const ModelManage: React.FC = () => {
       onOk: async () => {
         try {
           await deleteModel(record.id)
-          messageApi.success('模型删除成功')
+          message.success('模型删除成功')
           refreshList()
         } catch (error) {
           logger.error('删除模型失败:', error)
-          messageApi.error('删除模型失败')
+          message.error('删除模型失败')
         }
       },
     })
@@ -235,8 +234,6 @@ const ModelManage: React.FC = () => {
 
   return (
     <>
-      {messageContext}
-      {modalContext}
       <Card title="模型管理" extra={renderedExtra}>
         <Table<Model>
           rowKey="id"

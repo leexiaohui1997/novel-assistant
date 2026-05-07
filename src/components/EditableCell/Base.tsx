@@ -1,5 +1,5 @@
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons'
-import { Button, message } from 'antd'
+import { App, Button } from 'antd'
 import { SizeType } from 'antd/es/config-provider/SizeContext'
 import { MessageInstance } from 'antd/es/message/interface'
 import React, { useCallback, useMemo, useState } from 'react'
@@ -87,7 +87,7 @@ export function BaseEditableCell<T>({
   readCell = DefaultReadCell,
   editCell = DefaultEditCell,
 }: BaseEditableCellProps<T>) {
-  const [messageApi, messageContext] = message.useMessage()
+  const { message } = App.useApp()
 
   /** 是否处于编辑态 */
   const [isEdit, setIsEdit] = useState(false)
@@ -99,9 +99,9 @@ export function BaseEditableCell<T>({
 
   const hookContext = useMemo(
     () => ({
-      messageApi,
+      messageApi: message,
     }),
-    [messageApi],
+    [message],
   )
 
   /** 进入编辑态，用当前值初始化临时值 */
@@ -128,15 +128,14 @@ export function BaseEditableCell<T>({
     } catch (error) {
       setIsError(true)
       onEditError?.(error, hookContext)
-      messageApi.error(getErrorMsg(error))
+      message.error(getErrorMsg(error))
     } finally {
       setDoingCommit(false)
     }
-  }, [onChange, validate, hookContext, messageApi, inputValue, onEditError, onEditSuccess])
+  }, [onChange, validate, hookContext, message, inputValue, onEditError, onEditSuccess])
 
   return (
     <>
-      {messageContext}
       <div className="flex items-center gap-2">
         <div className="flex-1 w-0">
           {isEdit

@@ -1,4 +1,4 @@
-import { Button, Popconfirm, Space, Table, message } from 'antd'
+import { App, Button, Popconfirm, Space, Table } from 'antd'
 import { Ref, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
@@ -63,7 +63,7 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
 }) => {
   const { novelId, novelInfo } = useCreationState()
   const editor = useEditor()
-  const [messageApi, contextHolder] = message.useMessage()
+  const { message } = App.useApp()
 
   const [data, setData] = useState<Chapter[]>([])
   const [total, setTotal] = useState(0)
@@ -89,11 +89,11 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
       setTotal(result.total)
     } catch (e) {
       logger.error('加载章节列表失败:', e)
-      messageApi.error('加载章节列表失败')
+      message.error('加载章节列表失败')
     } finally {
       setLoading(false)
     }
-  }, [novelId, page, sortField, sortOrder, isDraft, volumeSequence, messageApi])
+  }, [novelId, page, sortField, sortOrder, isDraft, volumeSequence, message])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -147,14 +147,14 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
     async (chapterId: string) => {
       try {
         await deleteChapter(novelId, chapterId)
-        messageApi.success('删除成功')
+        message.success('删除成功')
         await loadData()
       } catch (e) {
         logger.error('删除章节失败:', e)
-        messageApi.error(resolveErrorMessage(e, '删除失败，请重试'))
+        message.error(resolveErrorMessage(e, '删除失败，请重试'))
       }
     },
-    [novelId, loadData, messageApi],
+    [novelId, loadData, message],
   )
 
   const columns = useMemo<ColumnsType<Chapter>>(() => {
@@ -230,7 +230,6 @@ const ChapterTable: React.FC<ChapterTableProps> = ({
 
   return (
     <>
-      {contextHolder}
       <Table<Chapter>
         rowKey="id"
         columns={columns}

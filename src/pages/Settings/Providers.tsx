@@ -1,11 +1,11 @@
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import {
+  App,
   Button,
   Card,
   Form,
   FormInstance,
   Input,
-  message,
   Modal,
   Select,
   Space,
@@ -74,7 +74,7 @@ const AddProviderModal: React.FC<{
   onClose: () => void
   onSuccess: () => void
 }> = ({ open, editingProvider, onClose, onSuccess }) => {
-  const [messageApi, contextHolder] = message.useMessage()
+  const { message } = App.useApp()
   const [submitting, setSubmitting] = useState(false)
   const formRef = useRef<FormInstance<ProviderFormValues>>(null)
   const providerTypes = useProviderTypes()
@@ -97,10 +97,10 @@ const AddProviderModal: React.FC<{
 
       if (isEdit && editingProvider) {
         await updateProvider(editingProvider.id, params)
-        messageApi.success('供应商更新成功')
+        message.success('供应商更新成功')
       } else {
         await createProvider(params)
-        messageApi.success('供应商创建成功')
+        message.success('供应商创建成功')
       }
 
       onSuccess()
@@ -108,7 +108,7 @@ const AddProviderModal: React.FC<{
     } catch (error) {
       if (error instanceof Error) {
         logger.error('供应商保存失败:', error)
-        messageApi.error('供应商保存失败')
+        message.error('供应商保存失败')
       }
     } finally {
       setSubmitting(false)
@@ -117,7 +117,6 @@ const AddProviderModal: React.FC<{
 
   return (
     <>
-      {contextHolder}
       <Modal
         title={isEdit ? '编辑供应商' : '添加供应商'}
         open={open}
@@ -195,8 +194,7 @@ const AddProviderModal: React.FC<{
 
 /** 供应商管理页面 */
 const ProviderManage: React.FC = () => {
-  const [messageApi, contextHolder] = message.useMessage()
-  const [modalApi, contextHolderModal] = Modal.useModal()
+  const { message, modal } = App.useApp()
   const [providers, setProviders] = useState<Provider[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -224,7 +222,7 @@ const ProviderManage: React.FC = () => {
       } catch (error) {
         if (!cancelled) {
           logger.error('获取供应商列表失败:', error)
-          messageApi.error('获取供应商列表失败')
+          message.error('获取供应商列表失败')
         }
       } finally {
         if (!cancelled) {
@@ -237,7 +235,7 @@ const ProviderManage: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [page, pageSize, refreshCounter, messageApi])
+  }, [page, pageSize, refreshCounter, message])
 
   const handleAdd = () => {
     setEditingProvider(null)
@@ -250,7 +248,7 @@ const ProviderManage: React.FC = () => {
   }
 
   const handleDelete = (provider: Provider) => {
-    modalApi.confirm({
+    modal.confirm({
       title: '确认删除',
       content: `确定要删除供应商「${provider.name}」吗？该操作将同时删除其下所有模型。`,
       okText: '确认',
@@ -258,11 +256,11 @@ const ProviderManage: React.FC = () => {
       onOk: async () => {
         try {
           await deleteProvider(provider.id)
-          messageApi.success('供应商删除成功')
+          message.success('供应商删除成功')
           refreshList()
         } catch (error) {
           logger.error('删除供应商失败:', error)
-          messageApi.error('删除供应商失败')
+          message.error('删除供应商失败')
         }
       },
     })
@@ -352,8 +350,6 @@ const ProviderManage: React.FC = () => {
 
   return (
     <>
-      {contextHolder}
-      {contextHolderModal}
       <Card
         title="供应商管理"
         extra={

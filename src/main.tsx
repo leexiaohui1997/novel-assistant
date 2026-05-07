@@ -20,7 +20,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       }}
     >
       <Provider store={store}>
-        <AntdApp component={App} />
+        <AntdApp className="root-app">
+          <App />
+        </AntdApp>
       </Provider>
     </ConfigProvider>
   </React.StrictMode>,

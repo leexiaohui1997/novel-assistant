@@ -1,4 +1,4 @@
-import { Button, Form, Modal, message } from 'antd'
+import { App, Button, Form, Modal } from 'antd'
 
 import NovelBasicForm, { type NovelBasicFormValues } from '@/components/NovelBasicForm'
 import { createNovel } from '@/services/novelService'
@@ -12,7 +12,7 @@ interface CreateNovelModalProps {
 
 const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose, onSuccess }) => {
   const [form] = Form.useForm<NovelBasicFormValues>()
-  const [messageApi, contextHolder] = message.useMessage()
+  const { message } = App.useApp()
 
   const handleCancel = () => {
     onClose()
@@ -31,12 +31,12 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose, onSu
           description: values.description,
         })
 
-        messageApi.success('作品创建成功')
+        message.success('作品创建成功')
         onSuccess?.()
         onClose()
       } catch (apiError) {
         logger.error('创建作品失败:', apiError)
-        messageApi.error('创建作品失败，请重试')
+        message.error('创建作品失败，请重试')
       }
     } catch (validationError) {
       logger.debug('表单校验失败:', validationError)
@@ -45,7 +45,6 @@ const CreateNovelModal: React.FC<CreateNovelModalProps> = ({ open, onClose, onSu
 
   return (
     <>
-      {contextHolder}
       <Modal
         title="创建作品"
         open={open}

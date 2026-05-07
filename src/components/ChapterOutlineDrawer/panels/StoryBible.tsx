@@ -1,4 +1,4 @@
-import { Form, FormInstance, Input, message, Spin } from 'antd'
+import { App, Form, FormInstance, Input, Spin } from 'antd'
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 import { CharactersAction } from '../actions/Characters'
@@ -23,7 +23,7 @@ export type StoryBibleProps = {
 }
 
 export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
-  const [messageApi, messageContext] = message.useMessage()
+  const { message } = App.useApp()
   const formRef = useRef<FormInstance>(null)
 
   const [outline, setOutline] = useState<ChapterOutline>()
@@ -48,9 +48,9 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
             values.plot,
             values.characterIds,
           )
-          messageApi.success('设定集保存成功')
+          message.success('设定集保存成功')
         } catch (e) {
-          messageApi.error(`设定集保存失败: ${getErrorMsg(e)}`)
+          message.error(`设定集保存失败: ${getErrorMsg(e)}`)
         } finally {
           setDoingSave(false)
         }
@@ -58,9 +58,8 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
         logger.error(`表单校验失败: ${getErrorMsg(e)}`)
       }
     },
-    [novelId, chapterId, messageApi],
+    [novelId, chapterId, message],
   )
-
   useImperativeHandle(ref, () => ({ save }))
 
   useEffect(() => {
@@ -71,15 +70,14 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
         const outline = await getChapterOutline(novelId, chapterId)
         setOutline(outline || undefined)
       } catch (e) {
-        messageApi.error(`获取大纲失败: ${getErrorMsg(e)}`)
+        message.error(`获取大纲失败: ${getErrorMsg(e)}`)
       } finally {
         setLoading(false)
       }
     }
 
     fetchOutline()
-  }, [novelId, chapterId, messageApi])
-
+  }, [novelId, chapterId, message])
   useEffect(() => {
     formRef.current?.setFieldsValue({
       positioning: outline?.positioning || '',
@@ -98,7 +96,6 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
 
   return (
     <>
-      {messageContext}
       <Form
         ref={formRef}
         classNames={{ label: 'w-full' }}

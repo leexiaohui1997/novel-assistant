@@ -1,5 +1,5 @@
 import { HistoryOutlined, LeftOutlined } from '@ant-design/icons'
-import { Button, Input, Modal, Select, Tooltip, message } from 'antd'
+import { App, Button, Input, Modal, Select, Tooltip } from 'antd'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { EditorContext } from './EditorContext'
@@ -215,7 +215,7 @@ interface UseSaveHandlerParams {
   volumeId?: number
   /** 新建模式下的"下一章序号"；编辑模式下忽略 */
   nextSequence: number | null
-  messageApi: ReturnType<typeof message.useMessage>[0]
+  messageApi: ReturnType<typeof App.useApp>['message']
   /** 保存成功后的回调 */
   onSuccess: (savedChapter: Chapter) => void
 }
@@ -259,7 +259,7 @@ const useSaveHandler = (
  */
 const useCloseHandler = (
   isDirty: boolean,
-  modal: ReturnType<typeof Modal.useModal>[0],
+  modal: ReturnType<typeof App.useApp>['modal'],
   onClose: () => void,
 ): (() => void) => {
   return useCallback(() => {
@@ -406,8 +406,7 @@ const EditorModal: React.FC<
   const { title, content, setTitle, setContent, isDirty, resetBaseline } =
     useChapterForm(activeChapter)
   // antd message / modal hooks
-  const [messageApi, messageCtx] = message.useMessage()
-  const [modal, modalCtx] = Modal.useModal()
+  const { message: messageApi, modal } = App.useApp()
 
   // 当前选中分卷对应的分卷 ID（用于保存章节时写入 volume_chapters 关联）
   const selectedVolumeId = useMemo(
@@ -491,8 +490,6 @@ const EditorModal: React.FC<
 
   return (
     <EditorFormContext.Provider value={formContextValue}>
-      {messageCtx}
-      {modalCtx}
       <Modal
         open
         closable={false}

@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { App, Button, Card, Modal } from 'antd'
+import { App, Button, Card } from 'antd'
 import { useCallback, useRef, useState } from 'react'
 
 import { CharacterCard } from './components/CharacterCard'
@@ -13,7 +13,7 @@ import { getErrorMsg } from '@/utils/error'
 import { logger } from '@/utils/logger'
 
 export default function CreationDetailCharacter() {
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const { novelId } = useCreationState()
   const listRef = useRef<ListRef>(null)
 
@@ -29,7 +29,7 @@ export default function CreationDetailCharacter() {
 
   const handleDelete = useCallback(
     (character: Character) => {
-      Modal.confirm({
+      modal.confirm({
         title: '确认删除',
         content: `确定要删除角色「${character.name}」吗？此操作不可恢复。`,
         okText: '删除',
@@ -47,7 +47,7 @@ export default function CreationDetailCharacter() {
         },
       })
     },
-    [message],
+    [message, modal],
   )
 
   return (

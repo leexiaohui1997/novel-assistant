@@ -1,4 +1,4 @@
-import { Button, Drawer, Empty, Spin, message } from 'antd'
+import { App, Button, Drawer, Empty, Spin } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 
 import { getChapterVersions, type ChapterVersion } from '@/services/chapterService'
@@ -76,6 +76,7 @@ interface VersionListState {
  * - 每次打开时重新拉取最新数据
  */
 const useVersionList = (open: boolean, chapterId?: string): VersionListState => {
+  const { message } = App.useApp()
   const [state, setState] = useState<VersionListState>({ loading: false, versions: [] })
 
   useEffect(() => {
@@ -98,7 +99,7 @@ const useVersionList = (open: boolean, chapterId?: string): VersionListState => 
     return () => {
       cancelled = true
     }
-  }, [open, chapterId])
+  }, [open, chapterId, message])
 
   return state
 }

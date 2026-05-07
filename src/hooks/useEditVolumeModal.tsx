@@ -1,5 +1,5 @@
 import { PlusCircleOutlined } from '@ant-design/icons'
-import { Button, Modal, ModalProps, Space, message } from 'antd'
+import { App, Button, Modal, ModalProps, Space } from 'antd'
 import React, { useCallback, useMemo, useState } from 'react'
 
 import EditVolumeItem from '@/components/EditVolumeItem'
@@ -73,7 +73,7 @@ export const useEditVolumeModal = ({
   creatable = true,
   onSaved,
 }: UseEditVolumeModalOptions): UseEditVolumeModalReturn => {
-  const [messageApi, contextHolder] = message.useMessage()
+  const { message } = App.useApp()
   const [open, setOpen] = useState(false)
   const [volumes, setVolumes] = useState<SimpleVolume[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -112,9 +112,9 @@ export const useEditVolumeModal = ({
       setLatestHasChapters(hasChapters)
     } catch (e) {
       logger.error('加载分卷列表失败:', e)
-      messageApi.error('加载分卷列表失败')
+      message.error('加载分卷列表失败')
     }
-  }, [novelId, checkLatestHasChapters, messageApi])
+  }, [novelId, checkLatestHasChapters, message])
 
   /** 本地重命名 */
   const handleRename = useCallback((id: number, newName: string) => {
@@ -140,16 +140,16 @@ export const useEditVolumeModal = ({
     try {
       const payload = buildUpsertPayload(volumes)
       const next = await batchUpdateVolumes(novelId, payload)
-      messageApi.success('保存成功')
+      message.success('保存成功')
       onSaved?.(next)
       setOpen(false)
     } catch (e) {
       logger.error('保存分卷失败:', e)
-      messageApi.error('保存分卷失败')
+      message.error('保存分卷失败')
     } finally {
       setSubmitting(false)
     }
-  }, [volumes, novelId, messageApi, onSaved])
+  }, [volumes, novelId, message, onSaved])
 
   /** 计算某条分卷的删除态 */
   const resolveDeletable = useCallback(
@@ -223,7 +223,6 @@ export const useEditVolumeModal = ({
 
   const modalContext = (
     <>
-      {contextHolder}
       <Modal
         title={title}
         open={open}

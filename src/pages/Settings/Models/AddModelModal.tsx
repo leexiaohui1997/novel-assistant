@@ -1,4 +1,4 @@
-import { Empty, message, Modal, Space, Table } from 'antd'
+import { App, Empty, Modal, Space, Table } from 'antd'
 import { ColumnsType } from 'antd/es/table'
 import React, { useCallback, useEffect, useImperativeHandle, useState } from 'react'
 
@@ -20,7 +20,7 @@ export interface AddModelModalProps {
 }
 
 const AddModelModal: React.FC<AddModelModalProps> = ({ ref, onSuccess }) => {
-  const [messageApi, messageContext] = message.useMessage()
+  const { message } = App.useApp()
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [selectedProviderId, setSelectedProviderId] = useState<string>()
@@ -85,7 +85,7 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref, onSuccess }) => {
       } catch (error) {
         if (!cancelled) {
           logger.error('加载模型列表失败:', error)
-          messageApi.error('加载模型列表失败')
+          message.error('加载模型列表失败')
         }
       } finally {
         if (!cancelled) {
@@ -99,7 +99,7 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref, onSuccess }) => {
     return () => {
       cancelled = true
     }
-  }, [selectedProviderId, messageApi])
+  }, [selectedProviderId, message])
 
   /** 根据已勾选的行构造提交载荷 */
   const buildPayload = () => {
@@ -111,24 +111,24 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref, onSuccess }) => {
 
   const handleOk = async () => {
     if (!selectedProviderId) {
-      messageApi.warning('请先选择供应商')
+      message.warning('请先选择供应商')
       return
     }
     const items = buildPayload()
     if (items.length === 0) {
-      messageApi.warning('请至少勾选一个模型')
+      message.warning('请至少勾选一个模型')
       return
     }
 
     try {
       setSubmitting(true)
       await addModels({ providerId: selectedProviderId, models: items })
-      messageApi.success(`成功添加 ${items.length} 个模型`)
+      message.success(`成功添加 ${items.length} 个模型`)
       onSuccess?.()
       close()
     } catch (error) {
       logger.error('添加模型失败:', error)
-      messageApi.error('添加模型失败')
+      message.error('添加模型失败')
     } finally {
       setSubmitting(false)
     }
@@ -178,7 +178,6 @@ const AddModelModal: React.FC<AddModelModalProps> = ({ ref, onSuccess }) => {
 
   return (
     <>
-      {messageContext}
       <Modal
         title="添加模型"
         open={open}

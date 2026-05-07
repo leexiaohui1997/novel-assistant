@@ -1,4 +1,4 @@
-import { Button, Select, Space, message } from 'antd'
+import { App, Button, Select, Space } from 'antd'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import ChapterTable, { type ChapterTableHandle } from './ChapterTable'
@@ -18,7 +18,7 @@ import { numToCn } from '@/utils/number'
 const ChapterManagement: React.FC = () => {
   const { novelId, novelInfo } = useCreationState()
   const editor = useEditor()
-  const [messageApi, contextHolder] = message.useMessage()
+  const { message } = App.useApp()
 
   const [volumes, setVolumes] = useState<Volume[]>([])
   const [selectedSequence, setSelectedSequence] = useState<number>(DEFAULT_VOLUME_SEQUENCE)
@@ -57,11 +57,11 @@ const ChapterManagement: React.FC = () => {
         setSelectedSequence(resolved[0].sequence)
       } catch (e) {
         logger.error('加载分卷列表失败:', e)
-        messageApi.error('加载分卷列表失败')
+        message.error('加载分卷列表失败')
       }
     }
     load()
-  }, [novelId, messageApi])
+  }, [novelId, message])
 
   const options = useMemo(
     () =>
@@ -83,7 +83,6 @@ const ChapterManagement: React.FC = () => {
 
   return (
     <>
-      {contextHolder}
       {editVolumeContext}
       <div className="flex items-center justify-between mb-4!">
         <Select

@@ -1,4 +1,4 @@
-import { Button, Card, Form, Space, message } from 'antd'
+import { App, Button, Card, Form, Space } from 'antd'
 import { useMemo, useState } from 'react'
 
 import NovelBasicForm, { type NovelBasicFormValues } from '@/components/NovelBasicForm'
@@ -17,7 +17,7 @@ const BasicInfoCard: React.FC = () => {
   const [form] = Form.useForm<NovelBasicFormValues>()
   const [mode, setMode] = useState<Mode>('view')
   const [saving, setSaving] = useState(false)
-  const [messageApi, contextHolder] = message.useMessage()
+  const { message } = App.useApp()
 
   const initialValues = useMemo<Partial<NovelBasicFormValues>>(
     () => ({
@@ -46,11 +46,11 @@ const BasicInfoCard: React.FC = () => {
       try {
         await updateNovel(novelId, values)
         await refreshNovelInfo()
-        messageApi.success('保存成功')
+        message.success('保存成功')
         setMode('view')
       } catch (e) {
         logger.error('保存基础信息失败:', e)
-        messageApi.error('保存失败，请重试')
+        message.error('保存失败，请重试')
       } finally {
         setSaving(false)
       }
@@ -75,7 +75,6 @@ const BasicInfoCard: React.FC = () => {
 
   return (
     <>
-      {contextHolder}
       <Card title="基础信息" extra={extra}>
         <NovelBasicForm
           form={form}

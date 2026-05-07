@@ -1,5 +1,5 @@
 import { CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
-import { Button, Input, InputRef, Popconfirm, Space, Tooltip, message } from 'antd'
+import { App, Button, Input, InputRef, Popconfirm, Space, Tooltip } from 'antd'
 import { useCallback, useRef, useState } from 'react'
 
 import { SimpleVolume } from '@/services/chapterService'
@@ -40,7 +40,7 @@ const EditVolumeItem: React.FC<EditVolumeItemProps> = ({
   onDelete,
   onCancelCreate,
 }) => {
-  const [messageApi, contextHolder] = message.useMessage()
+  const { message } = App.useApp()
   const inputRef = useRef<InputRef>(null)
   const [isEditing, setIsEditing] = useState(isNew)
   const [doingRename, setDoingRename] = useState(false)
@@ -61,7 +61,7 @@ const EditVolumeItem: React.FC<EditVolumeItemProps> = ({
   const handleRename = useCallback(async () => {
     const newName = (inputRef.current?.input?.value ?? '').trim()
     if (!newName) {
-      messageApi.warning('分卷名字至少输入1个字')
+      message.warning('分卷名字至少输入1个字')
       return
     }
     if (onRename && newName !== volume.name) {
@@ -73,7 +73,7 @@ const EditVolumeItem: React.FC<EditVolumeItemProps> = ({
       }
     }
     finishEdit()
-  }, [onRename, finishEdit, volume, messageApi])
+  }, [onRename, finishEdit, volume, message])
 
   /** 渲染删除按钮（含禁用/二次确认两种分支） */
   const renderDeleteBtn = () => {
@@ -109,7 +109,6 @@ const EditVolumeItem: React.FC<EditVolumeItemProps> = ({
     <div
       className={`flex items-center h-10 rounded-md cursor-pointer ${isEditing ? '' : 'hover:bg-gray-50'}`}
     >
-      {contextHolder}
       <div
         className={`flex-1 w-0 flex items-center h-full rounded-md px-3.75!  ${isEditing ? 'bg-brand/10' : ''}`}
       >

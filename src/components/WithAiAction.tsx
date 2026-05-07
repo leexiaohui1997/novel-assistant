@@ -1,5 +1,5 @@
 import { ThunderboltOutlined } from '@ant-design/icons'
-import { Button, ButtonProps, Divider, Form, FormInstance, Input, message, Popover } from 'antd'
+import { App, Button, ButtonProps, Divider, Form, FormInstance, Input, Popover } from 'antd'
 import { SizeType } from 'antd/es/config-provider/SizeContext'
 import { TooltipPlacement } from 'antd/es/tooltip'
 import React, { useCallback, useRef, useState } from 'react'
@@ -60,8 +60,8 @@ export function WithAiAction<T = unknown>({
   triggerButtonProps = {},
   ...props
 }: WithAiActionProps<T>) {
-  // Ant Design Message 实例
-  const [messageApi, contextHolder] = message.useMessage()
+  // Ant Design Message 实例（统一走 App.useApp，无需 contextHolder）
+  const { message } = App.useApp()
   // 按钮加载状态
   const [loading, setLoading] = useState(false)
   const { execute } = useAiAction<T>(aiAction)
@@ -81,15 +81,14 @@ export function WithAiAction<T = unknown>({
       await onResult?.(result)
     } catch (error) {
       // 统一错误提示
-      messageApi.error(getErrorMsg(error))
+      message.error(getErrorMsg(error))
     } finally {
       setLoading(false)
     }
-  }, [messageApi, onResult, execute])
+  }, [message, onResult, execute])
 
   return (
     <>
-      {contextHolder}
       {/* 布局容器：左侧子组件 + 右侧 AI 按钮 */}
       <div className={`flex items-start gap-2 ${classNames.root}`}>
         {/* 子组件区域：占据剩余空间 */}

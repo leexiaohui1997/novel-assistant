@@ -40,7 +40,8 @@ body {
   color: var(--text-color);
 }
 
-#root {
+#root,
+.root-app {
   width: 100%;
   height: 100vh;
   overflow: hidden;
