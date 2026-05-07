@@ -85,7 +85,7 @@ impl CharacterRepository for SqliteCharacterRepository {
 
     async fn find_by_novel_id(&self, novel_id: &Uuid) -> Result<Vec<Character>, DbError> {
         let characters = sqlx::query_as::<_, Character>(
-            "SELECT * FROM characters WHERE novel_id = ?1 ORDER BY created_at DESC",
+            "SELECT * FROM characters WHERE novel_id = ?1 ORDER BY created_at ASC",
         )
         .bind(novel_id)
         .fetch_all(&self.pool)
