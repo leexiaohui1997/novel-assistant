@@ -143,10 +143,15 @@ impl AiService {
         let request_body = json!({
             "model": model.model_id,
             "messages": messages_json,
+            "temperature": 0.7,
+            "max_tokens": 4096,
+            "thinking": {"type": "enabled"}
         });
 
-        // 发送 HTTP 请求
-        let http_client = reqwest::Client::new();
+        // 发送 HTTP 请求（移除超时限制）
+        let http_client = reqwest::Client::builder()
+            .build()
+            .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
         let response = http_client
             .post(format!("{}/chat/completions", provider.base_url))
             .header("Authorization", format!("Bearer {}", api_key))
