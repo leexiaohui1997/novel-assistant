@@ -24,6 +24,10 @@ pub struct GeneratedCharacter {
     /// 性别：male, female, other, unknown
     pub gender: String,
 
+    /// 角色类型（可选）：protagonist, second_protagonist, third_protagonist, supporting, minor_supporting
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub character_type: Option<String>,
+
     /// 角色背景
     pub background: String,
 
@@ -38,6 +42,34 @@ pub struct GeneratedCharacter {
     /// 其他描述（可选）
     #[serde(default)]
     pub additional_info: Option<String>,
+}
+
+/// 校验 AI 返回的性别字段
+fn validate_gender(gender: &str) -> Result<(), ActionError> {
+    match gender {
+        "male" | "female" | "other" | "unknown" => Ok(()),
+        _ => Err(ActionError::ExecutionFailed(format!(
+            "无效的性别值: {}。必须是 male、female、other 或 unknown",
+            gender
+        ))),
+    }
+}
+
+/// 校验 AI 返回的角色类型字段（None 或空字符串表示未设置，合法）
+fn validate_character_type(value: &Option<String>) -> Result<(), ActionError> {
+    let Some(raw) = value else { return Ok(()) };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(());
+    }
+    match trimmed {
+        "protagonist" | "second_protagonist" | "third_protagonist" | "supporting"
+        | "minor_supporting" => Ok(()),
+        _ => Err(ActionError::ExecutionFailed(format!(
+            "无效的角色类型: {}。必须是 protagonist、second_protagonist、third_protagonist、supporting 或 minor_supporting",
+            raw
+        ))),
+    }
 }
 
 /// 生成角色建议 Action
@@ -169,17 +201,12 @@ impl ActionHandler for GenerateCharacterAction {
             })?;
 
         // 9. 验证性别字段
-        match generated_character.gender.as_str() {
-            "male" | "female" | "other" | "unknown" => {}
-            _ => {
-                return Err(ActionError::ExecutionFailed(format!(
-                    "无效的性别值: {}。必须是 male、female、other 或 unknown",
-                    generated_character.gender
-                )))
-            }
-        }
+        validate_gender(&generated_character.gender)?;
 
-        // 10. 返回生成的角色数据
+        // 10. 验证角色类型字段（可选）
+        validate_character_type(&generated_character.character_type)?;
+
+        // 11. 返回生成的角色数据
         Ok(ActionResponse {
             data: serde_json::to_value(generated_character)
                 .map_err(|e| ActionError::ExecutionFailed(format!("序列化角色数据失败: {}", e)))?,

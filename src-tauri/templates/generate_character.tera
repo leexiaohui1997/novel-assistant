@@ -56,6 +56,7 @@
 
 - `name`: 角色名称（必填）
 - `gender`: 性别，必须是 "male"、"female"、"other" 或 "unknown" 之一（必填）
+- `character_type`: 角色类型，必须是 "protagonist"（主角）、"second_protagonist"（二号主角）、"third_protagonist"（三号主角）、"supporting"（配角）、"minor_supporting"（次要配角）之一（必填）
 - `background`: 角色背景故事（必填）
 - `appearance`: 外貌描写（可选）
 - `personality`: 性格特征（可选）
@@ -69,6 +70,7 @@
 {
   "name": "角色名称",
   "gender": "male",
+  "character_type": "protagonist",
   "background": "角色背景描述",
   "appearance": "外貌描写",
   "personality": "性格特征",
@@ -79,6 +81,7 @@
 ## 注意事项
 
 - gender 字段只能使用："male"（男）、"female"（女）、"other"（其他）、"unknown"（未知）
+- character_type 字段只能使用："protagonist"（主角）、"second_protagonist"（二号主角）、"third_protagonist"（三号主角）、"supporting"（配角）、"minor_supporting"（次要配角）
 - 所有文本内容使用中文
 - 确保 JSON 格式正确，可以被解析
 - 不要输出 Markdown 代码块标记（```json），直接输出纯 JSON

@@ -8,6 +8,7 @@ import {
   Character,
   CharacterGender,
   CharacterGenderOptions,
+  CharacterType,
   CharacterTypeOptions,
 } from '@/types/character'
 import { getErrorMsg } from '@/utils/error'
@@ -19,10 +20,21 @@ import { logger } from '@/utils/logger'
 interface GeneratedCharacter {
   name: string
   gender: CharacterGender
+  character_type?: CharacterType
   background: string
   appearance?: string
   personality?: string
   additional_info?: string
+}
+
+/**
+ * 从 AI 返回值中提取合法的角色类型，非法或缺失时返回 undefined。
+ * 抽成独立函数避免回填逻辑圈复杂度过高。
+ */
+const pickValidCharacterType = (value?: string): CharacterType | undefined => {
+  if (!value) return undefined
+  const validValues = Object.values(CharacterType) as string[]
+  return validValues.includes(value) ? (value as CharacterType) : undefined
 }
 
 /**
@@ -82,6 +94,7 @@ export function CharacterModal({
       formRef.current?.setFieldsValue({
         name: result.name,
         gender: result.gender,
+        characterType: pickValidCharacterType(result.character_type),
         background: result.background,
         appearance: result.appearance,
         personality: result.personality,

@@ -22,7 +22,7 @@ export function CharacterCard({ character, order, onEdit, onDelete }: CharacterC
           </div>
           <div className="flex items-center gap-1">
             {character.characterType && (
-              <Tag color="blue">类型：{CharacterTypeLabels[character.characterType]}</Tag>
+              <Tag color="blue">{CharacterTypeLabels[character.characterType]}</Tag>
             )}
             <Tag>性别：{CharacterGenderLabels[character.gender]}</Tag>
           </div>
