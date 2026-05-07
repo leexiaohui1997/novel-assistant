@@ -1,0 +1,277 @@
+// AI 生成章节正文 Action 实现
+
+use async_trait::async_trait;
+use serde::Deserialize;
+use uuid::Uuid;
+
+use crate::ai::actions::context_helpers;
+use crate::ai::actions::{ActionContext, ActionError, ActionHandler, ActionResponse};
+use crate::ai::prompts::{GenerateChapterContentContext, PromptTemplates};
+use crate::ai::types::{AiRequestData, Message, MessageRole};
+
+/// 默认目标字数
+const DEFAULT_TARGET_WORD_COUNT: i64 = 2500;
+
+/// 环境变量名：目标字数
+const ENV_TARGET_WORD_COUNT: &str = "CHAPTER_CONTENT_WORD_COUNT";
+
+/// 生成章节正文输入参数
+#[derive(Debug, Deserialize)]
+pub struct GenerateChapterContentInput {
+    /// 小说 ID（必填）
+    pub novel_id: Uuid,
+
+    /// 卷 ID（可选）
+    #[serde(default)]
+    pub volume_id: Option<Uuid>,
+
+    /// 章节 ID（可选）
+    #[serde(default)]
+    pub chapter_id: Option<Uuid>,
+
+    /// 标题（可选，覆盖数据库中的标题）
+    #[serde(default)]
+    pub title: Option<String>,
+
+    /// 正文（可选，覆盖数据库中的正文）
+    #[serde(default)]
+    pub content: Option<String>,
+
+    /// 用户意见（可选）
+    #[serde(default)]
+    pub user_feedback: Option<String>,
+
+    /// 引用内容（可选，字符串数组，如"正文第n个字~第m个字"）
+    #[serde(default)]
+    pub references: Option<Vec<String>>,
+}
+
+/// AI 生成章节正文 Action
+///
+/// 根据小说上下文、大纲、角色、前情介绍和已有正文，
+/// AI 生成约 2500 字的章节正文内容
+pub struct GenerateChapterContentAction;
+
+#[async_trait]
+impl ActionHandler for GenerateChapterContentAction {
+    fn name(&self) -> &str {
+        "generate_chapter_content"
+    }
+
+    fn description(&self) -> &str {
+        "根据小说上下文信息生成章节正文"
+    }
+
+    async fn handle(&self, ctx: ActionContext) -> Result<ActionResponse, ActionError> {
+        let input = parse_input(&ctx)?;
+
+        let novel_info = fetch_novel_info(&ctx, &input).await?;
+        let outline_info = fetch_outline_info(&ctx, &input).await?;
+        let characters = fetch_character_list(&ctx, &input).await?;
+        let chapter_content = fetch_content(&ctx, &input).await?;
+        let chapter_location = fetch_location(&ctx, &input).await?;
+        let previous_plots = fetch_prev_plots(&ctx, &input).await?;
+        let target_word_count = read_target_word_count();
+
+        let prompt = render_prompt(
+            &novel_info,
+            &outline_info,
+            &characters,
+            &chapter_content,
+            &chapter_location,
+            &previous_plots,
+            &input.references,
+            target_word_count,
+            &input.user_feedback,
+        )?;
+
+        let content = call_ai(ctx, prompt).await?;
+
+        Ok(ActionResponse {
+            data: serde_json::json!({ "content": content }),
+            metadata: std::collections::HashMap::new(),
+        })
+    }
+}
+
+/// 反序列化入参
+fn parse_input(ctx: &ActionContext) -> Result<GenerateChapterContentInput, ActionError> {
+    serde_json::from_value(ctx.input.clone())
+        .map_err(|e| ActionError::InvalidInput(format!("参数格式错误: {}", e)))
+}
+
+/// 查询小说基础信息
+async fn fetch_novel_info(
+    ctx: &ActionContext,
+    input: &GenerateChapterContentInput,
+) -> Result<context_helpers::NovelInfo, ActionError> {
+    context_helpers::fetch_novel_info(&ctx.novel_repo, &ctx.tag_repo, input.novel_id)
+        .await
+        .map_err(|e| ActionError::ExecutionFailed(format!("查询小说信息失败: {}", e)))
+}
+
+/// 查询章节大纲信息
+async fn fetch_outline_info(
+    ctx: &ActionContext,
+    input: &GenerateChapterContentInput,
+) -> Result<Option<context_helpers::ChapterOutlineInfo>, ActionError> {
+    context_helpers::fetch_chapter_outline(
+        &ctx.chapter_outline_repo,
+        input.novel_id,
+        input.chapter_id,
+    )
+    .await
+    .map_err(|e| ActionError::ExecutionFailed(format!("查询大纲信息失败: {}", e)))
+}
+
+/// 查询角色列表
+async fn fetch_character_list(
+    ctx: &ActionContext,
+    input: &GenerateChapterContentInput,
+) -> Result<Vec<crate::ai::prompts::CharacterInfo>, ActionError> {
+    context_helpers::fetch_characters(&ctx.character_repo, input.novel_id)
+        .await
+        .map_err(|e| ActionError::ExecutionFailed(format!("查询角色列表失败: {}", e)))
+}
+
+/// 查询章节内容（标题+正文），入参优先覆盖
+async fn fetch_content(
+    ctx: &ActionContext,
+    input: &GenerateChapterContentInput,
+) -> Result<Option<context_helpers::ChapterContentInfo>, ActionError> {
+    context_helpers::fetch_chapter_content(
+        &ctx.chapter_repo,
+        input.novel_id,
+        input.chapter_id,
+        input.title.clone(),
+        input.content.clone(),
+    )
+    .await
+    .map_err(|e| ActionError::ExecutionFailed(format!("查询章节内容失败: {}", e)))
+}
+
+/// 查询前情介绍
+async fn fetch_prev_plots(
+    ctx: &ActionContext,
+    input: &GenerateChapterContentInput,
+) -> Result<String, ActionError> {
+    context_helpers::fetch_previous_outlines(
+        &ctx.chapter_repo,
+        &ctx.chapter_outline_repo,
+        input.novel_id,
+        input.chapter_id,
+    )
+    .await
+    .map_err(|e| ActionError::ExecutionFailed(format!("查询前情介绍失败: {}", e)))
+}
+
+/// 查询章节位置信息（卷名、卷序号、章节序号）
+async fn fetch_location(
+    ctx: &ActionContext,
+    input: &GenerateChapterContentInput,
+) -> Result<context_helpers::ChapterLocationInfo, ActionError> {
+    context_helpers::fetch_chapter_location(&ctx.chapter_repo, input.novel_id, input.chapter_id)
+        .await
+        .map_err(|e| ActionError::ExecutionFailed(format!("查询章节位置失败: {}", e)))
+}
+
+/// 读取目标字数（环境变量 CHAPTER_CONTENT_WORD_COUNT，默认 2500）
+fn read_target_word_count() -> i64 {
+    std::env::var(ENV_TARGET_WORD_COUNT)
+        .ok()
+        .and_then(|v| v.parse::<i64>().ok())
+        .unwrap_or(DEFAULT_TARGET_WORD_COUNT)
+}
+
+/// 渲染提示词
+#[allow(clippy::too_many_arguments)]
+fn render_prompt(
+    novel_info: &context_helpers::NovelInfo,
+    outline_info: &Option<context_helpers::ChapterOutlineInfo>,
+    characters: &[crate::ai::prompts::CharacterInfo],
+    chapter_content: &Option<context_helpers::ChapterContentInfo>,
+    chapter_location: &context_helpers::ChapterLocationInfo,
+    previous_plots: &str,
+    references: &Option<Vec<String>>,
+    target_word_count: i64,
+    user_feedback: &Option<String>,
+) -> Result<String, ActionError> {
+    let templates = PromptTemplates::new()
+        .map_err(|e| ActionError::ExecutionFailed(format!("加载模板失败: {}", e)))?;
+
+    let prompt_context = GenerateChapterContentContext {
+        title: novel_info.title.clone(),
+        channel_name: Some(novel_info.channel_name.clone()),
+        tags: if novel_info.tags.is_empty() {
+            None
+        } else {
+            Some(novel_info.tags.clone())
+        },
+        description: if novel_info.description.is_empty() {
+            None
+        } else {
+            Some(novel_info.description.clone())
+        },
+        characters: if characters.is_empty() {
+            None
+        } else {
+            Some(characters.to_vec())
+        },
+        previous_plots: if previous_plots.is_empty() {
+            None
+        } else {
+            Some(previous_plots.to_string())
+        },
+        chapter_sequence: Some(chapter_location.chapter_sequence),
+        volume_sequence: chapter_location.volume.as_ref().map(|v| v.sequence),
+        volume_name: chapter_location.volume.as_ref().map(|v| v.name.clone()),
+        outline_positioning: outline_info.as_ref().and_then(|o| o.positioning.clone()),
+        outline_plot: outline_info.as_ref().and_then(|o| o.plot.clone()),
+        outline_characters: match outline_info {
+            Some(info) if !info.character_ids.is_empty() && !characters.is_empty() => {
+                let ids = &info.character_ids;
+                let filtered: Vec<_> = characters
+                    .iter()
+                    .filter(|c| ids.contains(&c.id))
+                    .cloned()
+                    .collect();
+                if filtered.is_empty() {
+                    None
+                } else {
+                    Some(filtered)
+                }
+            }
+            _ => None,
+        },
+        chapter_title: chapter_content.as_ref().map(|c| c.title.clone()),
+        chapter_content: chapter_content.as_ref().map(|c| c.content.clone()),
+        references: references.as_ref().filter(|r| !r.is_empty()).cloned(),
+        target_word_count,
+        user_feedback: user_feedback.clone(),
+    };
+
+    templates
+        .render_generate_chapter_content(&prompt_context)
+        .map_err(|e| ActionError::ExecutionFailed(format!("渲染提示词失败: {}", e)))
+}
+
+/// 调用 AI 服务
+async fn call_ai(ctx: ActionContext, prompt: String) -> Result<String, ActionError> {
+    let parsed_model_id = ctx.model_id.and_then(|id| Uuid::parse_str(&id).ok());
+
+    let request_data = AiRequestData {
+        model_id: parsed_model_id,
+        messages: vec![Message {
+            role: MessageRole::User,
+            content: prompt,
+        }],
+    };
+
+    let ai_response = ctx
+        .ai_service
+        .chat(request_data)
+        .await
+        .map_err(|e| ActionError::ExecutionFailed(format!("AI 调用失败: {}", e)))?;
+
+    Ok(ai_response.content.trim().to_string())
+}

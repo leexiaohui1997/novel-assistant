@@ -8,6 +8,7 @@ import { EditorFormContext } from './EditorFormContext'
 import type { EditorContextType, EditorOpenOptions } from './EditorContext'
 import type { EditorHandle } from '@/components/Editor'
 
+import { ChapterContentAction } from '@/actions/ChapterContentAction'
 import { ChapterOutlineTrigger } from '@/components/ChapterOutlineDrawer/ChapterOutlineTrigger'
 import Editor from '@/components/Editor'
 import VersionDrawer from '@/components/VersionDrawer'
@@ -474,9 +475,17 @@ const EditorModal: React.FC<
   // 快捷键：Ctrl / Cmd + S 保存
   useSaveShortcut(handleSave)
 
+  const applyContent = useCallback(
+    (content: string) => {
+      setContent(content)
+      editorRef.current?.setContent(content)
+    },
+    [setContent],
+  )
+
   const formContextValue = useMemo(
-    () => ({ novel, chapter: activeChapter, title, content }),
-    [novel, activeChapter, title, content],
+    () => ({ novel, chapter: activeChapter, title, content, applyContent }),
+    [novel, activeChapter, title, content, applyContent],
   )
 
   return (
@@ -508,11 +517,11 @@ const EditorModal: React.FC<
         className="w-full! h-full! max-w-full!"
         classNames={{
           container: 'rounded-none! h-full max-h-full!',
-          body: 'bg-gray-100 pt-4!',
+          body: 'bg-gray-100 pt-4! relative',
         }}
       >
         <div className="flex-1 w-full h-0 max-w-240 mx-auto! overflow-auto p-0!">
-          <div className="min-h-full p-16! pb-21! bg-white rounded-xl flex flex-col">
+          <div className="min-h-full p-16! pb-21! bg-white rounded-xl rounded-b-none flex flex-col">
             {/* 头部 */}
             <div className="flex items-center mb-8! gap-6">
               {/* 标题 */}
@@ -540,6 +549,15 @@ const EditorModal: React.FC<
               value={content}
               onChange={setContent}
             />
+          </div>
+        </div>
+
+        {/* 编辑区附加操作按钮 */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="max-w-284 h-full mx-auto pt-4 relative">
+            <div className="absolute right-8 bottom-10 flex flex-col gap-2 pointer-events-auto opacity-70 hover:opacity-100">
+              <ChapterContentAction />
+            </div>
           </div>
         </div>
       </Modal>

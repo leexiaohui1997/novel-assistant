@@ -1,5 +1,5 @@
 import { ThunderboltOutlined } from '@ant-design/icons'
-import { Button, Divider, Form, FormInstance, Input, message, Popover } from 'antd'
+import { Button, ButtonProps, Divider, Form, FormInstance, Input, message, Popover } from 'antd'
 import { SizeType } from 'antd/es/config-provider/SizeContext'
 import { TooltipPlacement } from 'antd/es/tooltip'
 import React, { useCallback, useRef, useState } from 'react'
@@ -29,6 +29,8 @@ export type WithAiActionProps<T = unknown> = {
   showFeedback?: boolean
   /** 触发按钮尺寸 */
   triggerSize?: SizeType
+  /** 触发按钮属性 */
+  triggerButtonProps?: ButtonProps
   /** 样式类名 */
   classNames?: {
     root?: string
@@ -44,6 +46,7 @@ export type WithAiActionProps<T = unknown> = {
  * 自动管理 loading 状态和错误提示，保持 UI 交互的一致性。
  * 内置模型选择器和运行按钮，支持配置 AI Action。
  */
+// eslint-disable-next-line complexity
 export function WithAiAction<T = unknown>({
   tip,
   children,
@@ -54,6 +57,7 @@ export function WithAiAction<T = unknown>({
   placement = 'leftTop',
   showFeedback = false,
   triggerSize = 'medium',
+  triggerButtonProps = {},
   ...props
 }: WithAiActionProps<T>) {
   // Ant Design Message 实例
@@ -89,9 +93,11 @@ export function WithAiAction<T = unknown>({
       {/* 布局容器：左侧子组件 + 右侧 AI 按钮 */}
       <div className={`flex items-start gap-2 ${classNames.root}`}>
         {/* 子组件区域：占据剩余空间 */}
-        <div className={`${classNames.left ?? 'flex-1 w-0'}`}>
-          {React.isValidElement(children) ? React.cloneElement(children, props) : children}
-        </div>
+        {children && (
+          <div className={`${classNames.left ?? 'flex-1 w-0'}`}>
+            {React.isValidElement(children) ? React.cloneElement(children, props) : children}
+          </div>
+        )}
 
         {/* 按钮区域：固定宽度 */}
         <div className={`flex items-center gap-1 ${classNames.right}`}>
@@ -145,6 +151,7 @@ export function WithAiAction<T = unknown>({
               variant="filled"
               color="primary"
               disabled={disabled}
+              {...triggerButtonProps}
             />
           </Popover>
         </div>

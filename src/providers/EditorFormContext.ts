@@ -13,6 +13,8 @@ export interface EditorFormContextType {
   title: string
   /** 编辑器当前正文 */
   content: string
+  /** 设置编辑器正文 */
+  applyContent: (content: string) => void
 }
 
 /** 编辑器表单上下文（仅编辑器弹窗子树内可用） */

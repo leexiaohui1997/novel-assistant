@@ -11,6 +11,7 @@
 pub mod edit_chapter_characters;
 pub mod edit_chapter_plot;
 pub mod edit_chapter_positioning;
+pub mod generate_chapter_content;
 pub mod generate_character;
 pub mod generate_introduction;
 pub mod generate_title;
@@ -21,6 +22,7 @@ pub mod recommend_tags;
 pub use edit_chapter_characters::EditChapterCharactersAction;
 pub use edit_chapter_plot::EditChapterPlotAction;
 pub use edit_chapter_positioning::EditChapterPositioningAction;
+pub use generate_chapter_content::GenerateChapterContentAction;
 pub use generate_character::GenerateCharacterAction;
 pub use generate_introduction::GenerateIntroductionAction;
 pub use generate_title::GenerateTitleAction;
