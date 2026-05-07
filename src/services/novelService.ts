@@ -5,6 +5,26 @@ import { Tag } from './tagService'
 import { PaginatedResult } from '@/types/common'
 import { logger } from '@/utils/logger'
 
+/**
+ * 小说统计信息（仅在 withStats=true 时有值）
+ */
+export interface NovelStats {
+  /** 所属小说 ID */
+  novelId: string
+  /** 非草稿章节数 */
+  chapterCount: number
+  /** 非草稿章节的总字数 */
+  totalWordCount: number
+  /** 最近更新时间（ISO 字符串） */
+  lastUpdatedAt: string | null
+  /** 最近更新章节所属分卷序号 */
+  lastUpdatedVolumeSequence: number | null
+  /** 最近更新章节自身序号 */
+  lastUpdatedChapterSequence: number | null
+  /** 最近更新章节的标题 */
+  lastUpdatedChapterTitle: string | null
+}
+
 export interface Novel {
   id: string
   title: string
@@ -15,6 +35,8 @@ export interface Novel {
   updatedAt: string
   /** 关联的标签列表，仅在 withTags=true 时有值 */
   tags: Tag[]
+  /** 统计信息，仅在 withStats=true 时有值 */
+  stats?: NovelStats
 }
 
 export interface CreateNovelParams {
@@ -34,6 +56,8 @@ export interface UpdateNovelParams {
 interface FilterTagOptions {
   /** 是否包含标签 */
   withTags?: boolean
+  /** 是否包含统计信息（章节数、字数、最近更新等） */
+  withStats?: boolean
 }
 
 /**
@@ -82,14 +106,16 @@ export async function getNovelsWithPagination(
   filters?: FilterTagOptions,
 ): Promise<PaginatedResult<Novel>> {
   const withTags = filters?.withTags ?? false
+  const withStats = filters?.withStats ?? false
 
   try {
-    logger.debug('调用分页获取小说列表 API:', { page, pageSize, withTags })
+    logger.debug('调用分页获取小说列表 API:', { page, pageSize, withTags, withStats })
 
     const result = await invoke<PaginatedResult<Novel>>('get_novels_with_pagination', {
       page,
       pageSize,
       withTags,
+      withStats,
     })
 
     logger.debug('获取到小说列表:', result.data.length, '条，总数:', result.total)

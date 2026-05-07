@@ -19,6 +19,29 @@ pub struct Novel {
     pub updated_at: DateTime<Utc>,
 }
 
+/// 小说统计信息
+///
+/// 聚合单本小说非草稿章节的总章节数、总字数、最近更新时间与最近更新章节位置信息。
+/// 用于作品管理列表卡片展示。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NovelStats {
+    /// 小说 ID
+    pub novel_id: Uuid,
+    /// 章节数（非草稿章节数量）
+    pub chapter_count: i64,
+    /// 总字数（所有非草稿章节 word_count 之和）
+    pub total_word_count: i64,
+    /// 最近更新时间（最近一个非草稿章节的 updated_at）
+    pub last_updated_at: Option<DateTime<Utc>>,
+    /// 最近更新章节所属分卷序号；无分卷关联时为 None
+    pub last_updated_volume_sequence: Option<i64>,
+    /// 最近更新章节自身的 sequence
+    pub last_updated_chapter_sequence: Option<i64>,
+    /// 最近更新章节的标题
+    pub last_updated_chapter_title: Option<String>,
+}
+
 /// 小说详情模型（含标签）
 /// 在 Novel 基础上关联了标签信息，用于需要展示标签的场景
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,6 +50,9 @@ pub struct NovelWithTags {
     pub novel: Novel,
     #[serde(default)]
     pub tags: Vec<Tag>,
+    /// 统计信息（仅在 with_stats 时有值）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stats: Option<NovelStats>,
 }
 
 impl NovelWithTags {
@@ -35,12 +61,23 @@ impl NovelWithTags {
         Self {
             novel,
             tags: vec![],
+            stats: None,
         }
     }
 
     /// 从 Novel 和 Tag 列表创建
     pub fn with_tags(novel: Novel, tags: Vec<Tag>) -> Self {
-        Self { novel, tags }
+        Self {
+            novel,
+            tags,
+            stats: None,
+        }
+    }
+
+    /// 附加统计信息
+    pub fn with_stats(mut self, stats: Option<NovelStats>) -> Self {
+        self.stats = stats;
+        self
     }
 }
 

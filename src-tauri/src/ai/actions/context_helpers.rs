@@ -62,7 +62,13 @@ pub async fn fetch_novel_info(
 ) -> Result<NovelInfo, DbError> {
     let novel_repo_guard = novel_repo.read().await;
     let novel_with_tags = novel_repo_guard
-        .find_by_id(novel_id, &QueryOptions { with_tags: true })
+        .find_by_id(
+            novel_id,
+            &QueryOptions {
+                with_tags: true,
+                ..Default::default()
+            },
+        )
         .await?;
 
     let channel_name = match novel_with_tags.novel.target_reader.as_str() {

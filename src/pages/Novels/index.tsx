@@ -1,6 +1,6 @@
 import { PlusOutlined } from '@ant-design/icons'
 import { Button, Typography } from 'antd'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 import CreateNovelModal from './components/CreateNovelModal'
 import NovelItem from './components/NovelItem'
@@ -34,6 +34,13 @@ const Novels: React.FC = () => {
     },
   })
 
+  // 包装后的 fetchList：强制携带 withStats，以便卡片展示章节数/字数/最近更新
+  const fetchNovels = useCallback(
+    (page: number, pageSize: number) =>
+      getNovelsWithPagination(page, pageSize, { withStats: true }),
+    [],
+  )
+
   return (
     <>
       {novelDeleteModal}
@@ -50,7 +57,7 @@ const Novels: React.FC = () => {
         <div className="novels-content">
           <List<Novel>
             ref={listRef}
-            fetchList={getNovelsWithPagination}
+            fetchList={fetchNovels}
             renderItem={(novel) => <NovelItem novel={novel} onDelete={deleteNovel} />}
             pageSize={10}
             classNames={{

@@ -1,7 +1,7 @@
 use tauri::State;
 use uuid::Uuid;
 
-use crate::database::models::novel::{NewNovel, Novel, NovelWithTags, UpdateNovel};
+use crate::database::models::novel::{NewNovel, Novel, NovelStats, NovelWithTags, UpdateNovel};
 use crate::database::repositories::QueryOptions;
 use crate::utils::pagination::{PaginatedResult, PaginationParams};
 use crate::AppState;
@@ -27,6 +27,7 @@ pub async fn get_novels(
     let repo = state.novel_repo.read().await;
     let options = QueryOptions {
         with_tags: with_tags.unwrap_or(false),
+        ..Default::default()
     };
     repo.find_all(&options).await.map_err(|e| e.to_string())
 }
@@ -34,18 +35,21 @@ pub async fn get_novels(
 /// 分页获取小说列表
 ///
 /// 支持分页查询，用于作品管理页面的列表展示。
-/// with_tags 为 true 时额外返回关联的标签信息。
+/// with_tags 为 true 时额外返回关联的标签信息；
+/// with_stats 为 true 时额外返回统计信息（章节数、字数、最近更新等）。
 #[tauri::command]
 pub async fn get_novels_with_pagination(
     state: State<'_, AppState>,
     page: i64,
     page_size: i64,
     with_tags: Option<bool>,
+    with_stats: Option<bool>,
 ) -> Result<PaginatedResult<NovelWithTags>, String> {
     let repo = state.novel_repo.read().await;
     let params = PaginationParams { page, page_size };
     let options = QueryOptions {
         with_tags: with_tags.unwrap_or(false),
+        with_stats: with_stats.unwrap_or(false),
     };
     repo.find_with_pagination(&params, &options)
         .await
@@ -66,6 +70,7 @@ pub async fn get_novel_by_id(
     let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
     let options = QueryOptions {
         with_tags: with_tags.unwrap_or(false),
+        ..Default::default()
     };
     repo.find_by_id(uuid, &options)
         .await
@@ -94,4 +99,29 @@ pub async fn delete_novel(state: State<'_, AppState>, id: String) -> Result<(), 
     let repo = state.novel_repo.read().await;
     let uuid = Uuid::parse_str(&id).map_err(|e| e.to_string())?;
     repo.delete(uuid).await.map_err(|e| e.to_string())
+}
+
+/// 批量获取小说统计信息
+///
+/// 根据小说 ID 列表返回每本小说的章节数、总字数、最近更新信息。
+#[tauri::command]
+pub async fn get_novel_stats(
+    state: State<'_, AppState>,
+    novel_ids: Vec<String>,
+) -> Result<std::collections::HashMap<String, NovelStats>, String> {
+    let repo = state.novel_repo.read().await;
+    let uuids: Vec<Uuid> = novel_ids
+        .iter()
+        .map(|s| Uuid::parse_str(s).map_err(|e| e.to_string()))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let stats_map = repo
+        .get_novel_stats(&uuids)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(stats_map
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect())
 }

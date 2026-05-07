@@ -93,6 +93,11 @@
 将 ISO 字符串 / Date / 时间戳格式化为日期字符串（`YYYY-MM-DD`）
 文件：`src/utils/date.ts`
 
+### formatRelativeTime
+
+将 ISO 字符串 / Date / 时间戳格式化为中文相对时间（"刚刚"、"x 分钟前"、"x 小时前"、"x 天前"；超过 30 天显示绝对日期）
+文件：`src/utils/date.ts`
+
 ---
 
 **使用说明：**

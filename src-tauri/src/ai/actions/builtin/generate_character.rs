@@ -67,7 +67,10 @@ impl ActionHandler for GenerateCharacterAction {
         let novel = novel_repo
             .find_by_id(
                 novel_uuid,
-                &crate::database::repositories::QueryOptions { with_tags: true },
+                &crate::database::repositories::QueryOptions {
+                    with_tags: true,
+                    ..Default::default()
+                },
             )
             .await
             .map_err(|e| ActionError::ExecutionFailed(format!("查询小说信息失败: {}", e)))?;
