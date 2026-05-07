@@ -3,7 +3,9 @@
 use async_trait::async_trait;
 use serde::Deserialize;
 
-use crate::ai::actions::{ActionContext, ActionError, ActionHandler, ActionResponse};
+use crate::ai::actions::{
+    context_helpers, ActionContext, ActionError, ActionHandler, ActionResponse,
+};
 
 /// 生成书名输入参数
 #[derive(Debug, Deserialize)]
@@ -53,7 +55,7 @@ impl ActionHandler for GenerateTitleAction {
                 if !selected_tags.is_empty() {
                     let tags_detail = selected_tags
                         .iter()
-                        .map(|t| t.name.as_str())
+                        .map(context_helpers::format_tag_name)
                         .collect::<Vec<_>>()
                         .join("、");
                     Some(tags_detail)

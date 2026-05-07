@@ -4,7 +4,9 @@ use async_trait::async_trait;
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::ai::actions::{ActionContext, ActionError, ActionHandler, ActionResponse};
+use crate::ai::actions::{
+    context_helpers, ActionContext, ActionError, ActionHandler, ActionResponse,
+};
 
 /// 优化角色输入参数
 #[derive(Debug, Deserialize)]
@@ -101,51 +103,28 @@ impl ActionHandler for OptimizeCharacterAction {
         let novel_uuid = Uuid::parse_str(&input.novel_id)
             .map_err(|e| ActionError::InvalidInput(format!("小说 ID 格式错误: {}", e)))?;
 
-        // 3. 查询小说基本信息
-        let novel_repo = ctx.novel_repo.read().await;
-        let novel = novel_repo
-            .find_by_id(
-                novel_uuid,
-                &crate::database::repositories::QueryOptions {
-                    with_tags: true,
-                    ..Default::default()
-                },
-            )
-            .await
-            .map_err(|e| ActionError::ExecutionFailed(format!("查询小说信息失败: {}", e)))?;
-        drop(novel_repo);
+        // 3. 查询小说基本信息（统一通过 context_helpers::fetch_novel_info）
+        let novel_info =
+            context_helpers::fetch_novel_info(&ctx.novel_repo, &ctx.tag_repo, novel_uuid)
+                .await
+                .map_err(|e| ActionError::ExecutionFailed(format!("查询小说信息失败: {}", e)))?;
 
         // 4. 构建提示词上下文
         use crate::ai::prompts::{CharacterDetail, OptimizeCharacterContext, PromptTemplates};
 
-        // 转换频道名称
-        let channel_name = if novel.novel.target_reader == "male" {
-            "男频".to_string()
-        } else if novel.novel.target_reader == "female" {
-            "女频".to_string()
-        } else {
-            "未知".to_string()
-        };
-
-        // 构建标签字符串
-        let tags = if !novel.tags.is_empty() {
-            Some(
-                novel
-                    .tags
-                    .iter()
-                    .map(|t| t.name.as_str())
-                    .collect::<Vec<_>>()
-                    .join("、"),
-            )
-        } else {
-            None
-        };
-
         let prompt_context = OptimizeCharacterContext {
-            title: novel.novel.title,
-            channel_name,
-            tags,
-            introduction: Some(novel.novel.description),
+            title: novel_info.title.clone(),
+            channel_name: novel_info.channel_name.clone(),
+            tags: if novel_info.tags.is_empty() {
+                None
+            } else {
+                Some(novel_info.tags.clone())
+            },
+            introduction: if novel_info.description.is_empty() {
+                None
+            } else {
+                Some(novel_info.description.clone())
+            },
             character: CharacterDetail {
                 name: input.character.name,
                 gender: input.character.gender,

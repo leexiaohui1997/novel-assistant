@@ -6,7 +6,9 @@ use regex::Regex;
 use serde::Deserialize;
 use validator::Validate;
 
-use crate::ai::actions::{ActionContext, ActionError, ActionHandler, ActionResponse};
+use crate::ai::actions::{
+    context_helpers, ActionContext, ActionError, ActionHandler, ActionResponse,
+};
 use crate::database::models::tag::Tag;
 
 // 频道正则表达式
@@ -23,17 +25,6 @@ fn tags_to_names(tags: &[Tag]) -> String {
         .map(|t| t.name.as_str())
         .collect::<Vec<_>>()
         .join("、")
-}
-
-/// 将标签类型转换为中文
-fn tag_type_to_chinese(tag_type: &crate::database::models::tag::TagType) -> &'static str {
-    use crate::database::models::tag::TagType;
-    match tag_type {
-        TagType::MainCategory => "主分类",
-        TagType::Theme => "主题",
-        TagType::Character => "角色",
-        TagType::Plot => "情节",
-    }
 }
 
 /// 清理 AI 返回的 JSON 字符串，移除可能的代码块标记
@@ -139,7 +130,7 @@ impl ActionHandler for RecommendTagsAction {
                 if !selected_tags.is_empty() {
                     let tags_detail = selected_tags
                         .iter()
-                        .map(|t| format!("- {} ({})", t.name, tag_type_to_chinese(&t.tag_type)))
+                        .map(|t| format!("- {}", context_helpers::format_tag_name(t)))
                         .collect::<Vec<_>>()
                         .join("\n");
 

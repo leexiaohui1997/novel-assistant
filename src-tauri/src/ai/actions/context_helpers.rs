@@ -10,6 +10,7 @@ use crate::ai::prompts::CharacterInfo;
 use crate::database::error::DbError;
 use crate::database::models::chapter::Chapter;
 use crate::database::models::chapter_outline::ChapterOutlineWithCharacters;
+use crate::database::models::tag::{Tag, TagType};
 use crate::database::repositories::{
     ChapterOutlineRepository, ChapterRepository, CharacterRepository, NovelRepository,
     QueryOptions, TagRepository,
@@ -54,6 +55,35 @@ pub struct ChapterContentInfo {
     pub content: String,
 }
 
+/// 将 TagType 映射为人类可读的中文分类名称
+///
+/// # 示例
+/// ```ignore
+/// assert_eq!(tag_type_cn(&TagType::MainCategory), "主分类");
+/// ```
+fn tag_type_cn(tag_type: &TagType) -> &'static str {
+    match tag_type {
+        TagType::MainCategory => "主分类",
+        TagType::Theme => "主题",
+        TagType::Character => "角色",
+        TagType::Plot => "情节",
+    }
+}
+
+/// 将标签格式化为「标签名（分类）」形式，供 AI 提示词构建上下文统一使用。
+///
+/// 此函数为全局唯一的标签命名格式记录点。调用方在拼接任何待送入 AI 上下文的标签名称时都应使用此函数，
+/// 以封装分类后缀与括号风格（中文全角括号）。
+///
+/// # 示例
+/// ```ignore
+/// let tag = Tag { name: "现代都市".into(), tag_type: TagType::MainCategory, ... };
+/// assert_eq!(format_tag_name(&tag), "现代都市（主分类）");
+/// ```
+pub fn format_tag_name(tag: &Tag) -> String {
+    format!("{}（{}）", tag.name, tag_type_cn(&tag.tag_type))
+}
+
 /// 根据 novel_id 查询小说基础信息（书名、频道、标签、简介）
 pub async fn fetch_novel_info(
     novel_repo: &Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
@@ -81,7 +111,7 @@ pub async fn fetch_novel_info(
     let tags = novel_with_tags
         .tags
         .iter()
-        .map(|t| t.name.as_str())
+        .map(format_tag_name)
         .collect::<Vec<_>>()
         .join("、");
 
