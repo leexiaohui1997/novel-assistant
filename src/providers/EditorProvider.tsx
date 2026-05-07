@@ -12,6 +12,7 @@ import { ChapterContentAction } from '@/actions/ChapterContentAction'
 import { ChapterOutlineTrigger } from '@/components/ChapterOutlineDrawer/ChapterOutlineTrigger'
 import Editor from '@/components/Editor'
 import VersionDrawer from '@/components/VersionDrawer'
+import { WithAiAction } from '@/components/WithAiAction'
 import {
   DEFAULT_VOLUME_SEQUENCE,
   createChapter,
@@ -525,20 +526,44 @@ const EditorModal: React.FC<
             {/* 头部 */}
             <div className="flex items-center mb-8! gap-6">
               {/* 标题 */}
-              <Input
-                variant="borderless"
-                placeholder="请输入标题"
-                size="large"
-                maxLength={30}
-                showCount
-                className="show-count-on-focus"
+              <WithAiAction
                 classNames={{
-                  count: 'text-sm',
-                  input: 'text-xl!',
+                  root: 'flex-1 items-center!',
                 }}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
+                tip="AI 生成章节标题"
+                showFeedback
+                triggerSize="medium"
+                aiAction={{
+                  actionName: 'edit_chapter_title',
+                  getParams: () => ({
+                    novel_id: novel.id,
+                    chapter_id: activeChapter?.id,
+                    title: title || undefined,
+                    content: content || undefined,
+                  }),
+                }}
+                onResult={(result) => {
+                  const generatedTitle = (result as { title?: string })?.title
+                  if (generatedTitle) {
+                    setTitle(generatedTitle)
+                  }
+                }}
+              >
+                <Input
+                  variant="borderless"
+                  placeholder="请输入标题"
+                  size="large"
+                  maxLength={30}
+                  showCount
+                  className="show-count-on-focus"
+                  classNames={{
+                    count: 'text-sm',
+                    input: 'text-xl!',
+                  }}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </WithAiAction>
             </div>
 
             {/* 正文 */}

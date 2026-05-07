@@ -1,4 +1,4 @@
-import { App, Form, FormInstance, Input, Spin } from 'antd'
+import { Form, FormInstance, Input, message, Spin } from 'antd'
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 import { CharactersAction } from '../actions/Characters'
@@ -23,7 +23,7 @@ export type StoryBibleProps = {
 }
 
 export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
-  const { message } = App.useApp()
+  const [messageApi, messageContext] = message.useMessage()
   const formRef = useRef<FormInstance>(null)
 
   const [outline, setOutline] = useState<ChapterOutline>()
@@ -48,9 +48,9 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
             values.plot,
             values.characterIds,
           )
-          message.success('设定集保存成功')
+          messageApi.success('设定集保存成功')
         } catch (e) {
-          message.error(`设定集保存失败: ${getErrorMsg(e)}`)
+          messageApi.error(`设定集保存失败: ${getErrorMsg(e)}`)
         } finally {
           setDoingSave(false)
         }
@@ -58,7 +58,7 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
         logger.error(`表单校验失败: ${getErrorMsg(e)}`)
       }
     },
-    [message, novelId, chapterId],
+    [novelId, chapterId, messageApi],
   )
 
   useImperativeHandle(ref, () => ({ save }))
@@ -71,14 +71,14 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
         const outline = await getChapterOutline(novelId, chapterId)
         setOutline(outline || undefined)
       } catch (e) {
-        message.error(`获取大纲失败: ${getErrorMsg(e)}`)
+        messageApi.error(`获取大纲失败: ${getErrorMsg(e)}`)
       } finally {
         setLoading(false)
       }
     }
 
     fetchOutline()
-  }, [novelId, chapterId, message])
+  }, [novelId, chapterId, messageApi])
 
   useEffect(() => {
     formRef.current?.setFieldsValue({
@@ -97,34 +97,37 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
   }
 
   return (
-    <Form
-      ref={formRef}
-      classNames={{ label: 'w-full' }}
-      layout="vertical"
-      initialValues={{
-        positioning: outline?.positioning || '',
-        plot: outline?.plot || '',
-        characterIds: outline?.characterIds || [],
-      }}
-    >
-      <Form.Item
-        label={<PositioningAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
-        name="positioning"
+    <>
+      {messageContext}
+      <Form
+        ref={formRef}
+        classNames={{ label: 'w-full' }}
+        layout="vertical"
+        initialValues={{
+          positioning: outline?.positioning || '',
+          plot: outline?.plot || '',
+          characterIds: outline?.characterIds || [],
+        }}
       >
-        <Input.TextArea placeholder="请输入本章定位" rows={4} maxLength={200} showCount />
-      </Form.Item>
-      <Form.Item
-        label={<PlotAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
-        name="plot"
-      >
-        <Input.TextArea placeholder="请输入本章剧情" rows={4} maxLength={200} showCount />
-      </Form.Item>
-      <Form.Item
-        label={<CharactersAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
-        name="characterIds"
-      >
-        <CharacterSelect novelId={novelId} placeholder="请选择本章出场角色" />
-      </Form.Item>
-    </Form>
+        <Form.Item
+          label={<PositioningAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
+          name="positioning"
+        >
+          <Input.TextArea placeholder="请输入本章定位" rows={4} maxLength={200} showCount />
+        </Form.Item>
+        <Form.Item
+          label={<PlotAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
+          name="plot"
+        >
+          <Input.TextArea placeholder="请输入本章剧情" rows={4} maxLength={200} showCount />
+        </Form.Item>
+        <Form.Item
+          label={<CharactersAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
+          name="characterIds"
+        >
+          <CharacterSelect novelId={novelId} placeholder="请选择本章出场角色" />
+        </Form.Item>
+      </Form>
+    </>
   )
 }

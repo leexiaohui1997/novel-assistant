@@ -5,6 +5,7 @@
 mod edit_chapter_characters;
 mod edit_chapter_plot;
 mod edit_chapter_positioning;
+mod edit_chapter_title;
 mod generate_chapter_content;
 mod generate_character;
 mod generate_introduction;
@@ -18,6 +19,7 @@ use tera::{Context, Tera};
 pub use edit_chapter_characters::EditChapterCharactersContext;
 pub use edit_chapter_plot::EditChapterPlotContext;
 pub use edit_chapter_positioning::EditChapterPositioningContext;
+pub use edit_chapter_title::EditChapterTitleContext;
 pub use generate_chapter_content::GenerateChapterContentContext;
 pub use generate_character::GenerateCharacterContext;
 pub use generate_introduction::GenerateIntroductionContext;
@@ -127,6 +129,15 @@ impl PromptTemplates {
     ) -> Result<String, tera::Error> {
         let tera_context = Context::from_serialize(context)?;
         self.tera.render("edit_chapter_characters", &tera_context)
+    }
+
+    /// 渲染 edit_chapter_title 提示词
+    pub fn render_edit_chapter_title(
+        &self,
+        context: &EditChapterTitleContext,
+    ) -> Result<String, tera::Error> {
+        let tera_context = Context::from_serialize(context)?;
+        self.tera.render("edit_chapter_title", &tera_context)
     }
 
     /// 渲染 generate_chapter_content 提示词

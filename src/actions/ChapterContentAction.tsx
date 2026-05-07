@@ -2,7 +2,7 @@ import { WithAiAction } from '@/components/WithAiAction'
 import { useEditorForm } from '@/providers/EditorFormContext'
 
 export function ChapterContentAction() {
-  const { novel, chapter, title, content, applyContent } = useEditorForm()
+  const { novel, chapter, title, applyContent } = useEditorForm()
 
   return (
     <WithAiAction
@@ -19,7 +19,6 @@ export function ChapterContentAction() {
           novel_id: novel.id,
           chapter_id: chapter?.id,
           title: title || undefined,
-          content: content || undefined,
         }),
       }}
       onResult={(result) => {

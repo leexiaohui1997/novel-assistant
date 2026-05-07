@@ -137,7 +137,16 @@ pub async fn fetch_chapter_content(
 ) -> Result<Option<ChapterContentInfo>, DbError> {
     let chapter_id = match chapter_id {
         Some(id) => id,
-        None => return Ok(None),
+        None => {
+            // 没有章节 ID 时，仍返回输入参数中的 title/content
+            if input_title.is_some() || input_content.is_some() {
+                return Ok(Some(ChapterContentInfo {
+                    title: input_title.unwrap_or_default(),
+                    content: input_content.unwrap_or_default(),
+                }));
+            }
+            return Ok(None);
+        }
     };
 
     let repo = chapter_repo.read().await;

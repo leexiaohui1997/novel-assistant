@@ -143,8 +143,6 @@ impl AiService {
         let request_body = json!({
             "model": model.model_id,
             "messages": messages_json,
-            "temperature": 0.7,
-            "max_tokens": 4096
         });
 
         // 发送 HTTP 请求
