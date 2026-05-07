@@ -1,9 +1,40 @@
 use tauri::State;
 use uuid::Uuid;
 
-use crate::database::models::character::{Character, Gender};
+use crate::database::models::character::{Character, CharacterType, Gender};
 use crate::utils::pagination::{PaginatedResult, PaginationParams};
 use crate::AppState;
+
+/// 将字符串解析为性别枚举
+fn parse_gender(gender: &str) -> Result<Gender, String> {
+    match gender {
+        "male" => Ok(Gender::Male),
+        "female" => Ok(Gender::Female),
+        "other" => Ok(Gender::Other),
+        "unknown" => Ok(Gender::Unknown),
+        _ => Err("无效的性别类型，必须是 male、female、other 或 unknown".to_string()),
+    }
+}
+
+/// 将可选字符串解析为角色类型枚举（None 或空串视为未设置）
+fn parse_character_type(value: Option<String>) -> Result<Option<CharacterType>, String> {
+    let Some(raw) = value else { return Ok(None) };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    match trimmed {
+        "protagonist" => Ok(Some(CharacterType::Protagonist)),
+        "second_protagonist" => Ok(Some(CharacterType::SecondProtagonist)),
+        "third_protagonist" => Ok(Some(CharacterType::ThirdProtagonist)),
+        "supporting" => Ok(Some(CharacterType::Supporting)),
+        "minor_supporting" => Ok(Some(CharacterType::MinorSupporting)),
+        _ => Err(
+            "无效的角色类型，必须是 protagonist、second_protagonist、third_protagonist、supporting 或 minor_supporting"
+                .to_string(),
+        ),
+    }
+}
 
 /// 创建角色
 #[tauri::command]
@@ -11,26 +42,22 @@ pub async fn create_character(
     novel_id: String,
     name: String,
     gender: String,
+    character_type: Option<String>,
     background: Option<String>,
     appearance: Option<String>,
     personality: Option<String>,
     additional_info: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Character, String> {
-    // 验证性别参数
-    let gender = match gender.as_str() {
-        "male" => Gender::Male,
-        "female" => Gender::Female,
-        "other" => Gender::Other,
-        "unknown" => Gender::Unknown,
-        _ => return Err("无效的性别类型，必须是 male、female、other 或 unknown".to_string()),
-    };
+    let gender = parse_gender(&gender)?;
+    let character_type = parse_character_type(character_type)?;
 
     let character = Character {
         id: Uuid::new_v4(),
         novel_id: Uuid::parse_str(&novel_id).map_err(|e| e.to_string())?,
         name,
         gender,
+        character_type,
         background,
         appearance,
         personality,
@@ -101,20 +128,15 @@ pub async fn update_character(
     id: String,
     name: String,
     gender: String,
+    character_type: Option<String>,
     background: Option<String>,
     appearance: Option<String>,
     personality: Option<String>,
     additional_info: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Character, String> {
-    // 验证性别参数
-    let gender = match gender.as_str() {
-        "male" => Gender::Male,
-        "female" => Gender::Female,
-        "other" => Gender::Other,
-        "unknown" => Gender::Unknown,
-        _ => return Err("无效的性别类型，必须是 male、female、other 或 unknown".to_string()),
-    };
+    let gender = parse_gender(&gender)?;
+    let character_type = parse_character_type(character_type)?;
 
     // 先获取现有角色以保留 novel_id
     let character_repo = state.character_repo.read().await;
@@ -130,6 +152,7 @@ pub async fn update_character(
         novel_id: existing_character.novel_id,
         name,
         gender,
+        character_type,
         background,
         appearance,
         personality,

@@ -51,13 +51,14 @@ impl CharacterRepository for SqliteCharacterRepository {
         let id = Uuid::new_v4();
 
         sqlx::query(
-            "INSERT INTO characters (id, novel_id, name, gender, background, appearance, personality, additional_info, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            "INSERT INTO characters (id, novel_id, name, gender, character_type, background, appearance, personality, additional_info, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         )
         .bind(&id)
         .bind(&character.novel_id)
         .bind(&character.name)
         .bind(&character.gender)
+        .bind(&character.character_type)
         .bind(&character.background)
         .bind(&character.appearance)
         .bind(&character.personality)
@@ -149,12 +150,13 @@ impl CharacterRepository for SqliteCharacterRepository {
 
         sqlx::query(
             "UPDATE characters 
-             SET name = ?2, gender = ?3, background = ?4, appearance = ?5, personality = ?6, additional_info = ?7, updated_at = ?8
+             SET name = ?2, gender = ?3, character_type = ?4, background = ?5, appearance = ?6, personality = ?7, additional_info = ?8, updated_at = ?9
              WHERE id = ?1",
         )
         .bind(&character.id)
         .bind(&character.name)
         .bind(&character.gender)
+        .bind(&character.character_type)
         .bind(&character.background)
         .bind(&character.appearance)
         .bind(&character.personality)

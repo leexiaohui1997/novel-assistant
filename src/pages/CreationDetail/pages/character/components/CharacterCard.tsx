@@ -1,7 +1,7 @@
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { Button, Card, Tag } from 'antd'
 
-import { Character, CharacterGenderLabels } from '@/types/character'
+import { Character, CharacterGenderLabels, CharacterTypeLabels } from '@/types/character'
 
 interface CharacterCardProps {
   character: Character
@@ -20,7 +20,12 @@ export function CharacterCard({ character, order, onEdit, onDelete }: CharacterC
             <span className="text-xs text-gray-400"># {order}</span>
             <span>{character.name}</span>
           </div>
-          <Tag>性别：{CharacterGenderLabels[character.gender]}</Tag>
+          <div className="flex items-center gap-1">
+            {character.characterType && (
+              <Tag color="blue">类型：{CharacterTypeLabels[character.characterType]}</Tag>
+            )}
+            <Tag>性别：{CharacterGenderLabels[character.gender]}</Tag>
+          </div>
         </div>
       }
       actions={[

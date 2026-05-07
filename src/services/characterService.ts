@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 
-import { Character } from '@/types/character'
+import { Character, CharacterType } from '@/types/character'
 import { PaginatedResult } from '@/types/common'
 import { logger } from '@/utils/logger'
 
@@ -11,6 +11,7 @@ export interface CreateCharacterParams {
   novelId: string
   name: string
   gender: string
+  characterType?: CharacterType | null
   background?: string
   appearance?: string
   personality?: string
@@ -24,6 +25,7 @@ export interface UpdateCharacterParams {
   id: string
   name: string
   gender: string
+  characterType?: CharacterType | null
   background?: string
   appearance?: string
   personality?: string
@@ -41,6 +43,7 @@ export async function createCharacter(params: CreateCharacterParams): Promise<Ch
       novelId: params.novelId,
       name: params.name,
       gender: params.gender,
+      characterType: params.characterType ?? null,
       background: params.background,
       appearance: params.appearance,
       personality: params.personality,
@@ -129,6 +132,7 @@ export async function updateCharacter(params: UpdateCharacterParams): Promise<Ch
       id: params.id,
       name: params.name,
       gender: params.gender,
+      characterType: params.characterType ?? null,
       background: params.background,
       appearance: params.appearance,
       personality: params.personality,

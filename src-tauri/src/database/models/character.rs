@@ -19,6 +19,21 @@ string_enum! {
     }
 }
 
+// 使用宏定义角色类型枚举
+string_enum! {
+    /// 角色类型枚举
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+    #[serde(rename_all = "snake_case")]
+    #[sqlx(type_name = "TEXT", rename_all = "snake_case")]
+    pub enum CharacterType {
+        Protagonist,       // 主角
+        SecondProtagonist, // 二号主角
+        ThirdProtagonist,  // 三号主角
+        Supporting,        // 配角
+        MinorSupporting,   // 次要配角
+    }
+}
+
 /// 角色实体模型
 /// 对应数据库中的 characters 表，存储小说中的角色信息
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
@@ -28,6 +43,7 @@ pub struct Character {
     pub novel_id: Uuid,
     pub name: String,
     pub gender: Gender,
+    pub character_type: Option<CharacterType>,
     pub background: Option<String>,
     pub appearance: Option<String>,
     pub personality: Option<String>,

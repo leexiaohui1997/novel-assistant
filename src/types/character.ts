@@ -33,10 +33,58 @@ export const CharacterGenderOptions: DefaultOptionType[] = [
 /**
  * 角色类型
  */
+export enum CharacterType {
+  /** 主角 */
+  Protagonist = 'protagonist',
+  /** 二号主角 */
+  SecondProtagonist = 'second_protagonist',
+  /** 三号主角 */
+  ThirdProtagonist = 'third_protagonist',
+  /** 配角 */
+  Supporting = 'supporting',
+  /** 次要配角 */
+  MinorSupporting = 'minor_supporting',
+}
+
+/**
+ * 角色类型标签
+ */
+export const CharacterTypeLabels: Record<CharacterType, string> = {
+  [CharacterType.Protagonist]: '主角',
+  [CharacterType.SecondProtagonist]: '二号主角',
+  [CharacterType.ThirdProtagonist]: '三号主角',
+  [CharacterType.Supporting]: '配角',
+  [CharacterType.MinorSupporting]: '次要配角',
+}
+
+/**
+ * 角色类型选项
+ */
+export const CharacterTypeOptions: DefaultOptionType[] = [
+  { value: CharacterType.Protagonist, label: CharacterTypeLabels[CharacterType.Protagonist] },
+  {
+    value: CharacterType.SecondProtagonist,
+    label: CharacterTypeLabels[CharacterType.SecondProtagonist],
+  },
+  {
+    value: CharacterType.ThirdProtagonist,
+    label: CharacterTypeLabels[CharacterType.ThirdProtagonist],
+  },
+  { value: CharacterType.Supporting, label: CharacterTypeLabels[CharacterType.Supporting] },
+  {
+    value: CharacterType.MinorSupporting,
+    label: CharacterTypeLabels[CharacterType.MinorSupporting],
+  },
+]
+
+/**
+ * 角色
+ */
 export interface Character {
   id: string
   name: string
   gender: CharacterGender
+  characterType?: CharacterType | null
   novelId: string
   background?: string
   appearance?: string
