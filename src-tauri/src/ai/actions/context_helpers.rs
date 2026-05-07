@@ -185,9 +185,17 @@ pub(crate) fn get_character_type_options() -> Vec<crate::ai::prompts::CharacterT
     use crate::database::models::character::ALL_CHARACTER_TYPES;
     ALL_CHARACTER_TYPES
         .iter()
-        .map(|&ct| crate::ai::prompts::CharacterTypeOption {
-            value: format!("{:?}", ct).to_lowercase(),
-            label: character_type_label(ct),
+        .map(|&ct| {
+            // 使用 serde 序列化获取正确的 snake_case 值
+            let value = serde_json::to_value(ct)
+                .ok()
+                .and_then(|v| v.as_str().map(|s| s.to_string()))
+                .unwrap_or_else(|| format!("{:?}", ct).to_lowercase());
+
+            crate::ai::prompts::CharacterTypeOption {
+                value,
+                label: character_type_label(ct),
+            }
         })
         .collect()
 }

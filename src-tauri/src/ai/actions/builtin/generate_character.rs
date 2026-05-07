@@ -62,13 +62,30 @@ fn validate_character_type(value: &Option<String>) -> Result<(), ActionError> {
     if trimmed.is_empty() {
         return Ok(());
     }
-    match trimmed {
-        "protagonist" | "second_protagonist" | "third_protagonist" | "supporting"
-        | "minor_supporting" => Ok(()),
-        _ => Err(ActionError::ExecutionFailed(format!(
-            "无效的角色类型: {}。必须是 protagonist、second_protagonist、third_protagonist、supporting 或 minor_supporting",
-            raw
-        ))),
+
+    // 使用 ALL_CHARACTER_TYPES 常量进行校验
+    use crate::database::models::character::ALL_CHARACTER_TYPES;
+    let is_valid = ALL_CHARACTER_TYPES.iter().any(|ct| {
+        serde_json::to_value(ct)
+            .ok()
+            .and_then(|v| v.as_str().map(|s| s == trimmed))
+            .unwrap_or(false)
+    });
+
+    if is_valid {
+        Ok(())
+    } else {
+        let valid_types: Vec<String> = ALL_CHARACTER_TYPES
+            .iter()
+            .filter_map(|ct| serde_json::to_string(ct).ok())
+            // 移除 JSON 字符串的引号
+            .map(|s| s.trim_matches('"').to_string())
+            .collect();
+        Err(ActionError::ExecutionFailed(format!(
+            "无效的角色类型: {}。必须是以下值之一: {}",
+            raw,
+            valid_types.join("、")
+        )))
     }
 }
 

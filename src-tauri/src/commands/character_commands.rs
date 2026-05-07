@@ -23,17 +23,30 @@ fn parse_character_type(value: Option<String>) -> Result<Option<CharacterType>, 
     if trimmed.is_empty() {
         return Ok(None);
     }
-    match trimmed {
-        "protagonist" => Ok(Some(CharacterType::Protagonist)),
-        "second_protagonist" => Ok(Some(CharacterType::SecondProtagonist)),
-        "third_protagonist" => Ok(Some(CharacterType::ThirdProtagonist)),
-        "supporting" => Ok(Some(CharacterType::Supporting)),
-        "minor_supporting" => Ok(Some(CharacterType::MinorSupporting)),
-        _ => Err(
-            "无效的角色类型，必须是 protagonist、second_protagonist、third_protagonist、supporting 或 minor_supporting"
-                .to_string(),
-        ),
+
+    // 使用 ALL_CHARACTER_TYPES 常量进行解析
+    use crate::database::models::character::ALL_CHARACTER_TYPES;
+    for &ct in ALL_CHARACTER_TYPES {
+        let enum_value = serde_json::to_string(&ct)
+            .ok()
+            .map(|s| s.trim_matches('"').to_string());
+        if enum_value.as_deref() == Some(trimmed) {
+            return Ok(Some(ct));
+        }
     }
+
+    let valid_types: Vec<String> = ALL_CHARACTER_TYPES
+        .iter()
+        .filter_map(|ct| {
+            serde_json::to_string(ct)
+                .ok()
+                .map(|s| s.trim_matches('"').to_string())
+        })
+        .collect();
+    Err(format!(
+        "无效的角色类型，必须是以下值之一: {}",
+        valid_types.join("、")
+    ))
 }
 
 /// 创建角色
