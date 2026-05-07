@@ -91,3 +91,22 @@ export function numToCn(num: number): string {
 
   return threeDigitToCn(num)
 }
+
+/**
+ * 将数字格式化为千分位字符串
+ *
+ * 空值 / 非有限值一律返回 `'0'`，避免页面出现 `-` 或空白。
+ *
+ * @param value - 任意数字或可缺失值
+ * @returns 千分位格式的字符串
+ *
+ * @example
+ * formatThousands(12345)      // '12,345'
+ * formatThousands(0)          // '0'
+ * formatThousands(null)       // '0'
+ * formatThousands(undefined)  // '0'
+ */
+export function formatThousands(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '0'
+  return value.toLocaleString('en-US')
+}

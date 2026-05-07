@@ -8,3 +8,4 @@ pub mod model_commands;
 pub mod novel_commands;
 pub mod provider_commands;
 pub mod tag_commands;
+pub mod tokens_dashboard_commands;

@@ -45,3 +45,29 @@ pub struct CreateAiCallLog {
     pub error_message: Option<String>,
     pub call_time: DateTime<Utc>,
 }
+
+/// Tokens 看板汇总统计
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct TokensSummary {
+    /// 总请求数
+    pub total_requests: i64,
+    /// 输入 tokens 合计
+    pub input_tokens: i64,
+    /// 输出 tokens 合计
+    pub output_tokens: i64,
+}
+
+/// 模型维度用量聚合行
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelUsageRow {
+    pub provider_id: Uuid,
+    pub model_id: Uuid,
+    pub provider_name: String,
+    pub model_name: String,
+    pub request_count: i64,
+    pub input_tokens: i64,
+    pub output_tokens: i64,
+    pub total_tokens: i64,
+}

@@ -23,7 +23,7 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
   },
   {
     key: 'settings',
-    label: '设置',
+    label: 'AI',
     children: [
       {
         key: 'ai-providers',
@@ -34,6 +34,11 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
         key: 'ai-models',
         label: '模型管理',
         path: '/settings/models',
+      },
+      {
+        key: 'tokens-dashboard',
+        label: 'Tokens 看板',
+        path: '/tokens-dashboard',
       },
     ],
   },

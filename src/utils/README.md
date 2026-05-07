@@ -61,6 +61,11 @@
 将阿拉伯数字转为中文数字（支持 1~999，超出范围返回原数字字符串）
 文件：`src/utils/number.ts`
 
+### formatThousands
+
+将数字格式化为千分位字符串（空值与非有限值返回 `'0'`）
+文件：`src/utils/number.ts`
+
 ---
 
 ## 键盘工具 (keyboard.ts)
@@ -97,6 +102,15 @@
 
 将 ISO 字符串 / Date / 时间戳格式化为中文相对时间（"刚刚"、"x 分钟前"、"x 小时前"、"x 天前"；超过 30 天显示绝对日期）
 文件：`src/utils/date.ts`
+
+---
+
+## 时间范围工具 (timeRange.ts)
+
+### getRangeByGranularity
+
+根据时间粒度（`today` / `yesterday` / `week` / `month` / `last30` / `custom`）计算毫秒时间范围；`custom` 需传入 `{ start, end }` Dayjs 区间
+文件：`src/utils/timeRange.ts`
 
 ---
 

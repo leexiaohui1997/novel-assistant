@@ -41,6 +41,9 @@ use commands::provider_commands::{
     create_provider, delete_provider, get_providers_with_pagination, update_provider,
 };
 use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
+use commands::tokens_dashboard_commands::{
+    get_tokens_model_usage, get_tokens_summary, list_ai_call_logs,
+};
 use database::pool::init_pool;
 use database::repositories::{
     AiCallLogRepository, ChapterOutlineRepository, ChapterRepository, ChapterVersionRepository,
@@ -203,7 +206,10 @@ pub async fn run() {
             update_model_alias,
             test_model,
             execute_action,
-            list_actions
+            list_actions,
+            get_tokens_summary,
+            get_tokens_model_usage,
+            list_ai_call_logs
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");

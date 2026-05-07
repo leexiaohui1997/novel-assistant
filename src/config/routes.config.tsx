@@ -103,6 +103,14 @@ export const ROUTES_CONFIG: RouteObject[] = [
           title: '模型管理',
         } satisfies RouteHandle,
       },
+      {
+        id: 'tokens-dashboard',
+        path: '/tokens-dashboard',
+        element: lazyElement(() => import('@/pages/TokensDashboard/index')),
+        handle: {
+          title: 'Tokens 看板',
+        } satisfies RouteHandle,
+      },
     ],
   },
 ]
