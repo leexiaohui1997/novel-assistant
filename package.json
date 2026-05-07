@@ -23,6 +23,7 @@
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
     "@reduxjs/toolkit": "^2.0.1",
+    "@tailwindcss/typography": "^0.5.19",
     "@tauri-apps/api": "^2.0.0",
     "antd": "^6.3.6",
     "dayjs": "^1.11.20",
@@ -30,8 +31,10 @@
     "loglevel": "^1.9.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
     "react-redux": "^9.0.4",
     "react-router-dom": "^7.14.1",
+    "remark-gfm": "^4.0.1",
     "slate": "^0.124.1",
     "slate-history": "^0.113.1",
     "slate-react": "^0.124.0",

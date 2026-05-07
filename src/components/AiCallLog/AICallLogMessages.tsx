@@ -46,7 +46,6 @@ export function AICallLogMessages({ logInfo }: AICallLogMessagesProps) {
       <Collapse
         size="small"
         items={items}
-        defaultActiveKey={items.map((item) => item.key as string)}
         expandIcon={({ isActive }) => (isActive ? <MinusOutlined /> : <PlusOutlined />)}
       />
     </div>
