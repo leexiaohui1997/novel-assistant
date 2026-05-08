@@ -10,10 +10,12 @@ pub mod dto;
 pub mod initializer;
 pub mod service;
 pub mod template;
+pub mod tools;
 pub mod types;
 
 pub use dto::{CreateConversationInput, InsertConversationMessageInput};
 pub use initializer::ConversationInitializer;
 pub use service::AiService;
 pub use template::{TemplateError, TemplateInstance, TemplateManager};
+pub use tools::{AiTool, ToolRegistry};
 pub use types::{ConversationStatus, ConversationType, MessageType};

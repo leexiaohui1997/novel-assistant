@@ -18,7 +18,7 @@ use ai::actions::builtin::{
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
 use ai::service::AiService;
-use ai_v2::{AiService as AiServiceV2, TemplateManager};
+use ai_v2::{AiService as AiServiceV2, TemplateManager, ToolRegistry};
 use commands::action_commands::{execute_action, list_actions};
 use commands::ai_commands::test_model;
 use commands::chapter_commands::{
@@ -81,6 +81,8 @@ pub struct AppState {
     pub action_executor: Arc<ActionExecutor>,
     // Tera 模板管理（AI v2）
     pub template_manager: Arc<TemplateManager>,
+    // AI 工具注册中心（AI v2）
+    pub tool_registry: Arc<RwLock<ToolRegistry>>,
     // AI 服务（v2）
     pub ai_service: Arc<AiServiceV2>,
 }
@@ -146,6 +148,9 @@ pub async fn run() {
                     return Err(Box::new(e));
                 }
             };
+
+            // 初始化 AI 工具注册中心（AI v2）
+            let tool_registry = Arc::new(RwLock::new(ToolRegistry::new()));
 
             // AI v1 模板根（供 PromptTemplates 使用）
             let templates_root_v1 = Arc::new(templates_base);
@@ -246,6 +251,7 @@ pub async fn run() {
                     templates_root_v1,
                 )),
                 template_manager,
+                tool_registry,
                 ai_service: ai_service_v2,
             };
 
