@@ -18,6 +18,7 @@ use ai::actions::builtin::{
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
 use ai::service::AiService;
+use ai_v2::TemplateManager;
 use commands::action_commands::{execute_action, list_actions};
 use commands::ai_commands::test_model;
 use commands::chapter_commands::{
@@ -46,6 +47,7 @@ use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use commands::tokens_dashboard_commands::{
     get_tokens_model_usage, get_tokens_summary, list_ai_call_logs,
 };
+use config::paths::get_template_root;
 use database::pool::init_pool;
 use database::repositories::{
     AiCallLogRepository, ChapterOutlineRepository, ChapterRepository, ChapterVersionRepository,
@@ -72,6 +74,8 @@ pub struct AppState {
     // AI Actions 系统
     pub action_router: Arc<RwLock<ActionRouter>>,
     pub action_executor: Arc<ActionExecutor>,
+    // Tera 模板管理（AI v2）
+    pub template_manager: Arc<TemplateManager>,
 }
 
 pub async fn run() {
@@ -116,6 +120,19 @@ pub async fn run() {
     action_router.register(Arc::new(GenerateChapterContentAction));
     let action_router = Arc::new(RwLock::new(action_router));
 
+    // 初始化 Tera 模板管理器（AI v2）
+    let template_root = get_template_root();
+    let template_manager = match TemplateManager::new(&template_root) {
+        Ok(m) => {
+            tracing::info!("Tera 模板管理器初始化成功，根目录：{:?}", template_root);
+            Arc::new(m)
+        }
+        Err(e) => {
+            tracing::error!("Tera 模板管理器初始化失败: {}", e);
+            panic!("无法初始化模板管理器: {}", e);
+        }
+    };
+
     // 创建应用状态（先不包含 action_executor）
     let state = AppState {
         novel_repo: Arc::new(RwLock::new(Box::new(novel_repo))),
@@ -159,6 +176,7 @@ pub async fn run() {
                 pool.clone(),
             )))),
         )),
+        template_manager,
     };
     Builder::default()
         .manage(state)

@@ -34,3 +34,16 @@ pub fn get_database_path() -> Result<PathBuf, DbError> {
     let app_data_dir = get_app_data_dir()?;
     Ok(app_data_dir.join("novels.db"))
 }
+
+/// 获取 Tera 模板根目录（`templates/v2`）
+///
+/// 目前策略：
+/// - 开发态与本期打包态均使用源码内 `src-tauri/templates/v2`
+///   （通过 `CARGO_MANIFEST_DIR` 在编译期定位）。
+/// - 后续若将 `templates/v2` 加入 Tauri `bundle.resources`，可替换为
+///   `AppHandle::path().resource_dir()` 方案。
+pub fn get_template_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("templates")
+        .join("v2")
+}
