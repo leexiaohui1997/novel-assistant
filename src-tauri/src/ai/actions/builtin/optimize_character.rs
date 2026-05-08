@@ -179,7 +179,7 @@ impl ActionHandler for OptimizeCharacterAction {
         };
 
         // 5. 使用 Tera 模板渲染提示词
-        let templates = PromptTemplates::new()
+        let templates = PromptTemplates::new(ctx.templates_root.as_path())
             .map_err(|e| ActionError::ExecutionFailed(format!("加载模板失败: {}", e)))?;
 
         let prompt = templates

@@ -59,6 +59,7 @@ impl ActionHandler for EditChapterPositioningAction {
         let previous_plots = fetch_prev_plots(&ctx, &input).await?;
 
         let prompt = render_prompt(
+            ctx.templates_root.as_path(),
             &novel_info,
             &outline_info,
             &characters,
@@ -160,6 +161,7 @@ async fn fetch_location(
 
 /// 渲染提示词
 fn render_prompt(
+    templates_root: &std::path::Path,
     novel_info: &context_helpers::NovelInfo,
     outline_info: &Option<context_helpers::ChapterOutlineInfo>,
     characters: &[crate::ai::prompts::CharacterInfo],
@@ -168,7 +170,7 @@ fn render_prompt(
     previous_plots: &str,
     user_feedback: &Option<String>,
 ) -> Result<String, ActionError> {
-    let templates = PromptTemplates::new()
+    let templates = PromptTemplates::new(templates_root)
         .map_err(|e| ActionError::ExecutionFailed(format!("加载模板失败: {}", e)))?;
 
     let prompt_context = EditChapterPositioningContext {

@@ -36,12 +36,21 @@ pub struct PromptTemplates {
 
 impl PromptTemplates {
     /// 创建新的提示词模板管理器
-    pub fn new() -> Result<Self, tera::Error> {
+    ///
+    /// # 参数
+    /// - `templates_dir`: 模板根目录（如 `templates/`），内部会递归
+    ///   扫描所有 `.tera` 文件。dev 态由 `CARGO_MANIFEST_DIR` 定位，
+    ///   prod 态由 Tauri `resource_dir()` 定位，详见
+    ///   [`crate::config::paths::get_templates_base`]。
+    pub fn new(templates_dir: &std::path::Path) -> Result<Self, tera::Error> {
         let mut tera = Tera::default();
 
-        let template_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*.tera");
+        let pattern = templates_dir.join("**/*.tera");
+        let pattern_str = pattern
+            .to_str()
+            .ok_or_else(|| tera::Error::msg("模板根目录包含非 UTF-8 字符"))?;
 
-        for entry in glob::glob(template_dir)
+        for entry in glob::glob(pattern_str)
             .map_err(|e| tera::Error::msg(format!("Failed to glob templates: {}", e)))?
         {
             match entry {

@@ -1,4 +1,7 @@
 use std::path::PathBuf;
+use tauri::AppHandle;
+#[cfg(not(debug_assertions))]
+use tauri::Manager;
 use tracing::info;
 
 use crate::database::error::DbError;
@@ -35,15 +38,30 @@ pub fn get_database_path() -> Result<PathBuf, DbError> {
     Ok(app_data_dir.join("novels.db"))
 }
 
-/// 获取 Tera 模板根目录（`templates/v2`）
+/// 获取模板根目录（`templates/`）
 ///
-/// 目前策略：
-/// - 开发态与本期打包态均使用源码内 `src-tauri/templates/v2`
-///   （通过 `CARGO_MANIFEST_DIR` 在编译期定位）。
-/// - 后续若将 `templates/v2` 加入 Tauri `bundle.resources`，可替换为
-///   `AppHandle::path().resource_dir()` 方案。
-pub fn get_template_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("templates")
-        .join("v2")
+/// - **dev 模式**：使用源码目录 `src-tauri/templates`（通过
+///   `CARGO_MANIFEST_DIR` 在编译期定位），保证改模板即时生效。
+/// - **prod 模式**：使用 Tauri `resource_dir()`，需在
+///   `tauri.conf.json` 中配置 `bundle.resources`。
+pub fn get_templates_base(app: &AppHandle) -> Result<PathBuf, DbError> {
+    #[cfg(debug_assertions)]
+    {
+        let _ = app;
+        Ok(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates"))
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        let resource_dir = app
+            .path()
+            .resource_dir()
+            .map_err(|e| DbError::Business(format!("无法获取资源目录: {}", e)))?;
+        Ok(resource_dir.join("templates"))
+    }
+}
+
+/// 获取 AI v2 Tera 模板根目录（`templates/v2`）
+pub fn get_template_root(app: &AppHandle) -> Result<PathBuf, DbError> {
+    Ok(get_templates_base(app)?.join("v2"))
 }

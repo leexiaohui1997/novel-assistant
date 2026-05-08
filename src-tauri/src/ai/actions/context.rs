@@ -3,6 +3,7 @@
 // 定义 ActionContext
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -37,6 +38,9 @@ pub struct ActionContext {
     /// 章节大纲仓储引用（用于查询大纲信息）
     pub chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
 
+    /// 模板根目录（`templates/`），用于构建 `PromptTemplates`
+    pub templates_root: Arc<PathBuf>,
+
     /// 指定的模型 ID（可选）
     pub model_id: Option<String>,
 
@@ -57,6 +61,7 @@ impl ActionContext {
         character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
         chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
         chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
+        templates_root: Arc<PathBuf>,
     ) -> Self {
         Self {
             input,
@@ -66,6 +71,7 @@ impl ActionContext {
             character_repo,
             chapter_repo,
             chapter_outline_repo,
+            templates_root,
             model_id: None,
             user_feedback: None,
             metadata: HashMap::new(),

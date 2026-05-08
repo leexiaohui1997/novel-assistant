@@ -47,7 +47,7 @@ use commands::tag_commands::{get_tags_by_audience, get_tags_by_ids};
 use commands::tokens_dashboard_commands::{
     get_tokens_model_usage, get_tokens_summary, list_ai_call_logs,
 };
-use config::paths::get_template_root;
+use config::paths::{get_template_root, get_templates_base};
 use database::pool::init_pool;
 use database::repositories::{
     AiCallLogRepository, ChapterOutlineRepository, ChapterRepository, ChapterVersionRepository,
@@ -57,7 +57,7 @@ use database::repositories::{
     SqliteCreationStateRepository, SqliteModelRepository, SqliteNovelRepository,
     SqliteProviderRepository, SqliteTagRepository, TagRepository,
 };
-use tauri::Builder;
+use tauri::{Builder, Manager};
 
 pub struct AppState {
     pub novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
@@ -91,22 +91,7 @@ pub async fn run() {
         }
     };
 
-    // 创建仓储实例
-    let novel_repo = SqliteNovelRepository::new(pool.clone());
-    let chapter_repo = SqliteChapterRepository::new(pool.clone());
-    let chapter_version_repo = SqliteChapterVersionRepository::new(pool.clone());
-    let character_repo = SqliteCharacterRepository::new(pool.clone());
-    let tag_repo = SqliteTagRepository::new(pool.clone());
-    let creation_state_repo = SqliteCreationStateRepository::new(pool.clone());
-    let provider_repo = SqliteProviderRepository::new(pool.clone());
-    let model_repo = SqliteModelRepository::new(pool.clone());
-    let call_log_repo = SqliteAiCallLogRepository::new(pool.clone());
-    let chapter_outline_repo = SqliteChapterOutlineRepository::new(pool.clone());
-
-    // 创建模型拉取策略注册表
-    let fetcher_registry = FetcherRegistry::new();
-
-    // 初始化 AI Actions 系统
+    // 初始化 AI Actions 路由（无异步依赖，在此处一次构建）
     let mut action_router = ActionRouter::new();
     action_router.register(Arc::new(RecommendTagsAction));
     action_router.register(Arc::new(GenerateIntroductionAction));
@@ -120,66 +105,116 @@ pub async fn run() {
     action_router.register(Arc::new(GenerateChapterContentAction));
     let action_router = Arc::new(RwLock::new(action_router));
 
-    // 初始化 Tera 模板管理器（AI v2）
-    let template_root = get_template_root();
-    let template_manager = match TemplateManager::new(&template_root) {
-        Ok(m) => {
-            tracing::info!("Tera 模板管理器初始化成功，根目录：{:?}", template_root);
-            Arc::new(m)
-        }
-        Err(e) => {
-            tracing::error!("Tera 模板管理器初始化失败: {}", e);
-            panic!("无法初始化模板管理器: {}", e);
-        }
-    };
+    // 供 setup 闭包捕获使用
+    let pool_for_setup = pool.clone();
+    let action_router_for_setup = action_router.clone();
 
-    // 创建应用状态（先不包含 action_executor）
-    let state = AppState {
-        novel_repo: Arc::new(RwLock::new(Box::new(novel_repo))),
-        chapter_repo: Arc::new(RwLock::new(Box::new(chapter_repo))),
-        chapter_version_repo: Arc::new(RwLock::new(Box::new(chapter_version_repo))),
-        character_repo: Arc::new(RwLock::new(Box::new(character_repo))),
-        tag_repo: Arc::new(RwLock::new(Box::new(tag_repo))),
-        creation_state_repo: Arc::new(RwLock::new(Box::new(creation_state_repo))),
-        provider_repo: Arc::new(RwLock::new(Box::new(provider_repo))),
-        model_repo: Arc::new(RwLock::new(Box::new(model_repo))),
-        call_log_repo: Arc::new(RwLock::new(Box::new(call_log_repo))),
-        chapter_outline_repo: Arc::new(RwLock::new(Box::new(chapter_outline_repo))),
-        fetcher_registry: Arc::new(RwLock::new(fetcher_registry)),
-        action_router: action_router.clone(),
-        action_executor: Arc::new(ActionExecutor::new(
-            action_router.clone(),
-            Arc::new(AiService::new(
-                Arc::new(RwLock::new(Box::new(SqliteModelRepository::new(
-                    pool.clone(),
-                )))),
-                Arc::new(RwLock::new(Box::new(SqliteProviderRepository::new(
-                    pool.clone(),
-                )))),
-                Arc::new(RwLock::new(Box::new(SqliteAiCallLogRepository::new(
-                    pool.clone(),
-                )))),
-            )),
-            Arc::new(RwLock::new(Box::new(SqliteTagRepository::new(
-                pool.clone(),
-            )))),
-            Arc::new(RwLock::new(Box::new(SqliteNovelRepository::new(
-                pool.clone(),
-            )))),
-            Arc::new(RwLock::new(Box::new(SqliteCharacterRepository::new(
-                pool.clone(),
-            )))),
-            Arc::new(RwLock::new(Box::new(SqliteChapterRepository::new(
-                pool.clone(),
-            )))),
-            Arc::new(RwLock::new(Box::new(SqliteChapterOutlineRepository::new(
-                pool.clone(),
-            )))),
-        )),
-        template_manager,
-    };
     Builder::default()
-        .manage(state)
+        .setup(move |app| {
+            // 通过 AppHandle 解析模板目录（prod 态指向 resource_dir）
+            let handle = app.handle().clone();
+            let templates_base = match get_templates_base(&handle) {
+                Ok(p) => p,
+                Err(e) => {
+                    tracing::error!("解析模板基础目录失败: {}", e);
+                    return Err(Box::new(e));
+                }
+            };
+            let template_root = match get_template_root(&handle) {
+                Ok(p) => p,
+                Err(e) => {
+                    tracing::error!("解析 v2 模板目录失败: {}", e);
+                    return Err(Box::new(e));
+                }
+            };
+
+            // 初始化 Tera 模板管理器（AI v2）
+            let template_manager = match TemplateManager::new(&template_root) {
+                Ok(m) => {
+                    tracing::info!("Tera 模板管理器初始化成功，根目录：{:?}", template_root);
+                    Arc::new(m)
+                }
+                Err(e) => {
+                    tracing::error!("Tera 模板管理器初始化失败: {}", e);
+                    return Err(Box::new(e));
+                }
+            };
+
+            // AI v1 模板根（供 PromptTemplates 使用）
+            let templates_root_v1 = Arc::new(templates_base);
+
+            let pool = pool_for_setup.clone();
+            let action_router = action_router_for_setup.clone();
+
+            let state = AppState {
+                novel_repo: Arc::new(RwLock::new(Box::new(SqliteNovelRepository::new(
+                    pool.clone(),
+                )))),
+                chapter_repo: Arc::new(RwLock::new(Box::new(SqliteChapterRepository::new(
+                    pool.clone(),
+                )))),
+                chapter_version_repo: Arc::new(RwLock::new(Box::new(
+                    SqliteChapterVersionRepository::new(pool.clone()),
+                ))),
+                character_repo: Arc::new(RwLock::new(Box::new(SqliteCharacterRepository::new(
+                    pool.clone(),
+                )))),
+                tag_repo: Arc::new(RwLock::new(Box::new(SqliteTagRepository::new(
+                    pool.clone(),
+                )))),
+                creation_state_repo: Arc::new(RwLock::new(Box::new(
+                    SqliteCreationStateRepository::new(pool.clone()),
+                ))),
+                provider_repo: Arc::new(RwLock::new(Box::new(SqliteProviderRepository::new(
+                    pool.clone(),
+                )))),
+                model_repo: Arc::new(RwLock::new(Box::new(SqliteModelRepository::new(
+                    pool.clone(),
+                )))),
+                call_log_repo: Arc::new(RwLock::new(Box::new(SqliteAiCallLogRepository::new(
+                    pool.clone(),
+                )))),
+                chapter_outline_repo: Arc::new(RwLock::new(Box::new(
+                    SqliteChapterOutlineRepository::new(pool.clone()),
+                ))),
+                fetcher_registry: Arc::new(RwLock::new(FetcherRegistry::new())),
+                action_router: action_router.clone(),
+                action_executor: Arc::new(ActionExecutor::new(
+                    action_router.clone(),
+                    Arc::new(AiService::new(
+                        Arc::new(RwLock::new(Box::new(SqliteModelRepository::new(
+                            pool.clone(),
+                        )))),
+                        Arc::new(RwLock::new(Box::new(SqliteProviderRepository::new(
+                            pool.clone(),
+                        )))),
+                        Arc::new(RwLock::new(Box::new(SqliteAiCallLogRepository::new(
+                            pool.clone(),
+                        )))),
+                    )),
+                    Arc::new(RwLock::new(Box::new(SqliteTagRepository::new(
+                        pool.clone(),
+                    )))),
+                    Arc::new(RwLock::new(Box::new(SqliteNovelRepository::new(
+                        pool.clone(),
+                    )))),
+                    Arc::new(RwLock::new(Box::new(SqliteCharacterRepository::new(
+                        pool.clone(),
+                    )))),
+                    Arc::new(RwLock::new(Box::new(SqliteChapterRepository::new(
+                        pool.clone(),
+                    )))),
+                    Arc::new(RwLock::new(Box::new(SqliteChapterOutlineRepository::new(
+                        pool.clone(),
+                    )))),
+                    templates_root_v1,
+                )),
+                template_manager,
+            };
+
+            app.manage(state);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             create_novel,
             get_novel_by_id,

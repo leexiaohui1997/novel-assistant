@@ -2,6 +2,7 @@
 //
 // 负责执行 Action
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -39,6 +40,9 @@ pub struct ActionExecutor {
 
     /// 章节大纲仓储引用
     chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
+
+    /// 模板根目录（共享只读）
+    templates_root: Arc<PathBuf>,
 }
 
 impl ActionExecutor {
@@ -51,6 +55,7 @@ impl ActionExecutor {
         character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
         chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
         chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
+        templates_root: Arc<PathBuf>,
     ) -> Self {
         Self {
             router,
@@ -60,6 +65,7 @@ impl ActionExecutor {
             character_repo,
             chapter_repo,
             chapter_outline_repo,
+            templates_root,
         }
     }
 
@@ -107,6 +113,7 @@ impl ActionExecutor {
             self.character_repo.clone(),
             self.chapter_repo.clone(),
             self.chapter_outline_repo.clone(),
+            self.templates_root.clone(),
         );
 
         // 3. 如果提供了 model_id，添加到 context 中

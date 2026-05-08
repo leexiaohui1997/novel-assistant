@@ -76,7 +76,7 @@ impl ActionHandler for GenerateTitleAction {
         // 3. 使用 Tera 模板渲染提示词
         use crate::ai::prompts::{GenerateTitleContext, PromptTemplates};
 
-        let templates = PromptTemplates::new()
+        let templates = PromptTemplates::new(ctx.templates_root.as_path())
             .map_err(|e| ActionError::ExecutionFailed(format!("加载模板失败: {}", e)))?;
 
         let channel_name = input.channel.as_ref().map(|c| {

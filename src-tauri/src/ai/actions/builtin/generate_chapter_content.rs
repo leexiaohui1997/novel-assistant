@@ -74,6 +74,7 @@ impl ActionHandler for GenerateChapterContentAction {
         let target_word_count = read_target_word_count();
 
         let prompt = render_prompt(
+            ctx.templates_root.as_path(),
             &novel_info,
             &outline_info,
             &characters,
@@ -186,6 +187,7 @@ fn read_target_word_count() -> i64 {
 /// 渲染提示词
 #[allow(clippy::too_many_arguments)]
 fn render_prompt(
+    templates_root: &std::path::Path,
     novel_info: &context_helpers::NovelInfo,
     outline_info: &Option<context_helpers::ChapterOutlineInfo>,
     characters: &[crate::ai::prompts::CharacterInfo],
@@ -196,7 +198,7 @@ fn render_prompt(
     target_word_count: i64,
     user_feedback: &Option<String>,
 ) -> Result<String, ActionError> {
-    let templates = PromptTemplates::new()
+    let templates = PromptTemplates::new(templates_root)
         .map_err(|e| ActionError::ExecutionFailed(format!("加载模板失败: {}", e)))?;
 
     let prompt_context = GenerateChapterContentContext {
