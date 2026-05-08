@@ -17,5 +17,6 @@ pub use dto::{CreateConversationInput, InsertConversationMessageInput};
 pub use initializer::ConversationInitializer;
 pub use service::AiService;
 pub use template::{TemplateError, TemplateInstance, TemplateManager};
+pub use tools::builtin::SearchNovelTool;
 pub use tools::{AiTool, ToolRegistry};
 pub use types::{ConversationStatus, ConversationType, MessageType};

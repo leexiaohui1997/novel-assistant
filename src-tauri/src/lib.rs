@@ -18,6 +18,7 @@ use ai::actions::builtin::{
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
 use ai::service::AiService;
+use ai_v2::tools::builtin::SearchNovelTool;
 use ai_v2::{AiService as AiServiceV2, TemplateManager, ToolRegistry};
 use commands::action_commands::{execute_action, list_actions};
 use commands::ai_commands::test_model;
@@ -151,6 +152,14 @@ pub async fn run() {
 
             // 初始化 AI 工具注册中心（AI v2）
             let tool_registry = Arc::new(RwLock::new(ToolRegistry::new()));
+
+            // 注册内置工具
+            {
+                let mut registry = tool_registry.blocking_write();
+                registry.register(Arc::new(SearchNovelTool::new(Arc::new(RwLock::new(
+                    Box::new(SqliteNovelRepository::new(pool.clone())),
+                )))));
+            }
 
             // AI v1 模板根（供 PromptTemplates 使用）
             let templates_root_v1 = Arc::new(templates_base);

@@ -33,6 +33,12 @@ pub trait NovelRepository {
         params: &PaginationParams,
         options: &QueryOptions,
     ) -> Result<PaginatedResult<NovelWithTags>, DbError>;
+    async fn search_with_pagination(
+        &self,
+        keyword: Option<&str>,
+        params: &PaginationParams,
+        options: &QueryOptions,
+    ) -> Result<PaginatedResult<NovelWithTags>, DbError>;
     async fn find_by_id(&self, id: Uuid, options: &QueryOptions) -> Result<NovelWithTags, DbError>;
     async fn update(&self, id: Uuid, novel: &UpdateNovel) -> Result<Novel, DbError>;
     async fn delete(&self, id: Uuid) -> Result<(), DbError>;
@@ -239,6 +245,76 @@ impl NovelRepository for SqliteNovelRepository {
         };
 
         Ok(PaginatedResult { data, total })
+    }
+
+    /// 按书名模糊搜索并分页查询
+    async fn search_with_pagination(
+        &self,
+        keyword: Option<&str>,
+        params: &PaginationParams,
+        options: &QueryOptions,
+    ) -> Result<PaginatedResult<NovelWithTags>, DbError> {
+        let (count_sql, data_sql) = match keyword {
+            Some(_) => (
+                "SELECT COUNT(*) FROM novels WHERE title LIKE ?",
+                "SELECT * FROM novels WHERE title LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            ),
+            None => (
+                "SELECT COUNT(*) FROM novels",
+                "SELECT * FROM novels ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            ),
+        };
+
+        // 处理全量查询 (limit=0)
+        let effective_limit = if params.page_size == 0 {
+            i64::MAX
+        } else {
+            params.page_size
+        };
+        let offset = (params.page - 1) * params.page_size;
+
+        // 1. 查询总数
+        let total: (i64,) = if let Some(kw) = keyword {
+            sqlx::query_as(count_sql)
+                .bind(format!("%{}%", kw))
+                .fetch_one(&self.pool)
+                .await?
+        } else {
+            sqlx::query_as(count_sql).fetch_one(&self.pool).await?
+        };
+
+        // 2. 查询分页数据
+        let novels = if let Some(kw) = keyword {
+            sqlx::query_as::<_, Novel>(data_sql)
+                .bind(format!("%{}%", kw))
+                .bind(effective_limit)
+                .bind(offset)
+                .fetch_all(&self.pool)
+                .await?
+        } else {
+            sqlx::query_as::<_, Novel>(data_sql)
+                .bind(effective_limit)
+                .bind(offset)
+                .fetch_all(&self.pool)
+                .await?
+        };
+
+        let with_tags = if options.with_tags {
+            self.attach_tags(novels).await?
+        } else {
+            novels.into_iter().map(NovelWithTags::from_novel).collect()
+        };
+
+        let data = if options.with_stats {
+            self.attach_stats(with_tags).await?
+        } else {
+            with_tags
+        };
+
+        Ok(PaginatedResult {
+            data,
+            total: total.0,
+        })
     }
 
     /// 根据 ID 获取小说信息

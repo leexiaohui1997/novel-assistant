@@ -27,5 +27,5 @@ pub trait AiTool: Send + Sync {
     fn execute(
         &self,
         args: serde_json::Value,
-    ) -> Pin<Box<dyn Future<Output = Result<String, String>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = Result<String, String>> + Send>>;
 }
