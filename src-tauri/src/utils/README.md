@@ -142,6 +142,48 @@ let json = serde_json::to_string(&MessageType::System).unwrap();  // "\"system\"
 
 ---
 
+## Markdown 工具 (markdown.rs)
+
+### walk_code_blocks
+
+基于 `markdown-rs` 解析 Markdown AST，以回调方式遍历所有围栏代码块（`fenced code block`），并按调用方的筛选与处理闭包执行动作。
+文件：`src-tauri/src/utils/markdown.rs`
+
+**参数：**
+
+- `content: &str` - Markdown 源文本
+- `label_filter: impl Fn(&str, &str) -> bool` - 筛选闭包，入参依次为 `label`（`lang` 字段）、`info`（`meta` 字段），返回 `true` 时进入处理阶段
+- `content_handle: impl FnMut(&str, &str, &str)` - 处理闭包，入参依次为 `label`、`info`、`content`（代码块正文，不含围栏）
+
+**返回值：**
+
+- `Result<(), MarkdownWalkError>` - `Ok(())` 表示遍历完成；`Err` 表示解析阶段出错（包装为 `MarkdownWalkError::ParseFailed(String)`）
+
+**语义说明：**
+
+- 代码块无语言标记时，`label` 为 `""`；无 info string 时 `info` 为 `""`
+- 会递归进入 list、blockquote 等容器节点内部的代码块
+- 不处理行内代码（`InlineCode`）
+- `content` 为 `markdown-rs` 的 `value` 字段原始值，不 trim
+
+**使用示例：**
+
+````rust
+use crate::utils::markdown::walk_code_blocks;
+
+let md = "```outline\nHello\n```\n```other\nSkip\n```";
+let mut hits: Vec<String> = Vec::new();
+walk_code_blocks(
+    md,
+    |label, _info| label == "outline",
+    |_label, _info, content| hits.push(content.to_string()),
+)
+.unwrap();
+assert_eq!(hits, vec!["Hello".to_string()]);
+````
+
+---
+
 **使用说明：**
 
 - 使用 `use crate::string_enum;` 导入宏
