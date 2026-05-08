@@ -85,4 +85,20 @@ impl AiConversationRepository for SqliteAiConversationRepository {
 
         Ok(())
     }
+
+    async fn update_prompt(&self, id: Uuid, prompt: Option<&str>) -> Result<(), DbError> {
+        sqlx::query(
+            r#"
+            UPDATE ai_conversations
+            SET prompt = ?1
+            WHERE id = ?2
+            "#,
+        )
+        .bind(prompt)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }

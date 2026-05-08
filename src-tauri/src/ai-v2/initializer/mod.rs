@@ -102,6 +102,25 @@ pub(crate) async fn finalize_status(
     }
 }
 
+/// 将会话异常原因写入 `prompt` 字段
+///
+/// 该字段语义为"会话异常/状态原因"，在初始化失败时由本函数写入。
+/// 若底层仓储返回错误，则**仅记录日志**，不向上冒泡，避免覆盖业务原始错误。
+///
+/// # 参数
+/// - `service`: 当前 [`AiService`] 引用
+/// - `conversation_id`: 待更新的会话 ID
+/// - `reason`: 异常原因文本（通常来自 `initialize()` 返回的 `Err(String)`）
+async fn record_failure_reason(service: &AiService, conversation_id: Uuid, reason: &str) {
+    let repo = service.conversation_repo.read().await;
+    if let Err(e) = repo.update_prompt(conversation_id, Some(reason)).await {
+        error!(
+            "写入会话异常原因失败 (id={}, reason={}): {}",
+            conversation_id, reason, e
+        );
+    }
+}
+
 /// 会话初始化统一调度入口
 ///
 /// 由 `AiService::create_conversation` 在落库成功后立即调用。执行步骤：
@@ -138,6 +157,7 @@ pub(crate) async fn run_conversation_initializer(
             Ok(())
         }
         Err(e) => {
+            record_failure_reason(service, conversation.id, &e).await;
             finalize_status(service, conversation.id, ConversationStatus::Error).await;
             Err(e)
         }

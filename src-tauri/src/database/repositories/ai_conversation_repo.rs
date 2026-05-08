@@ -50,4 +50,18 @@ pub trait AiConversationRepository: Send + Sync {
     /// - `Ok(())`: 更新成功（即便目标会话不存在也视作成功，影响行数为 0）
     /// - `Err(DbError)`: 数据库错误
     async fn update_status(&self, id: Uuid, status: &str) -> Result<(), DbError>;
+
+    /// 更新会话的 `prompt` 字段（会话异常/状态原因）
+    ///
+    /// 字段语义为"会话异常原因"，通常在初始化失败等场景下，由业务层写入中文错误描述。
+    /// 允许写入 `NULL` 以清空已有原因。
+    ///
+    /// # 参数
+    /// - `id`: 会话 ID
+    /// - `prompt`: 目标原因文本；`None` 表示写入 `NULL`
+    ///
+    /// # 返回
+    /// - `Ok(())`: 更新成功（即便目标会话不存在也视作成功，影响行数为 0）
+    /// - `Err(DbError)`: 数据库错误
+    async fn update_prompt(&self, id: Uuid, prompt: Option<&str>) -> Result<(), DbError>;
 }
