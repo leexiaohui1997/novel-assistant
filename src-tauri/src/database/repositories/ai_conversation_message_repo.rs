@@ -40,4 +40,41 @@ pub trait AiConversationMessageRepository: Send + Sync {
     /// - `Ok(i64)`: 该会话当前的消息总数（可能为 0）
     /// - `Err(DbError)`: 数据库错误
     async fn count_by_conversation(&self, conversation_id: Uuid) -> Result<i64, DbError>;
+
+    /// 列出指定会话下的全部消息（按 `sequence` 升序）
+    ///
+    /// 典型用途：AI 驱动器在触发调用前加载完整历史以构造 prompt 消息列表。
+    ///
+    /// # 参数
+    /// - `conversation_id`: 会话 ID
+    ///
+    /// # 返回
+    /// - `Ok(Vec<AiConversationMessage>)`: 该会话的全部消息（可能为空数组）
+    /// - `Err(DbError)`: 数据库错误
+    async fn list_by_conversation(
+        &self,
+        conversation_id: Uuid,
+    ) -> Result<Vec<AiConversationMessage>, DbError>;
+
+    /// 事务版"assistant 消息收尾"
+    ///
+    /// 在**同一个数据库事务**内完成以下三件事，任一步失败则整体回滚：
+    /// 1. INSERT 一条新的会话消息（通常为 `MessageType::Assistant`）
+    /// 2. UPDATE 所属会话 `ai_conversations` 的 `last_message_at = <新消息 created_at>`
+    /// 3. UPDATE 所属会话 `ai_conversations` 的 `status = <conversation_status>`
+    ///
+    /// 典型用途：AI 驱动器在收到 AI 回复后，以原子方式写入回复并把会话置为 `Completed`。
+    ///
+    /// # 参数
+    /// - `payload`: 新消息的创建 DTO（`id` / `sequence` 由上层预先生成）
+    /// - `conversation_status`: 新的会话状态字符串（如 `"Completed"`）
+    ///
+    /// # 返回
+    /// - `Ok(AiConversationMessage)`: 新插入的完整消息实体
+    /// - `Err(DbError)`: 任一步数据库错误，事务已回滚
+    async fn finalize_assistant_turn(
+        &self,
+        payload: CreateAiConversationMessage,
+        conversation_status: &str,
+    ) -> Result<AiConversationMessage, DbError>;
 }

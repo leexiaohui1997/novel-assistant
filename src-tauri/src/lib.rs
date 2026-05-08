@@ -18,7 +18,7 @@ use ai::actions::builtin::{
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
 use ai::service::AiService;
-use ai_v2::TemplateManager;
+use ai_v2::{AiService as AiServiceV2, TemplateManager};
 use commands::action_commands::{execute_action, list_actions};
 use commands::ai_commands::test_model;
 use commands::chapter_commands::{
@@ -50,12 +50,14 @@ use commands::tokens_dashboard_commands::{
 use config::paths::{get_template_root, get_templates_base};
 use database::pool::init_pool;
 use database::repositories::{
-    AiCallLogRepository, ChapterOutlineRepository, ChapterRepository, ChapterVersionRepository,
-    CharacterRepository, CreationStateRepository, ModelRepository, NovelRepository,
-    ProviderRepository, SqliteAiCallLogRepository, SqliteChapterOutlineRepository,
-    SqliteChapterRepository, SqliteChapterVersionRepository, SqliteCharacterRepository,
-    SqliteCreationStateRepository, SqliteModelRepository, SqliteNovelRepository,
-    SqliteProviderRepository, SqliteTagRepository, TagRepository,
+    AiCallLogRepository, AiConversationMessageRepository, AiConversationRepository,
+    ChapterOutlineRepository, ChapterRepository, ChapterVersionRepository, CharacterRepository,
+    CreationStateRepository, ModelRepository, NovelRepository, ProviderRepository,
+    SqliteAiCallLogRepository, SqliteAiConversationMessageRepository,
+    SqliteAiConversationRepository, SqliteChapterOutlineRepository, SqliteChapterRepository,
+    SqliteChapterVersionRepository, SqliteCharacterRepository, SqliteCreationStateRepository,
+    SqliteModelRepository, SqliteNovelRepository, SqliteProviderRepository, SqliteTagRepository,
+    TagRepository,
 };
 use tauri::{Builder, Manager};
 
@@ -70,12 +72,17 @@ pub struct AppState {
     pub model_repo: Arc<RwLock<Box<dyn ModelRepository + Send + Sync>>>,
     pub call_log_repo: Arc<RwLock<Box<dyn AiCallLogRepository + Send + Sync>>>,
     pub chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
+    pub ai_conversation_repo: Arc<RwLock<Box<dyn AiConversationRepository + Send + Sync>>>,
+    pub ai_conversation_message_repo:
+        Arc<RwLock<Box<dyn AiConversationMessageRepository + Send + Sync>>>,
     pub fetcher_registry: Arc<RwLock<FetcherRegistry>>,
     // AI Actions 系统
     pub action_router: Arc<RwLock<ActionRouter>>,
     pub action_executor: Arc<ActionExecutor>,
     // Tera 模板管理（AI v2）
     pub template_manager: Arc<TemplateManager>,
+    // AI 服务（v2）
+    pub ai_service: Arc<AiServiceV2>,
 }
 
 pub async fn run() {
@@ -146,6 +153,44 @@ pub async fn run() {
             let pool = pool_for_setup.clone();
             let action_router = action_router_for_setup.clone();
 
+            // 共享的 v2 会话 / 会话消息仓储（v2 AiService 与未来 commands 复用）
+            let ai_conversation_repo: Arc<RwLock<Box<dyn AiConversationRepository + Send + Sync>>> =
+                Arc::new(RwLock::new(Box::new(SqliteAiConversationRepository::new(
+                    pool.clone(),
+                ))));
+            let ai_conversation_message_repo: Arc<
+                RwLock<Box<dyn AiConversationMessageRepository + Send + Sync>>,
+            > = Arc::new(RwLock::new(Box::new(
+                SqliteAiConversationMessageRepository::new(pool.clone()),
+            )));
+
+            // 共享的 v1 AI 服务（ActionExecutor 与 v2 AiService 复用，避免多份实例）
+            let v1_ai_service = Arc::new(AiService::new(
+                Arc::new(RwLock::new(Box::new(SqliteModelRepository::new(
+                    pool.clone(),
+                )))),
+                Arc::new(RwLock::new(Box::new(SqliteProviderRepository::new(
+                    pool.clone(),
+                )))),
+                Arc::new(RwLock::new(Box::new(SqliteAiCallLogRepository::new(
+                    pool.clone(),
+                )))),
+            ));
+
+            // v2 AI 服务（新增）
+            let ai_service_v2 = Arc::new(AiServiceV2::new(
+                ai_conversation_repo.clone(),
+                ai_conversation_message_repo.clone(),
+                Arc::new(RwLock::new(Box::new(SqliteModelRepository::new(
+                    pool.clone(),
+                )))),
+                Arc::new(RwLock::new(Box::new(SqliteProviderRepository::new(
+                    pool.clone(),
+                )))),
+                handle.clone(),
+                v1_ai_service.clone(),
+            ));
+
             let state = AppState {
                 novel_repo: Arc::new(RwLock::new(Box::new(SqliteNovelRepository::new(
                     pool.clone(),
@@ -177,21 +222,13 @@ pub async fn run() {
                 chapter_outline_repo: Arc::new(RwLock::new(Box::new(
                     SqliteChapterOutlineRepository::new(pool.clone()),
                 ))),
+                ai_conversation_repo: ai_conversation_repo.clone(),
+                ai_conversation_message_repo: ai_conversation_message_repo.clone(),
                 fetcher_registry: Arc::new(RwLock::new(FetcherRegistry::new())),
                 action_router: action_router.clone(),
                 action_executor: Arc::new(ActionExecutor::new(
                     action_router.clone(),
-                    Arc::new(AiService::new(
-                        Arc::new(RwLock::new(Box::new(SqliteModelRepository::new(
-                            pool.clone(),
-                        )))),
-                        Arc::new(RwLock::new(Box::new(SqliteProviderRepository::new(
-                            pool.clone(),
-                        )))),
-                        Arc::new(RwLock::new(Box::new(SqliteAiCallLogRepository::new(
-                            pool.clone(),
-                        )))),
-                    )),
+                    v1_ai_service.clone(),
                     Arc::new(RwLock::new(Box::new(SqliteTagRepository::new(
                         pool.clone(),
                     )))),
@@ -210,6 +247,7 @@ pub async fn run() {
                     templates_root_v1,
                 )),
                 template_manager,
+                ai_service: ai_service_v2,
             };
 
             app.manage(state);

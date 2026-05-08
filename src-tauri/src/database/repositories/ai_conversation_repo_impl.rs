@@ -50,6 +50,19 @@ impl AiConversationRepository for SqliteAiConversationRepository {
         .map_err(Into::into)
     }
 
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<AiConversation>, DbError> {
+        sqlx::query_as::<_, AiConversation>(
+            r#"
+            SELECT * FROM ai_conversations
+            WHERE id = ?1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Into::into)
+    }
+
     async fn touch_last_message_at(
         &self,
         conversation_id: Uuid,
@@ -94,6 +107,28 @@ impl AiConversationRepository for SqliteAiConversationRepository {
             WHERE id = ?2
             "#,
         )
+        .bind(prompt)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    async fn update_status_and_prompt(
+        &self,
+        id: Uuid,
+        status: &str,
+        prompt: Option<&str>,
+    ) -> Result<(), DbError> {
+        sqlx::query(
+            r#"
+            UPDATE ai_conversations
+            SET status = ?1, prompt = ?2
+            WHERE id = ?3
+            "#,
+        )
+        .bind(status)
         .bind(prompt)
         .bind(id)
         .execute(&self.pool)
