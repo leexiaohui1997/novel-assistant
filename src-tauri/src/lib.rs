@@ -187,7 +187,6 @@ pub async fn run() {
                 Arc::new(RwLock::new(Box::new(SqliteProviderRepository::new(
                     pool.clone(),
                 )))),
-                handle.clone(),
                 v1_ai_service.clone(),
             ));
 

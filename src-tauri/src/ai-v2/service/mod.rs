@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use tauri::AppHandle;
 use tokio::sync::RwLock;
 
 use crate::ai::service::AiService as V1AiService;
@@ -36,9 +35,6 @@ pub struct AiService {
     /// AI 供应商仓储
     pub(crate) provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
 
-    /// Tauri 应用句柄（事件派发使用）
-    pub(crate) app_handle: AppHandle,
-
     /// v1 AI 服务共享句柄（复用 `chat` 方法）
     pub(crate) v1_ai_service: Arc<V1AiService>,
 }
@@ -58,7 +54,6 @@ impl AiService {
         message_repo: Arc<RwLock<Box<dyn AiConversationMessageRepository + Send + Sync>>>,
         model_repo: Arc<RwLock<Box<dyn ModelRepository + Send + Sync>>>,
         provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
-        app_handle: AppHandle,
         v1_ai_service: Arc<V1AiService>,
     ) -> Self {
         Self {
@@ -66,7 +61,6 @@ impl AiService {
             message_repo,
             model_repo,
             provider_repo,
-            app_handle,
             v1_ai_service,
         }
     }

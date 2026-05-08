@@ -15,8 +15,6 @@
 //! - "状态已被改为非 Computing" 分支**不触发**异常路径（视为用户主动中止）
 //! - 事件名为 `AiConversation/Response/<conversation_id>`，前端按会话 ID 精确监听
 
-use serde_json::json;
-use tauri::Emitter;
 use uuid::Uuid;
 
 use crate::ai::types::{AiRequestData, Message, MessageRole};
@@ -28,13 +26,10 @@ use crate::database::models::ai_conversation_message::{
 use super::super::types::{ConversationStatus, MessageType};
 use super::AiService;
 
-/// 前端事件频道名前缀（完整事件名为 `AiConversation/Response/<conversation_id>`）
-const EVENT_CHANNEL_PREFIX: &str = "AiConversation/Response";
-
-/// 根据会话 ID 生成完整事件名
-fn event_name_for(conversation_id: Uuid) -> String {
-    format!("{}/{}", EVENT_CHANNEL_PREFIX, conversation_id)
-}
+/// 成功回调函数类型
+type OnSuccessCallback = Box<dyn FnOnce(AiConversationMessage) + Send>;
+/// 错误回调函数类型
+type OnErrorCallback = Box<dyn FnOnce(String) + Send>;
 
 impl AiService {
     /// 驱动一次 AI 响应流程
@@ -42,6 +37,8 @@ impl AiService {
     /// # 参数
     /// - `conversation_id`: 会话 ID
     /// - `model_id`: 模型 ID（v2 数据层 ID）
+    /// - `on_success`: 可选的成功回调，接收新建的 assistant 消息实体
+    /// - `on_error`: 可选的错误回调，接收中文错误描述
     ///
     /// # 返回
     /// - `Ok(AiConversationMessage)`: 新建的 `assistant` 消息实体
@@ -50,6 +47,8 @@ impl AiService {
         &self,
         conversation_id: Uuid,
         model_id: Uuid,
+        on_success: Option<OnSuccessCallback>,
+        on_error: Option<OnErrorCallback>,
     ) -> Result<AiConversationMessage, String> {
         let (_conversation, messages) = self.validate_conversation(conversation_id).await?;
         self.begin_computing(conversation_id).await?;
@@ -59,14 +58,21 @@ impl AiService {
             .await
         {
             Ok(DriveOutcome::Success(message)) => {
-                self.emit_ok_event(conversation_id, &message);
+                if let Some(callback) = on_success {
+                    callback(message.clone());
+                }
                 Ok(message)
             }
             Ok(DriveOutcome::Aborted(err)) => {
                 // 状态已被外部改为非 Computing：不置 Error、不派发 error 事件
                 Err(err)
             }
-            Err(err) => Err(self.handle_failure(conversation_id, err).await),
+            Err(err) => {
+                if let Some(callback) = on_error {
+                    callback(err.clone());
+                }
+                Err(self.handle_failure(conversation_id, err).await)
+            }
         }
     }
 
@@ -214,22 +220,9 @@ impl AiService {
             .map_err(|e| format!("写入 AI 响应并完成会话失败: {}", e))
     }
 
-    /// 需求 7：成功事件派发（emit 失败只记录日志，不影响业务成功结果）
-    fn emit_ok_event(&self, conversation_id: Uuid, message: &AiConversationMessage) {
-        let event_name = event_name_for(conversation_id);
-        let payload = json!({
-            "data": message,
-            "status": "ok",
-        });
-        if let Err(e) = self.app_handle.emit(&event_name, payload) {
-            tracing::error!("派发 AI 响应成功事件失败 ({}): {}", event_name, e);
-        }
-    }
-
     /// 需求 8：统一异常处理器
     ///
     /// - 原子把 `status = Error`、`prompt = <err>`
-    /// - 派发 `status=error` 事件
     /// - 返回原始错误文本，主入口据此冒泡
     async fn handle_failure(&self, conversation_id: Uuid, err: String) -> String {
         let repo = self.conversation_repo.read().await;
@@ -245,20 +238,7 @@ impl AiService {
         }
         drop(repo);
 
-        self.emit_error_event(conversation_id, &err);
         err
-    }
-
-    /// 需求 8：异常事件派发（emit 失败只记录日志）
-    fn emit_error_event(&self, conversation_id: Uuid, err: &str) {
-        let event_name = event_name_for(conversation_id);
-        let payload = json!({
-            "msg": err,
-            "status": "error",
-        });
-        if let Err(e) = self.app_handle.emit(&event_name, payload) {
-            tracing::error!("派发 AI 响应异常事件失败 ({}): {}", event_name, e);
-        }
     }
 }
 
