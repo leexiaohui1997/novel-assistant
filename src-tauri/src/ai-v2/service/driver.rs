@@ -23,6 +23,7 @@ use crate::database::models::ai_conversation_message::{
     AiConversationMessage, CreateAiConversationMessage,
 };
 
+use super::super::tools::generate_tool_prompt;
 use super::super::types::{ConversationStatus, MessageType};
 use super::AiService;
 
@@ -136,7 +137,7 @@ impl AiService {
         model_id: Uuid,
         history: Vec<AiConversationMessage>,
     ) -> Result<DriveOutcome, String> {
-        let ai_response = self.call_ai(model_id, &history).await?;
+        let ai_response = self.call_ai(conversation_id, model_id, &history).await?;
 
         if !self.still_computing(conversation_id).await? {
             return Ok(DriveOutcome::Aborted(
@@ -153,13 +154,42 @@ impl AiService {
         Ok(DriveOutcome::Success(message))
     }
 
+    /// 注入工具提示词到消息列表头部
+    async fn build_tool_system_prompt(
+        &self,
+        conversation_id: Uuid,
+    ) -> Result<Option<String>, String> {
+        let repo = self.conversation_repo.read().await;
+        let registry_guard = self.tool_registry.read().await;
+        crate::ai_v2::service::driver::build_tool_system_prompt(
+            conversation_id,
+            repo.as_ref(),
+            &registry_guard,
+            &self.template_manager,
+        )
+        .await
+    }
+
     /// 复用 v1 [`crate::ai::service::AiService::chat`] 完成实际 AI 调用
     async fn call_ai(
         &self,
+        conversation_id: Uuid,
         model_id: Uuid,
         history: &[AiConversationMessage],
     ) -> Result<AiChatOutput, String> {
-        let messages = build_messages(history)?;
+        let mut messages = build_messages(history)?;
+
+        // 注入工具提示词
+        if let Some(tool_prompt) = self.build_tool_system_prompt(conversation_id).await? {
+            messages.insert(
+                0,
+                Message {
+                    role: MessageRole::System,
+                    content: tool_prompt,
+                },
+            );
+        }
+
         let request = AiRequestData {
             model_id: Some(model_id),
             messages,
@@ -320,6 +350,28 @@ fn extract_usage(response: &serde_json::Value) -> (i32, i32) {
 /// 根据当前历史消息数量计算新 assistant 消息的 `sequence`（count + 1）
 fn next_sequence_of(history: &[AiConversationMessage]) -> i64 {
     history.len() as i64 + 1
+}
+
+/// 构建工具系统提示词
+async fn build_tool_system_prompt(
+    conversation_id: Uuid,
+    conversation_repo: &dyn crate::database::repositories::AiConversationRepository,
+    tool_registry: &crate::ai_v2::tools::ToolRegistry,
+    template_manager: &crate::ai_v2::template::TemplateManager,
+) -> Result<Option<String>, String> {
+    let prompt = generate_tool_prompt(
+        conversation_id,
+        conversation_repo,
+        tool_registry,
+        template_manager,
+    )
+    .await?;
+
+    if prompt.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(prompt))
+    }
 }
 
 /// 组装 `CreateAiConversationMessage`（assistant 类型）

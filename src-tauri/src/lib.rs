@@ -202,6 +202,8 @@ pub async fn run() {
                     pool.clone(),
                 )))),
                 v1_ai_service.clone(),
+                tool_registry.clone(),
+                template_manager.clone(),
             ));
 
             let state = AppState {

@@ -62,13 +62,29 @@ pub trait ConversationInitializer: Send + Sync {
         service: &AiService,
         conversation: &AiConversation,
     ) -> Result<(), String>;
+
+    /// 是否在该会话类型中启用 AI 工具功能
+    ///
+    /// 默认返回 `false`。
+    fn is_tool_enabled(&self) -> bool {
+        false
+    }
+
+    /// 获取该会话类型允许使用的工具白名单
+    ///
+    /// - 返回 `None`：表示如果启用了工具，则允许使用所有已注册的工具。
+    /// - 返回 `Some(vec)`：表示仅允许使用列表中的工具名称。
+    /// - 若 `is_tool_enabled()` 为 `false`，此方法的返回值将被忽略。
+    fn allowed_tools(&self) -> Option<Vec<String>> {
+        None
+    }
 }
 
 /// 根据会话类型路由到对应的初始化器实例
 ///
 /// 将 `match` 分支独立封装，确保 [`run_conversation_initializer`] 自身的圈复杂度保持 < 5。
 /// 新增会话类型时，仅需在此处追加一条 `match` 分支。
-fn resolve_initializer(ct: ConversationType) -> &'static dyn ConversationInitializer {
+pub(crate) fn resolve_initializer(ct: ConversationType) -> &'static dyn ConversationInitializer {
     match ct {
         ConversationType::Default => &DefaultInitializer,
         ConversationType::NovelProfile => &NovelProfileInitializer,

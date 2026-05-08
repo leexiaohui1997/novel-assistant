@@ -39,4 +39,9 @@ impl ToolRegistry {
     pub fn list_tools(&self) -> Vec<Arc<dyn AiTool>> {
         self.tools.values().cloned().collect()
     }
+
+    /// 迭代器，遍历所有已注册的工具
+    pub fn iter(&self) -> impl Iterator<Item = &Arc<dyn AiTool>> {
+        self.tools.values()
+    }
 }

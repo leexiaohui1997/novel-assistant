@@ -1,0 +1,19 @@
+你可以使用以下工具来辅助完成任务：
+
+{% for tool in tools %}
+## {{ tool.name }}
+{{ tool.description }}
+参数结构: {{ tool.schema | json_encode(pretty=true) }}
+
+{% endfor %}
+请根据用户需求选择合适的工具，并严格按照工具要求的参数格式进行调用。
+
+调用工具时请使用以下语法：
+```tools-use 工具名称
+{参数 JSON}
+```
+
+工具响应将按以下格式返回：
+```tools-response 工具名称
+{响应内容}
+```

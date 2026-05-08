@@ -5,8 +5,10 @@
 pub mod builtin;
 mod context;
 mod registry;
+mod service;
 mod traits;
 
 pub use context::ToolContext;
 pub use registry::ToolRegistry;
+pub use service::generate_tool_prompt;
 pub use traits::AiTool;

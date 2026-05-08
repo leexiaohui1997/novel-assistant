@@ -29,4 +29,12 @@ impl ConversationInitializer for NovelWorkbenchInitializer {
         // 占位实现：当前无需任何初始化副作用
         Ok(())
     }
+
+    fn is_tool_enabled(&self) -> bool {
+        true
+    }
+
+    fn allowed_tools(&self) -> Option<Vec<String>> {
+        Some(vec![])
+    }
 }

@@ -1,7 +1,9 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use super::tools::ToolRegistry;
 use crate::ai::service::AiService as V1AiService;
+use crate::ai_v2::template::TemplateManager;
 use crate::database::repositories::{
     AiConversationMessageRepository, AiConversationRepository, ModelRepository, ProviderRepository,
 };
@@ -37,6 +39,12 @@ pub struct AiService {
 
     /// v1 AI 服务共享句柄（复用 `chat` 方法）
     pub(crate) v1_ai_service: Arc<V1AiService>,
+
+    /// 工具注册表
+    pub(crate) tool_registry: Arc<RwLock<ToolRegistry>>,
+
+    /// Tera 模板管理器
+    pub(crate) template_manager: Arc<TemplateManager>,
 }
 
 impl AiService {
@@ -55,6 +63,8 @@ impl AiService {
         model_repo: Arc<RwLock<Box<dyn ModelRepository + Send + Sync>>>,
         provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
         v1_ai_service: Arc<V1AiService>,
+        tool_registry: Arc<RwLock<ToolRegistry>>,
+        template_manager: Arc<TemplateManager>,
     ) -> Self {
         Self {
             conversation_repo,
@@ -62,6 +72,8 @@ impl AiService {
             model_repo,
             provider_repo,
             v1_ai_service,
+            tool_registry,
+            template_manager,
         }
     }
 }
