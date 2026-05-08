@@ -1,4 +1,6 @@
 pub mod ai;
+#[path = "ai-v2/mod.rs"]
+pub mod ai_v2;
 pub mod commands;
 pub mod config;
 pub mod database;
