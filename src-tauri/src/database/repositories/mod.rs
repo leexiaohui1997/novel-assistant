@@ -1,5 +1,7 @@
 pub mod ai_call_log_repo;
 pub mod ai_call_log_repo_impl;
+pub mod ai_conversation_message_repo;
+pub mod ai_conversation_message_repo_impl;
 pub mod ai_conversation_repo;
 pub mod ai_conversation_repo_impl;
 pub mod chapter_outline_repo;
@@ -15,6 +17,8 @@ pub mod tag_repo;
 
 pub use ai_call_log_repo::AiCallLogRepository;
 pub use ai_call_log_repo_impl::SqliteAiCallLogRepository;
+pub use ai_conversation_message_repo::AiConversationMessageRepository;
+pub use ai_conversation_message_repo_impl::SqliteAiConversationMessageRepository;
 pub use ai_conversation_repo::AiConversationRepository;
 pub use ai_conversation_repo_impl::SqliteAiConversationRepository;
 pub use chapter_outline_repo::ChapterOutlineRepository;

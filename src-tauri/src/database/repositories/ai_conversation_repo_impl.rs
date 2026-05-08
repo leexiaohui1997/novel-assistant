@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
@@ -45,5 +46,25 @@ impl AiConversationRepository for SqliteAiConversationRepository {
         .fetch_one(&self.pool)
         .await
         .map_err(Into::into)
+    }
+
+    async fn touch_last_message_at(
+        &self,
+        conversation_id: Uuid,
+        at: DateTime<Utc>,
+    ) -> Result<(), DbError> {
+        sqlx::query(
+            r#"
+            UPDATE ai_conversations
+            SET last_message_at = ?1
+            WHERE id = ?2
+            "#,
+        )
+        .bind(at)
+        .bind(conversation_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 }

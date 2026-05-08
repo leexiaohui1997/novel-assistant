@@ -25,3 +25,22 @@ impl Default for ConversationType {
         ConversationType::Default
     }
 }
+
+string_enum! {
+    lower_case;
+    /// 会话消息类型
+    ///
+    /// 字面量与主流大模型 API 的 `role` 字段对齐：`"system"` / `"user"` / `"assistant"`。
+    /// 序列化、反序列化、`Display`、`FromStr` 全部统一为全小写。
+    ///
+    /// 成员说明：
+    /// - `System`：系统提示（通常作为会话开头的角色 / 设定）
+    /// - `User`：用户发言
+    /// - `Assistant`：AI 助手回复
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum MessageType {
+        System,
+        User,
+        Assistant,
+    }
+}

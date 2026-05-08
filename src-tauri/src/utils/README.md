@@ -92,13 +92,18 @@ async fn find_users(pool: &SqlitePool, page: i64, page_size: i64) -> Result<Pagi
 为枚举自动生成字符串转换相关的实现（as_str、Display、FromStr）
 文件：`src-tauri/src/utils/macros.rs`
 
-**使用示例：**
+**两种模式：**
+
+- **默认模式**：生成 `as_str` / `Display` / `FromStr`，字面量 = 成员名原样（如 `Active → "Active"`）。**不**生成 serde 实现，serde 由使用方自行 `#[derive]` 并用 `#[serde(rename_all = ...)]` 控制。
+- **`lower_case` 模式**：在宏体首行写 `lower_case;`，统一按**全小写成员名**生成 `as_str` / `Display` / `FromStr` / `Serialize` / `Deserialize` 五项。适用于要与外部契约（如大模型 API 的 `role` 字段 `"system"` / `"user"` / `"assistant"`）严格对齐的枚举。**该模式下禁止再自行 `#[derive(Serialize, Deserialize)]`**，否则会与宏生成的 `impl` 冲突。
+
+**使用示例（默认模式）：**
 
 ```rust
 use crate::string_enum;
 
 string_enum! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
     pub enum Status {
         Active,
         Inactive,
@@ -110,6 +115,29 @@ let status = Status::Active;
 println!("{}", status);           // 输出: Active
 println!("{}", status.as_str());  // 输出: Active
 let parsed: Status = "Active".parse().unwrap();
+```
+
+**使用示例（`lower_case` 模式）：**
+
+```rust
+use crate::string_enum;
+
+string_enum! {
+    lower_case;
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum MessageType {
+        System,
+        User,
+        Assistant,
+    }
+}
+
+// 字面量全部小写：Display / FromStr / serde 统一口径
+let mt = MessageType::Assistant;
+assert_eq!(mt.as_str(), "assistant");
+assert_eq!(mt.to_string(), "assistant");
+let parsed: MessageType = "user".parse().unwrap();
+let json = serde_json::to_string(&MessageType::System).unwrap();  // "\"system\""
 ```
 
 ---
