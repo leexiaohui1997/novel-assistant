@@ -39,4 +39,15 @@ pub trait AiConversationRepository: Send + Sync {
         conversation_id: Uuid,
         at: DateTime<Utc>,
     ) -> Result<(), DbError>;
+
+    /// 更新会话的 `status` 字段
+    ///
+    /// # 参数
+    /// - `id`: 会话 ID
+    /// - `status`: 目标状态字符串（由枚举 `.to_string()` 得到，例如 `"Ready"` / `"Error"`）
+    ///
+    /// # 返回
+    /// - `Ok(())`: 更新成功（即便目标会话不存在也视作成功，影响行数为 0）
+    /// - `Err(DbError)`: 数据库错误
+    async fn update_status(&self, id: Uuid, status: &str) -> Result<(), DbError>;
 }

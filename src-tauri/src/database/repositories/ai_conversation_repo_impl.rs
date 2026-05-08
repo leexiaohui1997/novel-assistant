@@ -69,4 +69,20 @@ impl AiConversationRepository for SqliteAiConversationRepository {
 
         Ok(())
     }
+
+    async fn update_status(&self, id: Uuid, status: &str) -> Result<(), DbError> {
+        sqlx::query(
+            r#"
+            UPDATE ai_conversations
+            SET status = ?1
+            WHERE id = ?2
+            "#,
+        )
+        .bind(status)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }
