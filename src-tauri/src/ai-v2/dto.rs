@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::types::{ConversationType, MessageType};
+use super::types::{ConversationStatus, ConversationType, MessageType};
 
 /// 创建会话的入参 DTO
 ///
 /// 支持从前端或业务层传入。未指定的字段将使用默认值：
 /// - `conversation_type` 默认为 `ConversationType::Default`
+/// - `status` 默认为 `ConversationStatus::Init`
 /// - `is_pinned` 默认为 `false`
-/// - `title` / `conversation_params` / `remark` 默认为 `None`
+/// - `title` / `conversation_params` / `remark` / `prompt` 默认为 `None`
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct CreateConversationInput {
@@ -23,6 +24,12 @@ pub struct CreateConversationInput {
 
     /// 是否置顶（默认 `false`）
     pub is_pinned: bool,
+
+    /// 会话状态（默认 `Init`）
+    pub status: ConversationStatus,
+
+    /// 会话提示（可选，非结构化文本）
+    pub prompt: Option<String>,
 
     /// 备注（可选）
     pub remark: Option<String>,

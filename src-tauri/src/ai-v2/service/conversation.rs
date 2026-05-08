@@ -22,6 +22,8 @@ impl AiService {
             conversation_params: input.conversation_params,
             is_pinned: input.is_pinned,
             remark: input.remark,
+            status: input.status.to_string(),
+            prompt: input.prompt,
         };
 
         let repo = self.conversation_repo.read().await;

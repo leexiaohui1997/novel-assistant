@@ -27,6 +27,37 @@ impl Default for ConversationType {
 }
 
 string_enum! {
+    /// 会话状态
+    ///
+    /// 用于描述一次会话在业务流程中的生命周期阶段，序列化到数据库与前端时
+    /// 均使用枚举成员名（如 `"Init"`、`"Computing"`），保持与 `ConversationType` 风格一致。
+    ///
+    /// 成员说明：
+    /// - `Init`：初始化（默认值，会话刚创建，尚未进入可交互状态）
+    /// - `Ready`：已就绪（可正常进行用户交互）
+    /// - `Computing`：计算中（正在调用模型 / 执行任务）
+    /// - `Completed`：已完成（本轮业务目标已达成）
+    /// - `Terminated`：已终止（被用户主动终止）
+    /// - `Error`：异常（发生错误且未恢复）
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    pub enum ConversationStatus {
+        Init,
+        Ready,
+        Computing,
+        Completed,
+        Terminated,
+        Error,
+    }
+}
+
+impl Default for ConversationStatus {
+    /// 默认会话状态为 `Init`
+    fn default() -> Self {
+        ConversationStatus::Init
+    }
+}
+
+string_enum! {
     lower_case;
     /// 会话消息类型
     ///

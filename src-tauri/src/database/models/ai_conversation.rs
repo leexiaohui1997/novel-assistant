@@ -29,6 +29,14 @@ pub struct AiConversation {
     /// 备注（允许为空）
     pub remark: Option<String>,
 
+    /// 会话状态（业务语义字符串，不做数据库枚举约束）
+    ///
+    /// 对应枚举定义见 [`crate::ai_v2::ConversationStatus`]，默认 `"Init"`
+    pub status: String,
+
+    /// 会话提示（TEXT，会话级别的非结构化提示文本，允许为空）
+    pub prompt: Option<String>,
+
     /// 创建时间
     pub created_at: DateTime<Utc>,
 
@@ -59,4 +67,10 @@ pub struct CreateAiConversation {
 
     /// 备注（可选）
     pub remark: Option<String>,
+
+    /// 会话状态字符串（如 `"Init"`），由 Service 层从枚举转换而来
+    pub status: String,
+
+    /// 会话提示（可选，非结构化文本）
+    pub prompt: Option<String>,
 }
