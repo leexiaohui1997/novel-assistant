@@ -1,5 +1,7 @@
 {
   "identifier": "default",
   "description": "小说创作助手默认权限",
-  "permissions": ["core:default"]
+  "windows": ["*"],
+  "webviews": ["*"],
+  "permissions": ["core:default", "core:event:default"]
 }

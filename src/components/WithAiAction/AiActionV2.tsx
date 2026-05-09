@@ -117,5 +117,5 @@ export function WithAiAction<T = unknown>({
     [],
   )
 
-  return <WithAiActionBase {...props} execute={execute} />
+  return <WithAiActionBase showFeedback={true} {...props} execute={execute} />
 }

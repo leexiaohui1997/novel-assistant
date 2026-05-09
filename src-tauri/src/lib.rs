@@ -18,7 +18,7 @@ use ai::actions::builtin::{
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
 use ai::service::AiService;
-use ai_v2::tools::builtin::SearchNovelTool;
+use ai_v2::tools::builtin::{SearchNovelTool, SearchTagsTool};
 use ai_v2::{AiService as AiServiceV2, SkillRegistry, TemplateManager, ToolRegistry};
 use commands::action_commands::{execute_action, list_actions};
 use commands::ai_commands::test_model;
@@ -158,6 +158,9 @@ pub async fn run() {
             let mut tool_registry_inner = ToolRegistry::new();
             tool_registry_inner.register(Arc::new(SearchNovelTool::new(Arc::new(RwLock::new(
                 Box::new(SqliteNovelRepository::new(pool.clone())),
+            )))));
+            tool_registry_inner.register(Arc::new(SearchTagsTool::new(Arc::new(RwLock::new(
+                Box::new(SqliteTagRepository::new(pool.clone())),
             )))));
             let tool_registry = Arc::new(RwLock::new(tool_registry_inner));
 

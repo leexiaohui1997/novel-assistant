@@ -4,7 +4,6 @@ use tokio::sync::RwLock;
 use serde_json::json;
 
 use crate::database::repositories::{NovelRepository, QueryOptions};
-use crate::utils::formatters::{format_channel, format_tags};
 use crate::utils::pagination::PaginationParams;
 
 use super::super::traits::AiTool;
@@ -80,22 +79,7 @@ impl AiTool for SearchNovelTool {
                 .await
                 .map_err(|e| format!("查询小说失败: {}", e))?;
 
-            // 格式化返回数据
-            let formatted_data: Vec<serde_json::Value> = result
-                .data
-                .iter()
-                .map(|nwt| {
-                    json!({
-                        "id": nwt.novel.id,
-                        "title": nwt.novel.title,
-                        "channel": format_channel(&nwt.novel.target_reader),
-                        "tags": format_tags(&nwt.tags),
-                        "description": nwt.novel.description
-                    })
-                })
-                .collect();
-
-            serde_json::to_string(&formatted_data).map_err(|e| format!("序列化结果失败: {}", e))
+            serde_json::to_string(&result).map_err(|e| format!("序列化结果失败: {}", e))
         })
     }
 }

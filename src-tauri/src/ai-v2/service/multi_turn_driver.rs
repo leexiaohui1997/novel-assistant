@@ -386,7 +386,7 @@ impl AiService {
         Err(err)
     }
 
-    /// 步骤 7：把本轮回喂结果落库为 system 消息
+    /// 步骤 7：把本轮回喂结果落库为 user 消息
     ///
     /// 顺序：先技能（`ext_1 = "skills"`）后工具（`ext_1 = "tools"`），与首轮系统提示注入顺序保持一致。
     async fn persist_feedback_messages(
@@ -407,7 +407,7 @@ impl AiService {
         Ok(())
     }
 
-    /// 插入一条回喂 system 消息
+    /// 插入一条回喂 user 消息
     async fn insert_feedback_message(
         &self,
         conversation_id: Uuid,
@@ -416,7 +416,7 @@ impl AiService {
     ) -> Result<(), String> {
         let input = InsertConversationMessageInput {
             conversation_id,
-            message_type: MessageType::System,
+            message_type: MessageType::User,
             content,
             thinking_content: None,
             input_tokens: None,

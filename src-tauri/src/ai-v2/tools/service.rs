@@ -76,7 +76,7 @@ pub async fn generate_tool_prompt(
 
     // 5. 渲染模板
     template_manager
-        .render("prompts/tools.tera", &context_data)
+        .render("prompts/tools", &context_data)
         .await
         .map_err(|e| format!("渲染工具提示词失败: {}", e))
 }
