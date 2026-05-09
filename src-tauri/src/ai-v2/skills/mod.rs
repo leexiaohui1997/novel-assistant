@@ -4,10 +4,12 @@
 //! 首轮仅将 `name + description + params_schema` 暴露给 AI，具体模板内容在后续
 //! 阶段按需渲染。
 
+mod instances;
 mod registry;
 mod service;
 mod traits;
 
+pub use instances::RefineNovelBasicSkill;
 pub use registry::SkillRegistry;
 pub use service::generate_skill_prompt;
 pub use traits::AiSkill;

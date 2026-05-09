@@ -161,8 +161,10 @@ pub async fn run() {
             )))));
             let tool_registry = Arc::new(RwLock::new(tool_registry_inner));
 
-            // 初始化 AI 技能注册中心（AI v2）——当前为空，后续按需注册
-            let skill_registry = Arc::new(RwLock::new(SkillRegistry::new()));
+            // 初始化 AI 技能注册中心（AI v2）
+            let mut skill_registry_inner = SkillRegistry::new();
+            skill_registry_inner.register(Arc::new(ai_v2::skills::RefineNovelBasicSkill));
+            let skill_registry = Arc::new(RwLock::new(skill_registry_inner));
 
             // AI v1 模板根（供 PromptTemplates 使用）
             let templates_root_v1 = Arc::new(templates_base);
