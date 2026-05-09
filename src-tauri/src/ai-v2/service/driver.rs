@@ -52,11 +52,28 @@ impl AiService {
         on_success: Option<OnSuccessCallback>,
         on_error: Option<OnErrorCallback>,
     ) -> Result<AiConversationMessage, String> {
+        self.drive_ai_response_internal(conversation_id, model_id, false, on_success, on_error)
+            .await
+    }
+
+    /// 单轮驱动器的内部实现（需求 3.2）
+    ///
+    /// 与公开方法 [`Self::drive_ai_response`] 的唯一差异在于 `multi_turn` 参数：
+    /// - `multi_turn = false`：保持原语义，收尾写入 `Completed`
+    /// - `multi_turn = true`：由多轮驱动器调用，收尾写入 `WaitingNextTurn`
+    pub(crate) async fn drive_ai_response_internal(
+        &self,
+        conversation_id: Uuid,
+        model_id: Uuid,
+        multi_turn: bool,
+        on_success: Option<OnSuccessCallback>,
+        on_error: Option<OnErrorCallback>,
+    ) -> Result<AiConversationMessage, String> {
         let (_conversation, messages) = self.validate_conversation(conversation_id).await?;
         self.begin_computing(conversation_id).await?;
 
         match self
-            .run_to_finalization(conversation_id, model_id, messages)
+            .run_to_finalization(conversation_id, model_id, messages, multi_turn)
             .await
         {
             Ok(DriveOutcome::Success(message)) => {
@@ -89,7 +106,7 @@ impl AiService {
         ensure_not_computing(&conversation)?;
 
         let messages = self.list_messages(conversation_id).await?;
-        ensure_last_message_is_user(&messages)?;
+        ensure_last_message_is_drivable(&messages)?;
 
         Ok((conversation, messages))
     }
@@ -137,6 +154,7 @@ impl AiService {
         conversation_id: Uuid,
         model_id: Uuid,
         history: Vec<AiConversationMessage>,
+        multi_turn: bool,
     ) -> Result<DriveOutcome, String> {
         let ai_response = self.call_ai(conversation_id, model_id, &history).await?;
 
@@ -151,7 +169,10 @@ impl AiService {
         let payload =
             build_assistant_payload(conversation_id, sequence, &ai_response, model_id, snapshot);
 
-        let message = self.persist_finalized_message(payload).await?;
+        let target_status = pick_target_status(multi_turn);
+        let message = self
+            .persist_finalized_message(payload, target_status)
+            .await?;
         Ok(DriveOutcome::Success(message))
     }
 
@@ -267,13 +288,17 @@ impl AiService {
         })
     }
 
-    /// 通过事务版仓储方法写入消息并把会话状态置为 `Completed`
+    /// 通过事务版仓储方法写入消息并把会话状态推进到目标值
+    ///
+    /// - 单轮模式：目标为 `Completed`
+    /// - 多轮模式：目标为 `WaitingNextTurn`（由多轮驱动器后续显式扭转为 `Completed`）
     async fn persist_finalized_message(
         &self,
         payload: CreateAiConversationMessage,
+        target_status: ConversationStatus,
     ) -> Result<AiConversationMessage, String> {
         let repo = self.message_repo.read().await;
-        repo.finalize_assistant_turn(payload, &ConversationStatus::Completed.to_string())
+        repo.finalize_assistant_turn(payload, &target_status.to_string())
             .await
             .map_err(|e| format!("写入 AI 响应并完成会话失败: {}", e))
     }
@@ -330,13 +355,39 @@ fn ensure_not_computing(conversation: &AiConversation) -> Result<(), String> {
     Ok(())
 }
 
-/// 确保末条消息是 `User`（需求 2.4 / 2.5）
-fn ensure_last_message_is_user(messages: &[AiConversationMessage]) -> Result<(), String> {
+/// 确保末条消息满足可驱动条件（需求 3.1）
+///
+/// 允许以下任一情况：
+/// - 末条是 `User`（单轮原语义，用户驱动）
+/// - 末条是 `System` 且 `ext_1 ∈ {"tools", "skills"}`（多轮回喂驱动）
+fn ensure_last_message_is_drivable(messages: &[AiConversationMessage]) -> Result<(), String> {
     let last = messages.last().ok_or("会话无可驱动的消息".to_string())?;
-    if last.message_type != MessageType::User.to_string() {
-        return Err("会话最后一条消息不是用户消息，无法驱动".to_string());
+    if is_user_message(last) || is_feedback_system_message(last) {
+        return Ok(());
     }
-    Ok(())
+    Err("会话最后一条消息不具备可驱动条件".to_string())
+}
+
+/// 判断是否为用户消息
+fn is_user_message(msg: &AiConversationMessage) -> bool {
+    msg.message_type == MessageType::User.to_string()
+}
+
+/// 判断是否为多轮回喂形态的 system 消息（`ext_1 ∈ {"tools", "skills"}`）
+fn is_feedback_system_message(msg: &AiConversationMessage) -> bool {
+    if msg.message_type != MessageType::System.to_string() {
+        return false;
+    }
+    matches!(msg.ext_1.as_deref(), Some("tools") | Some("skills"))
+}
+
+/// 根据 `multi_turn` 选择单轮收尾目标状态（需求 3.3 / 3.4）
+fn pick_target_status(multi_turn: bool) -> ConversationStatus {
+    if multi_turn {
+        ConversationStatus::WaitingNextTurn
+    } else {
+        ConversationStatus::Completed
+    }
 }
 
 /// 把历史消息映射为 v1 `ai::types::Message` 列表（按 `sequence ASC` 已保序）

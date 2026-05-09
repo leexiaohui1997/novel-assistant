@@ -12,6 +12,7 @@ use crate::database::repositories::{
 pub mod conversation;
 pub mod driver;
 pub mod message;
+pub mod multi_turn_driver;
 
 /// AI 服务（v2）
 ///

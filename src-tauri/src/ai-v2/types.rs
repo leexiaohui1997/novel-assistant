@@ -36,6 +36,7 @@ string_enum! {
     /// - `Init`：初始化（默认值，会话刚创建，尚未进入可交互状态）
     /// - `Ready`：已就绪（可正常进行用户交互）
     /// - `Computing`：计算中（正在调用模型 / 执行任务）
+    /// - `WaitingNextTurn`：等待下一轮次中（多轮驱动器两轮之间的中间态）
     /// - `Completed`：已完成（本轮业务目标已达成）
     /// - `Terminated`：已终止（被用户主动终止）
     /// - `Error`：异常（发生错误且未恢复）
@@ -44,6 +45,7 @@ string_enum! {
         Init,
         Ready,
         Computing,
+        WaitingNextTurn,
         Completed,
         Terminated,
         Error,
