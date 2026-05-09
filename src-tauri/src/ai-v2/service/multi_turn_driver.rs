@@ -33,6 +33,18 @@ pub type OnSuccessCallback = Box<dyn FnOnce(AiConversationMessage) + Send>;
 /// 错误回调函数类型
 pub type OnErrorCallback = Box<dyn FnOnce(String) + Send>;
 
+/// 一项「模板渲染请求」
+///
+/// 由前端按 `{ id, params }` 传入，准备阶段会按顺序将每一项渲染为字符串，
+/// 并作为一条 `MessageType::User` 消息插入到当前会话中（位于真正的
+/// `user_prompt` 用户消息之前）。
+pub struct TemplateRenderItem {
+    /// 模板 ID（形如 `prompts/xxx`、`skills/xxx`，需已在 `TemplateManager` 注册）
+    pub id: String,
+    /// 模板参数（JSON 对象；`Null` 时按空对象处理）
+    pub params: serde_json::Value,
+}
+
 /// 准备阶段入参
 pub struct PrepareAiParams {
     /// 用户提示词（必填，trim 后不能为空）
@@ -45,6 +57,8 @@ pub struct PrepareAiParams {
     pub title: Option<String>,
     /// 模型 ID（可选；`None` 时走推荐模型）
     pub model_id: Option<Uuid>,
+    /// 前置模板列表（可选；按顺序渲染并以 `User` 消息形式插入到 `user_prompt` 之前）
+    pub templates: Vec<TemplateRenderItem>,
 }
 
 /// 准备阶段产出的后台执行上下文
@@ -107,6 +121,8 @@ pub async fn prepare_ai_response(
         .await
         .map_err(locate_error_to_string)?;
 
+    persist_template_messages(&ai_service, conversation.id, &params.templates).await?;
+
     ai_service
         .persist_user_message(conversation.id, trimmed)
         .await?;
@@ -168,6 +184,44 @@ pub async fn run_prepared_ai_response(
             }
         }
     }
+}
+
+/// 渲染前置模板列表并依次以 `User` 消息形式落库
+///
+/// - 任一项渲染失败立即返回 `Err`，已落库的消息保留（不回滚）；
+/// - 模板渲染需要的 `TemplateManager` 由 `AiService` 内部持有，外部无需感知。
+async fn persist_template_messages(
+    ai_service: &AiService,
+    conversation_id: Uuid,
+    items: &[TemplateRenderItem],
+) -> Result<(), String> {
+    if items.is_empty() {
+        return Ok(());
+    }
+    for item in items {
+        let rendered = render_template_item(ai_service, item).await?;
+        ai_service
+            .persist_user_message(conversation_id, &rendered)
+            .await?;
+    }
+    Ok(())
+}
+
+/// 渲染单个模板：`Null` 参数视为空对象，统一交给 `TemplateManager`
+async fn render_template_item(
+    ai_service: &AiService,
+    item: &TemplateRenderItem,
+) -> Result<String, String> {
+    let params = if item.params.is_null() {
+        serde_json::json!({})
+    } else {
+        item.params.clone()
+    };
+    ai_service
+        .template_manager
+        .render(&item.id, &params)
+        .await
+        .map_err(|e| format!("渲染模板 {} 失败: {}", item.id, e))
 }
 
 /// 校验用户提示词非空，返回 trim 后的引用
@@ -445,7 +499,7 @@ impl AiService {
             Err(e) => return format!("技能参数 JSON 无效: {}", e),
         };
 
-        match dispatch_skill_render(skill.as_ref(), &self.template_manager, &params) {
+        match dispatch_skill_render(skill.as_ref(), &self.template_manager, &params).await {
             Ok(text) => text,
             Err(e) => format!("技能渲染失败: {}", e),
         }
@@ -502,15 +556,16 @@ fn format_response_block(label: &str, name: &str, body: &str) -> String {
 }
 
 /// 技能渲染分派：优先实例渲染，回退通用渲染
-fn dispatch_skill_render(
+async fn dispatch_skill_render(
     skill: &dyn crate::ai_v2::skills::AiSkill,
     manager: &crate::ai_v2::template::TemplateManager,
     params: &serde_json::Value,
 ) -> Result<String, String> {
-    if let Some(result) = skill.render_with_instance(manager, params) {
+    if let Some(result) = skill.render_with_instance(manager, params).await {
         return result.map_err(|e| e.to_string());
     }
     manager
         .render(skill.template_id(), params)
+        .await
         .map_err(|e| e.to_string())
 }

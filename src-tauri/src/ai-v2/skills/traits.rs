@@ -1,8 +1,11 @@
+use async_trait::async_trait;
+
 use crate::ai_v2::template::{TemplateError, TemplateManager};
 
 /// AI 技能统一接口
 ///
 /// 所有内置或自定义的 AI 技能都必须实现此 trait。
+#[async_trait]
 pub trait AiSkill: Send + Sync {
     /// 技能的唯一标识符（例如：outline_to_chapter）
     fn name(&self) -> &str;
@@ -24,15 +27,15 @@ pub trait AiSkill: Send + Sync {
     /// 建议返回值与实例的 `TEMPLATE_ID` 一致，以便两种路径指向同一个模板。
     fn template_id(&self) -> &str;
 
-    /// 使用强类型 [`crate::ai_v2::template::TemplateInstance`] 渲染（可选）
+    /// 使用强类型 [`crate::ai_v2::template::TemplateInstance`] 渲染（可选，异步）
     ///
     /// - 默认实现返回 `None`，表示该技能未绑定实例，由多轮驱动器走通用渲染回退。
-    /// - 绑定了实例的技能应在实现内部调用 `instance.render(manager, params.clone())`
+    /// - 绑定了实例的技能应在实现内部调用 `instance.render(manager, params.clone()).await`
     ///   并以 `Some(Ok(..))` / `Some(Err(..))` 包装返回（内部包含参数校验）。
     ///
     /// 约束：[`crate::ai_v2::template::TemplateInstance`] 本身不做动态分发改造，
     /// 是否接入动态分发由每个技能实现自行决定，以保留关联常量 / 关联类型设计。
-    fn render_with_instance(
+    async fn render_with_instance(
         &self,
         _manager: &TemplateManager,
         _params: &serde_json::Value,

@@ -36,7 +36,7 @@ pub async fn generate_skill_prompt(
     if skills.is_empty() {
         return Ok(String::new());
     }
-    render_skill_prompt(&skills, template_manager)
+    render_skill_prompt(&skills, template_manager).await
 }
 
 /// 读取并解析会话类型
@@ -75,7 +75,7 @@ fn filter_skills(ct: ConversationType, registry: &SkillRegistry) -> Vec<Arc<dyn 
 }
 
 /// 渲染 `prompts/skills.tera`
-fn render_skill_prompt(
+async fn render_skill_prompt(
     skills: &[Arc<dyn AiSkill>],
     template_manager: &TemplateManager,
 ) -> Result<String, String> {
@@ -95,5 +95,6 @@ fn render_skill_prompt(
 
     template_manager
         .render("prompts/skills.tera", &context_data)
+        .await
         .map_err(|e| format!("渲染技能提示词失败: {}", e))
 }

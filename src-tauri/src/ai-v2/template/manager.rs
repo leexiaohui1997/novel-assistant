@@ -38,11 +38,15 @@ impl TemplateManager {
         Ok(Self { tera })
     }
 
-    /// 按模板 ID 渲染
+    /// 按模板 ID 渲染（异步）
     ///
     /// - `template_id`：形如 `prompts/xxx`、`skills/xxx`；
     /// - `data`：必须为 JSON 对象，将被转换为 `tera::Context`。
-    pub fn render(&self, template_id: &str, data: &Value) -> Result<String, TemplateError> {
+    ///
+    /// # 异步说明
+    /// Tera 渲染本身是 CPU 同步操作，此处仅在签名上异步化，
+    /// 以便 `TemplateInstance` 等上层链路可在异步上下文中混合 IO（如 DB 查询）。
+    pub async fn render(&self, template_id: &str, data: &Value) -> Result<String, TemplateError> {
         if !self.has_template(template_id) {
             return Err(TemplateError::NotFound {
                 id: template_id.to_string(),

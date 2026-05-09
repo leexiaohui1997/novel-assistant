@@ -6,10 +6,12 @@
 use serde_json::{json, Value};
 
 use crate::ai_v2::skills::AiSkill;
+use async_trait::async_trait;
 
 /// 小说基础信息优化技能（无参）
 pub struct RefineNovelBasicSkill;
 
+#[async_trait]
 impl AiSkill for RefineNovelBasicSkill {
     fn name(&self) -> &str {
         "refine_novel_basic"

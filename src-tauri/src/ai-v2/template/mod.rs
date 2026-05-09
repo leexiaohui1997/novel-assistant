@@ -11,6 +11,8 @@ mod error;
 mod instance;
 mod manager;
 
+pub mod instances;
+
 pub use error::TemplateError;
 pub use instance::TemplateInstance;
 pub use manager::TemplateManager;

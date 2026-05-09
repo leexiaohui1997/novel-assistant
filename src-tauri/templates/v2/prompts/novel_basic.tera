@@ -1,0 +1,6 @@
+## 当前小说基础信息
+
+- 书名：{% if title %}{{ title }}{% else %}（未填写）{% endif %}
+- 频道：{% if channel_label %}{{ channel_label }}{% else %}（未填写）{% endif %}
+- 标签：{% if tags_label %}{{ tags_label }}{% else %}（未填写）{% endif %}
+- 简介：{% if introduction %}{{ introduction }}{% else %}（未填写）{% endif %}

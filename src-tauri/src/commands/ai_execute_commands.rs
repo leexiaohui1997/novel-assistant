@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::ai_v2::service::multi_turn_driver::{
     prepare_ai_response, run_prepared_ai_response, OnErrorCallback, OnSuccessCallback,
-    PrepareAiParams, PreparedAiContext,
+    PrepareAiParams, PreparedAiContext, TemplateRenderItem,
 };
 use crate::ai_v2::types::ConversationType;
 use crate::database::models::ai_conversation_message::AiConversationMessage;
@@ -37,6 +37,26 @@ pub struct ExecuteAiPayload {
     pub title: Option<String>,
     /// 模型 ID（可选；未传走推荐模型）
     pub model_id: Option<Uuid>,
+    /// 前置模板列表（可选；默认空数组）
+    ///
+    /// 按顺序渲染后，依次以 `User` 消息形式插入到 `user_prompt` 之前。
+    /// 每一项：`{ id: 模板ID, params: 任意 JSON }`。
+    #[serde(default)]
+    pub templates: Vec<ExecuteAiTemplate>,
+}
+
+/// `templates` 单项载荷。
+///
+/// 为避免外露底层 `TemplateRenderItem` 的 serde 边界（该类型位于驱动器模块），
+/// 在命令层定义一个与前端契约对齐的驼峰 DTO。
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecuteAiTemplate {
+    /// 模板 ID（必填；需与 `TemplateManager` 中注册的 ID 一致）
+    pub id: String,
+    /// 模板参数（可选；默认 `Null`。渲染时 `Null` 被视为空对象）
+    #[serde(default)]
+    pub params: serde_json::Value,
 }
 
 /// 成功事件的 payload（前端监听使用）
@@ -146,6 +166,16 @@ impl From<ExecuteAiPayload> for PrepareAiParams {
             conversation_type: p.conversation_type,
             title: p.title,
             model_id: p.model_id,
+            templates: p.templates.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<ExecuteAiTemplate> for TemplateRenderItem {
+    fn from(t: ExecuteAiTemplate) -> Self {
+        TemplateRenderItem {
+            id: t.id,
+            params: t.params,
         }
     }
 }
