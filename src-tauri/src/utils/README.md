@@ -190,3 +190,7 @@ assert_eq!(hits, vec!["Hello".to_string()]);
 - 所有工具宏都位于 `src-tauri/src/utils/` 目录下
 - 新增工具函数时请同步更新此文档
 - 优先使用现有工具，避免重复实现
+
+## 子索引
+
+- AI v2 工具函数索引：`src-tauri/src/ai-v2/utils/README.md`（如 `find_recommended_model`）

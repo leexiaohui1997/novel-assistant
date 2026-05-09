@@ -22,6 +22,7 @@ use ai_v2::tools::builtin::SearchNovelTool;
 use ai_v2::{AiService as AiServiceV2, SkillRegistry, TemplateManager, ToolRegistry};
 use commands::action_commands::{execute_action, list_actions};
 use commands::ai_commands::test_model;
+use commands::ai_execute_commands::execute_ai;
 use commands::chapter_commands::{
     batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
     get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
@@ -322,7 +323,8 @@ pub async fn run() {
             list_actions,
             get_tokens_summary,
             get_tokens_model_usage,
-            list_ai_call_logs
+            list_ai_call_logs,
+            execute_ai
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");

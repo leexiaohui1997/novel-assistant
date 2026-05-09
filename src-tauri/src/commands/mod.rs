@@ -1,5 +1,6 @@
 pub mod action_commands;
 pub mod ai_commands;
+pub mod ai_execute_commands;
 pub mod chapter_commands;
 pub mod chapter_outline_commands;
 pub mod character_commands;

@@ -35,4 +35,9 @@ pub trait AiCallLogRepository: Send + Sync {
         page: i64,
         page_size: i64,
     ) -> Result<PaginatedResult<AiCallLog>, DbError>;
+
+    /// 获取最近一条调用记录（按 call_time DESC 取首条）
+    ///
+    /// - 返回 `Ok(None)` 表示表内无任何记录。
+    async fn find_latest(&self) -> Result<Option<AiCallLog>, DbError>;
 }

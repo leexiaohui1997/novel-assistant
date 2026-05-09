@@ -168,4 +168,17 @@ impl AiCallLogRepository for SqliteAiCallLogRepository {
             total: total.0,
         })
     }
+
+    async fn find_latest(&self) -> Result<Option<AiCallLog>, DbError> {
+        sqlx::query_as::<_, AiCallLog>(
+            r#"
+            SELECT * FROM ai_call_logs
+            ORDER BY call_time DESC
+            LIMIT 1
+            "#,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Into::into)
+    }
 }

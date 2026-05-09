@@ -59,6 +59,13 @@ pub trait ModelRepository {
 
     /// 设置默认模型（互斥：同一供应商下只有一个默认）
     async fn set_default_model(&self, id: Uuid) -> Result<Model, DbError>;
+
+    /// 根据 ID 查询已启用的模型；若模型不存在或 `is_enabled = false`，返回 `Ok(None)`。
+    async fn find_enabled_by_id(&self, id: Uuid) -> Result<Option<Model>, DbError>;
+
+    /// 按 `is_enabled = true` 过滤、`is_default DESC, created_at ASC` 排序，
+    /// 取第一条模型；若无任何启用模型，返回 `Ok(None)`。
+    async fn find_first_enabled_preferring_default(&self) -> Result<Option<Model>, DbError>;
 }
 
 /// SQLite 模型仓储实现
@@ -289,5 +296,25 @@ impl ModelRepository for SqliteModelRepository {
         tx.commit().await?;
         tracing::info!("模型默认状态更新: {}", updated.id);
         Ok(updated)
+    }
+
+    async fn find_enabled_by_id(&self, id: Uuid) -> Result<Option<Model>, DbError> {
+        sqlx::query_as::<_, Model>("SELECT * FROM ai_models WHERE id = ?1 AND is_enabled = TRUE")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn find_first_enabled_preferring_default(&self) -> Result<Option<Model>, DbError> {
+        sqlx::query_as::<_, Model>(
+            "SELECT * FROM ai_models \
+             WHERE is_enabled = TRUE \
+             ORDER BY is_default DESC, created_at ASC \
+             LIMIT 1",
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Into::into)
     }
 }

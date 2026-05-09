@@ -13,6 +13,7 @@ pub mod skills;
 pub mod template;
 pub mod tools;
 pub mod types;
+pub mod utils;
 
 pub use dto::{CreateConversationInput, InsertConversationMessageInput};
 pub use initializer::ConversationInitializer;

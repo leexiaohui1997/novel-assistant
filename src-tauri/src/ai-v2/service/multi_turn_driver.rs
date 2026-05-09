@@ -1,25 +1,25 @@
 //! 多轮次 AI 驱动器（ai-v2）
 //!
-//! 串联以下关键环节，构成一次完整的"用户提示词 → AI 多轮回合 → 最终回复"流程：
-//! 1. 参数预校验：`user_prompt` 非空
-//! 2. 会话定位 / 创建：依据 `conversation_id` 分支
-//! 3. 用户消息落库：写入 `User` 类型消息
-//! 4. 多轮循环（`MAX_TURNS = 50`）：每轮以 `multi_turn = true` 调用单轮驱动器
-//!    - 解析 assistant 输出中的 `tools-use` / `skills-use` 代码块
-//!    - 有回喂：技能响应 system 消息（`ext_1 = "skills"`）→ 工具响应 system 消息（`ext_1 = "tools"`）
-//!    - 无回喂：把会话状态扭转为 `Completed` 后退出
-//! 5. 上限兜底：达到 `MAX_TURNS` 仍有回喂 → 把会话状态扭转为 `Completed`，正常返回
-//! 6. 异常路径：单轮内部已置 `Error`；Markdown 解析失败由本驱动器显式置 `Error`
+//! 本模块将"一次用户提示词 → AI 多轮回合 → 最终回复"的完整流程拆分为两个阶段：
+//! 1. **准备阶段** [`prepare_ai_response`]：主线程同步完成参数校验、推荐模型解析、
+//!    会话定位/创建、用户消息落库，并把后台执行所需的一切打包为 [`PreparedAiContext`]。
+//! 2. **执行阶段** [`run_prepared_ai_response`]：由调用方在 `tokio::spawn` 中驱动，
+//!    驱动多轮循环并通过 `on_success` / `on_error` 回调上报结果。
 //!
 //! 设计要点：
 //! - 不直接持有 `SqlitePool` / `sqlx::Transaction`，写入全部走 `AiService` 既有方法
-//! - 任意私有函数圈复杂度 < 5；主入口按"参数校验 → 主循环 → 异常分发"委托
-//! - 所有错误信息均为中文，与 [`super::driver`] 风格一致
+//! - 任意函数圈复杂度 < 5
+//! - 所有错误信息均为中文
 
+use std::sync::Arc;
+
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use crate::ai_v2::utils::find_recommended_model;
 use crate::database::models::ai_conversation::AiConversation;
 use crate::database::models::ai_conversation_message::AiConversationMessage;
+use crate::database::repositories::AiCallLogRepository;
 
 use super::super::dto::{CreateConversationInput, InsertConversationMessageInput};
 use super::super::types::{ConversationStatus, ConversationType, MessageType};
@@ -29,9 +29,33 @@ use super::AiService;
 const MAX_TURNS: usize = 50;
 
 /// 成功回调函数类型
-type OnSuccessCallback = Box<dyn FnOnce(AiConversationMessage) + Send>;
+pub type OnSuccessCallback = Box<dyn FnOnce(AiConversationMessage) + Send>;
 /// 错误回调函数类型
-type OnErrorCallback = Box<dyn FnOnce(String) + Send>;
+pub type OnErrorCallback = Box<dyn FnOnce(String) + Send>;
+
+/// 准备阶段入参
+pub struct PrepareAiParams {
+    /// 用户提示词（必填，trim 后不能为空）
+    pub user_prompt: String,
+    /// 会话 ID（可选；`None` 时新建会话）
+    pub conversation_id: Option<Uuid>,
+    /// 会话类型（可选；仅在新建会话时生效，默认 `Default`）
+    pub conversation_type: Option<ConversationType>,
+    /// 会话标题（可选；仅在新建会话时生效，默认 `None`）
+    pub title: Option<String>,
+    /// 模型 ID（可选；`None` 时走推荐模型）
+    pub model_id: Option<Uuid>,
+}
+
+/// 准备阶段产出的后台执行上下文
+pub struct PreparedAiContext {
+    /// 已定位 / 创建完成的会话 ID
+    pub conversation_id: Uuid,
+    /// 实际将被使用的模型 ID
+    pub model_id: Uuid,
+    /// v2 AiService 句柄（后台执行多轮循环所需）
+    pub ai_service: Arc<AiService>,
+}
 
 /// 一次本轮 AI 输出解析出的"待回喂"代码块
 struct FeedbackBlock {
@@ -55,57 +79,132 @@ impl ParsedFeedback {
     }
 }
 
-impl AiService {
-    /// 多轮次 AI 驱动器
-    ///
-    /// # 参数
-    /// - `user_prompt`：用户提示词（必填，trim 后不能为空）
-    /// - `model_id`：模型 ID（必填）
-    /// - `conversation_id`：会话 ID（可选；`None` 时新建会话）
-    /// - `conversation_type`：会话类型（可选；仅在新建会话时生效，默认 `Default`）
-    /// - `title`：会话标题（可选；仅在新建会话时生效，默认 `None`）
-    /// - `on_success`：成功回调，接收**最后一轮**新建的 assistant 消息
-    /// - `on_error`：错误回调，接收中文错误描述
-    ///
-    /// # 返回
-    /// - `Ok(AiConversationMessage)`：最后一轮 assistant 消息实体
-    /// - `Err(String)`：中文错误描述（参数级错误**不**触发 `on_error`）
-    pub async fn drive_ai_response_multi_turn(
-        &self,
-        user_prompt: String,
-        model_id: Uuid,
-        conversation_id: Option<Uuid>,
-        conversation_type: Option<ConversationType>,
-        title: Option<String>,
-        on_success: Option<OnSuccessCallback>,
-        on_error: Option<OnErrorCallback>,
-    ) -> Result<AiConversationMessage, String> {
-        let trimmed = user_prompt.trim();
-        if trimmed.is_empty() {
-            return Err("用户提示词不能为空".to_string());
+/// 准备阶段：参数校验 → 推荐模型解析 → 会话定位/创建 → 插入用户消息
+///
+/// # 参数
+/// - `ai_service`：v2 AI 服务句柄
+/// - `call_log_repo`：AI 调用日志仓储（仅用于推导推荐模型）
+/// - `params`：准备阶段入参
+///
+/// # 返回
+/// - `Ok((conversation_id, PreparedAiContext))`：会话 ID 与后台执行上下文
+/// - `Err(String)`：任一步骤的中文错误描述（不生成 `PreparedAiContext`）
+pub async fn prepare_ai_response(
+    ai_service: Arc<AiService>,
+    call_log_repo: Arc<RwLock<Box<dyn AiCallLogRepository + Send + Sync>>>,
+    params: PrepareAiParams,
+) -> Result<(Uuid, PreparedAiContext), String> {
+    let trimmed = validate_user_prompt(&params.user_prompt)?;
+
+    let model_id = resolve_model_id(&ai_service, &call_log_repo, params.model_id).await?;
+
+    let conversation = ai_service
+        .locate_or_create_conversation(
+            params.conversation_id,
+            params.conversation_type,
+            params.title,
+        )
+        .await
+        .map_err(locate_error_to_string)?;
+
+    ai_service
+        .persist_user_message(conversation.id, trimmed)
+        .await?;
+
+    tracing::info!(
+        "prepare_ai_response 完成: conversation_id={}, model_id={}",
+        conversation.id,
+        model_id
+    );
+
+    let ctx = PreparedAiContext {
+        conversation_id: conversation.id,
+        model_id,
+        ai_service,
+    };
+    Ok((conversation.id, ctx))
+}
+
+/// 执行阶段：驱动多轮循环并通过回调上报结果
+///
+/// # 参数
+/// - `ctx`：准备阶段产出的上下文
+/// - `on_success`：成功回调（接收最后一轮 assistant 消息）
+/// - `on_error`：错误回调（接收中文错误描述）
+pub async fn run_prepared_ai_response(
+    ctx: PreparedAiContext,
+    on_success: Option<OnSuccessCallback>,
+    on_error: Option<OnErrorCallback>,
+) {
+    tracing::info!(
+        "run_prepared_ai_response 启动: conversation_id={}, model_id={}",
+        ctx.conversation_id,
+        ctx.model_id
+    );
+
+    let result = ctx
+        .ai_service
+        .run_multi_turn_loop(ctx.conversation_id, ctx.model_id)
+        .await;
+
+    match result {
+        Ok(message) => {
+            tracing::info!(
+                "run_prepared_ai_response 结束: conversation_id={} 成功",
+                ctx.conversation_id
+            );
+            if let Some(cb) = on_success {
+                cb(message);
+            }
         }
-
-        let conversation = match self
-            .locate_or_create_conversation(conversation_id, conversation_type, title)
-            .await
-        {
-            Ok(c) => c,
-            Err(LocateError::Param(e)) => return Err(e),
-            Err(LocateError::Runtime(e)) => return self.dispatch_error(on_error, e),
-        };
-
-        if let Err(e) = self.persist_user_message(conversation.id, trimmed).await {
-            return self.dispatch_error(on_error, e);
-        }
-
-        match self.run_multi_turn_loop(conversation.id, model_id).await {
-            Ok(message) => self.dispatch_success(on_success, message),
-            Err(e) => self.dispatch_error(on_error, e),
+        Err(err) => {
+            tracing::warn!(
+                "run_prepared_ai_response 结束: conversation_id={} 失败 - {}",
+                ctx.conversation_id,
+                err
+            );
+            if let Some(cb) = on_error {
+                cb(err);
+            }
         }
     }
+}
 
+/// 校验用户提示词非空，返回 trim 后的引用
+fn validate_user_prompt(raw: &str) -> Result<&str, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("用户提示词不能为空".to_string());
+    }
+    Ok(trimmed)
+}
+
+/// 解析真实模型 ID：`Some` 时直接返回；`None` 时走推荐模型
+async fn resolve_model_id(
+    ai_service: &AiService,
+    call_log_repo: &Arc<RwLock<Box<dyn AiCallLogRepository + Send + Sync>>>,
+    explicit: Option<Uuid>,
+) -> Result<Uuid, String> {
+    if let Some(id) = explicit {
+        return Ok(id);
+    }
+
+    let call_log_guard = call_log_repo.read().await;
+    let model_guard = ai_service.model_repo.read().await;
+    let model = find_recommended_model(call_log_guard.as_ref(), model_guard.as_ref()).await?;
+    Ok(model.id)
+}
+
+/// 把 `LocateError` 统一转为 `String`（prepare 阶段不区分参数 / 运行时错误）
+fn locate_error_to_string(err: LocateError) -> String {
+    match err {
+        LocateError::Param(e) | LocateError::Runtime(e) => e,
+    }
+}
+
+impl AiService {
     /// 步骤 2：根据 `conversation_id` 定位或新建会话
-    async fn locate_or_create_conversation(
+    pub(crate) async fn locate_or_create_conversation(
         &self,
         conversation_id: Option<Uuid>,
         conversation_type: Option<ConversationType>,
@@ -145,7 +244,7 @@ impl AiService {
     }
 
     /// 步骤 3：用户消息落库
-    async fn persist_user_message(
+    pub(crate) async fn persist_user_message(
         &self,
         conversation_id: Uuid,
         prompt: &str,
@@ -169,7 +268,7 @@ impl AiService {
     ///
     /// - 每轮调用单轮驱动器 → 解析输出 → 落库回喂 → 进入下一轮
     /// - 无回喂或达到 `MAX_TURNS` 时把会话状态扭转为 `Completed` 并返回
-    async fn run_multi_turn_loop(
+    pub(crate) async fn run_multi_turn_loop(
         &self,
         conversation_id: Uuid,
         model_id: Uuid,
@@ -351,37 +450,13 @@ impl AiService {
             Err(e) => format!("技能渲染失败: {}", e),
         }
     }
-
-    /// 触发成功回调
-    fn dispatch_success(
-        &self,
-        on_success: Option<OnSuccessCallback>,
-        message: AiConversationMessage,
-    ) -> Result<AiConversationMessage, String> {
-        if let Some(callback) = on_success {
-            callback(message.clone());
-        }
-        Ok(message)
-    }
-
-    /// 触发错误回调
-    fn dispatch_error(
-        &self,
-        on_error: Option<OnErrorCallback>,
-        err: String,
-    ) -> Result<AiConversationMessage, String> {
-        if let Some(callback) = on_error {
-            callback(err.clone());
-        }
-        Err(err)
-    }
 }
 
 /// 定位会话阶段的错误分支
-enum LocateError {
-    /// 参数级错误：调用方拼错 ID，不视为对话异常，不触发 `on_error`
+pub(crate) enum LocateError {
+    /// 参数级错误：调用方拼错 ID，不视为对话异常
     Param(String),
-    /// 运行时错误：DB / 初始化失败等，需要触发 `on_error`
+    /// 运行时错误：DB / 初始化失败等
     Runtime(String),
 }
 
