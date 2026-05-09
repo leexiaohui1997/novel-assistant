@@ -151,16 +151,15 @@ pub async fn run() {
                 }
             };
 
-            // 初始化 AI 工具注册中心（AI v2）
-            let tool_registry = Arc::new(RwLock::new(ToolRegistry::new()));
-
-            // 注册内置工具
-            {
-                let mut registry = tool_registry.blocking_write();
-                registry.register(Arc::new(SearchNovelTool::new(Arc::new(RwLock::new(
-                    Box::new(SqliteNovelRepository::new(pool.clone())),
-                )))));
-            }
+            // 初始化 AI 工具注册中心（AI v2）并注册内置工具
+            // 注意：此处不能使用 tool_registry.blocking_write()，
+            // Tauri v2 的 setup 回调运行在 tokio runtime 线程上，
+            // 在 runtime 内调用 blocking_write 会触发 panic。
+            let mut tool_registry_inner = ToolRegistry::new();
+            tool_registry_inner.register(Arc::new(SearchNovelTool::new(Arc::new(RwLock::new(
+                Box::new(SqliteNovelRepository::new(pool.clone())),
+            )))));
+            let tool_registry = Arc::new(RwLock::new(tool_registry_inner));
 
             // 初始化 AI 技能注册中心（AI v2）——当前为空，后续按需注册
             let skill_registry = Arc::new(RwLock::new(SkillRegistry::new()));

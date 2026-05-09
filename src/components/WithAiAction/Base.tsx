@@ -4,25 +4,29 @@ import { SizeType } from 'antd/es/config-provider/SizeContext'
 import { TooltipPlacement } from 'antd/es/tooltip'
 import React, { useCallback, useRef, useState } from 'react'
 
-import { ModelSelect } from './ModelSelect'
+import { ModelSelect } from '../ModelSelect'
 
-import { useAiAction, UseAiActionProps } from '@/hooks/useAiAction'
 import { getErrorMsg } from '@/utils/error'
+
+export type WithAiActionBaseExecute<T = unknown> = (forms: {
+  modelId: string
+  userFeedback: string
+}) => Promise<T>
 
 /**
  * AI Action 触发器组件属性
  */
-export type WithAiActionProps<T = unknown> = {
+export type WithAiActionBaseProps<T = unknown, P = WithAiActionBaseExecute<T>> = {
   /** 操作提示文本（Tooltip 显示内容） */
   tip?: string
   /** 是否禁用按钮 */
   disabled?: boolean
   /** 子组件（通常是输入框或表单字段） */
   children?: React.ReactNode
+  /** AI 执行函数 */
+  execute?: P
   /** AI 操作回调函数，由父组件实现具体的业务逻辑 */
   onResult?: (result: T) => unknown
-  /** AI 操作的配置 */
-  aiAction: UseAiActionProps
   /** 提示 placement */
   placement?: TooltipPlacement
   /** 是否提供意见输入框 */
@@ -39,19 +43,12 @@ export type WithAiActionProps<T = unknown> = {
   }
 }
 
-/**
- * AI Action 触发器组件
- *
- * 提供一个带闪电图标的按钮，用于触发 AI 相关的操作。
- * 自动管理 loading 状态和错误提示，保持 UI 交互的一致性。
- * 内置模型选择器和运行按钮，支持配置 AI Action。
- */
 // eslint-disable-next-line complexity
-export function WithAiAction<T = unknown>({
+export function WithAiActionBase<T = unknown>({
   tip,
   children,
   disabled = false,
-  aiAction,
+  execute,
   onResult,
   classNames = {},
   placement = 'leftTop',
@@ -59,12 +56,11 @@ export function WithAiAction<T = unknown>({
   triggerSize = 'medium',
   triggerButtonProps = {},
   ...props
-}: WithAiActionProps<T>) {
+}: WithAiActionBaseProps<T>) {
   // Ant Design Message 实例（统一走 App.useApp，无需 contextHolder）
   const { message } = App.useApp()
   // 按钮加载状态
   const [loading, setLoading] = useState(false)
-  const { execute } = useAiAction<T>(aiAction)
   const formRef = useRef<FormInstance>(null)
 
   /**
@@ -72,6 +68,8 @@ export function WithAiAction<T = unknown>({
    * 执行 AI 操作并自动处理 loading 状态和错误提示
    */
   const onClick = useCallback(async () => {
+    if (!execute) return
+
     try {
       setLoading(true)
       const result = await execute({
