@@ -78,6 +78,22 @@ pub trait ConversationInitializer: Send + Sync {
     fn allowed_tools(&self) -> Option<Vec<String>> {
         None
     }
+
+    /// 是否在该会话类型中启用 AI 技能（skill）功能
+    ///
+    /// 默认返回 `false`。技能与工具并行独立，二者开关互不影响。
+    fn is_skill_enabled(&self) -> bool {
+        false
+    }
+
+    /// 获取该会话类型允许装载的技能白名单
+    ///
+    /// - 返回 `None`：表示如果启用了技能，则允许装载所有已注册的技能。
+    /// - 返回 `Some(vec)`：表示仅允许装载列表中的技能名称。
+    /// - 若 `is_skill_enabled()` 为 `false`，此方法的返回值将被忽略。
+    fn allowed_skills(&self) -> Option<Vec<String>> {
+        None
+    }
 }
 
 /// 根据会话类型路由到对应的初始化器实例

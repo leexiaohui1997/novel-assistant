@@ -1,0 +1,14 @@
+你可以按需装载以下技能（skill），每个技能对应一段针对特定任务的提示词模板。
+
+{% for skill in skills %}
+## {{ skill.name }}
+{{ skill.description }}
+{% if skill.schema.properties and skill.schema.properties | length > 0 -%}
+参数结构: {{ skill.schema | json_encode(pretty=true) }}
+{% endif %}
+{% endfor %}
+请在确认需要某个技能时，使用以下语法装载（且仅在需要时装载，避免重复）：
+```skills-use 技能名称
+{参数 JSON}
+```
+装载后，你将在后续轮次得到该技能的完整提示词内容，据此继续完成任务。

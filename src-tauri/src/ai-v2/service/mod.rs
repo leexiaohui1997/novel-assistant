@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use super::skills::SkillRegistry;
 use super::tools::ToolRegistry;
 use crate::ai::service::AiService as V1AiService;
 use crate::ai_v2::template::TemplateManager;
@@ -43,6 +44,9 @@ pub struct AiService {
     /// 工具注册表
     pub(crate) tool_registry: Arc<RwLock<ToolRegistry>>,
 
+    /// 技能注册表
+    pub(crate) skill_registry: Arc<RwLock<SkillRegistry>>,
+
     /// Tera 模板管理器
     pub(crate) template_manager: Arc<TemplateManager>,
 }
@@ -64,6 +68,7 @@ impl AiService {
         provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
         v1_ai_service: Arc<V1AiService>,
         tool_registry: Arc<RwLock<ToolRegistry>>,
+        skill_registry: Arc<RwLock<SkillRegistry>>,
         template_manager: Arc<TemplateManager>,
     ) -> Self {
         Self {
@@ -73,6 +78,7 @@ impl AiService {
             provider_repo,
             v1_ai_service,
             tool_registry,
+            skill_registry,
             template_manager,
         }
     }

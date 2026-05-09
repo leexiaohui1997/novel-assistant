@@ -19,7 +19,7 @@ use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
 use ai::service::AiService;
 use ai_v2::tools::builtin::SearchNovelTool;
-use ai_v2::{AiService as AiServiceV2, TemplateManager, ToolRegistry};
+use ai_v2::{AiService as AiServiceV2, SkillRegistry, TemplateManager, ToolRegistry};
 use commands::action_commands::{execute_action, list_actions};
 use commands::ai_commands::test_model;
 use commands::chapter_commands::{
@@ -161,6 +161,9 @@ pub async fn run() {
                 )))));
             }
 
+            // 初始化 AI 技能注册中心（AI v2）——当前为空，后续按需注册
+            let skill_registry = Arc::new(RwLock::new(SkillRegistry::new()));
+
             // AI v1 模板根（供 PromptTemplates 使用）
             let templates_root_v1 = Arc::new(templates_base);
 
@@ -203,6 +206,7 @@ pub async fn run() {
                 )))),
                 v1_ai_service.clone(),
                 tool_registry.clone(),
+                skill_registry.clone(),
                 template_manager.clone(),
             ));
 

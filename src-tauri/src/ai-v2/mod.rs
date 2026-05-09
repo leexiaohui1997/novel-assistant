@@ -9,6 +9,7 @@
 pub mod dto;
 pub mod initializer;
 pub mod service;
+pub mod skills;
 pub mod template;
 pub mod tools;
 pub mod types;
@@ -16,6 +17,7 @@ pub mod types;
 pub use dto::{CreateConversationInput, InsertConversationMessageInput};
 pub use initializer::ConversationInitializer;
 pub use service::AiService;
+pub use skills::{AiSkill, SkillRegistry};
 pub use template::{TemplateError, TemplateInstance, TemplateManager};
 pub use tools::builtin::SearchNovelTool;
 pub use tools::{AiTool, ToolRegistry};

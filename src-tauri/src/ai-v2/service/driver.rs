@@ -23,6 +23,7 @@ use crate::database::models::ai_conversation_message::{
     AiConversationMessage, CreateAiConversationMessage,
 };
 
+use super::super::skills::generate_skill_prompt;
 use super::super::tools::generate_tool_prompt;
 use super::super::types::{ConversationStatus, MessageType};
 use super::AiService;
@@ -170,6 +171,22 @@ impl AiService {
         .await
     }
 
+    /// 注入技能提示词到消息列表头部
+    async fn build_skill_system_prompt(
+        &self,
+        conversation_id: Uuid,
+    ) -> Result<Option<String>, String> {
+        let repo = self.conversation_repo.read().await;
+        let registry_guard = self.skill_registry.read().await;
+        crate::ai_v2::service::driver::build_skill_system_prompt(
+            conversation_id,
+            repo.as_ref(),
+            &registry_guard,
+            &self.template_manager,
+        )
+        .await
+    }
+
     /// 复用 v1 [`crate::ai::service::AiService::chat`] 完成实际 AI 调用
     async fn call_ai(
         &self,
@@ -186,6 +203,17 @@ impl AiService {
                 Message {
                     role: MessageRole::System,
                     content: tool_prompt,
+                },
+            );
+        }
+
+        // 注入技能提示词（插入到最前，确保顺序为：skills → tools → 业务消息）
+        if let Some(skill_prompt) = self.build_skill_system_prompt(conversation_id).await? {
+            messages.insert(
+                0,
+                Message {
+                    role: MessageRole::System,
+                    content: skill_prompt,
                 },
             );
         }
@@ -363,6 +391,28 @@ async fn build_tool_system_prompt(
         conversation_id,
         conversation_repo,
         tool_registry,
+        template_manager,
+    )
+    .await?;
+
+    if prompt.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(prompt))
+    }
+}
+
+/// 构建技能系统提示词
+async fn build_skill_system_prompt(
+    conversation_id: Uuid,
+    conversation_repo: &dyn crate::database::repositories::AiConversationRepository,
+    skill_registry: &crate::ai_v2::skills::SkillRegistry,
+    template_manager: &crate::ai_v2::template::TemplateManager,
+) -> Result<Option<String>, String> {
+    let prompt = generate_skill_prompt(
+        conversation_id,
+        conversation_repo,
+        skill_registry,
         template_manager,
     )
     .await?;
