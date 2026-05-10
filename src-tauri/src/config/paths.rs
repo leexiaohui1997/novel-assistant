@@ -28,13 +28,14 @@ pub fn get_app_data_dir() -> Result<PathBuf, DbError> {
         DbError::CreateDirFailed(e)
     })?;
 
-    info!("应用数据目录就绪: {:?}", app_data_dir);
+    // info!("应用数据目录就绪: {:?}", app_data_dir);
     Ok(app_data_dir)
 }
 
 /// 获取数据库文件路径
 pub fn get_database_path() -> Result<PathBuf, DbError> {
     let app_data_dir = get_app_data_dir()?;
+    info!("应用数据目录就绪: {:?}", app_data_dir);
     Ok(app_data_dir.join("novels.db"))
 }
 

@@ -33,6 +33,7 @@ use commands::character_commands::{
     get_characters_with_pagination, update_character,
 };
 use commands::creation_state_commands::{get_creation_state, upsert_creation_state};
+use commands::log_commands::{get_log_file_content, get_log_files};
 use commands::model_commands::{
     add_models, delete_model, fetch_provider_models, get_all_models, get_models_with_pagination,
     get_provider_types, set_model_as_default, toggle_model_enabled, toggle_model_thinking,
@@ -328,7 +329,9 @@ pub async fn run() {
             get_tokens_summary,
             get_tokens_model_usage,
             list_ai_call_logs,
-            execute_ai
+            execute_ai,
+            get_log_files,
+            get_log_file_content
         ])
         .run(tauri::generate_context!())
         .expect("运行 Tauri 应用时出错");

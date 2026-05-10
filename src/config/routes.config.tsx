@@ -111,6 +111,14 @@ export const ROUTES_CONFIG: RouteObject[] = [
           title: 'Tokens 看板',
         } satisfies RouteHandle,
       },
+      {
+        id: 'backend-logs',
+        path: '/backend-logs',
+        element: lazyElement(() => import('@/pages/BackendLogs/index')),
+        handle: {
+          title: '后端日志',
+        } satisfies RouteHandle,
+      },
     ],
   },
 ]
