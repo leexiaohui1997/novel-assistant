@@ -1,0 +1,11 @@
+## 相关名词
+{%- if groups | length == 0 %}
+（暂无名词）
+{%- else %}
+{%- for group in groups %}
+{{ loop.index }}. {{ group.type_label }}
+{%- for item in group.items %}
+- {{ item.name }}{% if show_id %} [ID: {{ item.id }}]{% endif %}{% if item.description %} - {{ item.description }}{% endif %}
+{%- endfor %}
+{%- endfor %}
+{%- endif %}

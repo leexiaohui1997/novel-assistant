@@ -6,10 +6,12 @@ mod edit_chapter_characters;
 mod edit_chapter_plot;
 mod edit_chapter_positioning;
 mod edit_chapter_title;
+mod fragments;
 mod generate_chapter_content;
 mod generate_character;
 mod generate_introduction;
 mod generate_title;
+mod novel_terms;
 mod optimize_character;
 mod recommend_tags;
 mod types;
@@ -20,11 +22,13 @@ pub use edit_chapter_characters::EditChapterCharactersContext;
 pub use edit_chapter_plot::EditChapterPlotContext;
 pub use edit_chapter_positioning::EditChapterPositioningContext;
 pub use edit_chapter_title::EditChapterTitleContext;
+pub use fragments::{render_novel_terms_fragment, PromptFragmentError};
 pub use generate_chapter_content::GenerateChapterContentContext;
 pub use generate_character::CharacterTypeOption;
 pub use generate_character::GenerateCharacterContext;
 pub use generate_introduction::GenerateIntroductionContext;
 pub use generate_title::GenerateTitleContext;
+pub use novel_terms::{NovelTermGroup, NovelTermItem, NovelTermsContext};
 pub use optimize_character::OptimizeCharacterContext;
 pub use recommend_tags::RecommendTagsContext;
 pub use types::{CharacterDetail, CharacterInfo, CharacterWithIdInfo};
@@ -157,5 +161,14 @@ impl PromptTemplates {
     ) -> Result<String, tera::Error> {
         let tera_context = Context::from_serialize(context)?;
         self.tera.render("generate_chapter_content", &tera_context)
+    }
+
+    /// 渲染 novel_terms 提示词片段
+    ///
+    /// 将已按类型分组的小说名词列表渲染为 Markdown 片段，
+    /// 供上层提示词拼接。模板文件位于 `templates/fragments/novel_terms.tera`。
+    pub fn render_novel_terms(&self, context: &NovelTermsContext) -> Result<String, tera::Error> {
+        let tera_context = Context::from_serialize(context)?;
+        self.tera.render("novel_terms", &tera_context)
     }
 }
