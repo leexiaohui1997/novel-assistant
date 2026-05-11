@@ -1,0 +1,234 @@
+use async_trait::async_trait;
+use chrono::Utc;
+use sqlx::{QueryBuilder, Sqlite, SqlitePool};
+use uuid::Uuid;
+
+use crate::database::error::DbError;
+use crate::database::models::chapter_term_relation::{
+    ChapterTermRelation, ChapterTermRelationQuery, NewChapterTermRelation,
+    UpdateChapterTermRelation,
+};
+use crate::utils::pagination::PaginatedResult;
+
+/// SQLite 名词-章节关联仓储实现
+pub struct SqliteChapterTermRelationRepository {
+    pool: SqlitePool,
+}
+
+impl SqliteChapterTermRelationRepository {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl super::chapter_term_relation_repo::ChapterTermRelationRepository
+    for SqliteChapterTermRelationRepository
+{
+    async fn create(
+        &self,
+        relation: &NewChapterTermRelation,
+    ) -> Result<ChapterTermRelation, DbError> {
+        let now = Utc::now();
+        let id = Uuid::new_v4();
+
+        sqlx::query(
+            "INSERT INTO chapter_term_relations (id, chapter_id, term_id, description, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        )
+        .bind(id)
+        .bind(relation.chapter_id)
+        .bind(relation.term_id)
+        .bind(&relation.description)
+        .bind(now)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        self.find_by_id(&id)
+            .await?
+            .ok_or_else(|| DbError::Business(format!("关联 {} 创建后未找到", id)))
+    }
+
+    async fn find_by_id(&self, id: &Uuid) -> Result<Option<ChapterTermRelation>, DbError> {
+        let relation = sqlx::query_as::<_, ChapterTermRelation>(
+            "SELECT * FROM chapter_term_relations WHERE id = ?1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(relation)
+    }
+
+    async fn update(
+        &self,
+        id: &Uuid,
+        update: &UpdateChapterTermRelation,
+    ) -> Result<ChapterTermRelation, DbError> {
+        let now = Utc::now();
+
+        let result = sqlx::query(
+            "UPDATE chapter_term_relations
+             SET description = ?2, updated_at = ?3
+             WHERE id = ?1",
+        )
+        .bind(id)
+        .bind(&update.description)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(DbError::Business(format!("关联 {} 不存在，无法更新", id)));
+        }
+
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| DbError::Business(format!("关联 {} 更新后未找到", id)))
+    }
+
+    async fn delete(&self, id: &Uuid) -> Result<(), DbError> {
+        let result = sqlx::query("DELETE FROM chapter_term_relations WHERE id = ?1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(DbError::Business(format!("关联 {} 不存在，无法删除", id)));
+        }
+        Ok(())
+    }
+
+    async fn find_by_chapter_and_term(
+        &self,
+        chapter_id: &Uuid,
+        term_id: &Uuid,
+    ) -> Result<Option<ChapterTermRelation>, DbError> {
+        let relation = sqlx::query_as::<_, ChapterTermRelation>(
+            "SELECT * FROM chapter_term_relations WHERE chapter_id = ?1 AND term_id = ?2",
+        )
+        .bind(chapter_id)
+        .bind(term_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(relation)
+    }
+
+    async fn find_with_query(
+        &self,
+        query: &ChapterTermRelationQuery,
+    ) -> Result<PaginatedResult<ChapterTermRelation>, DbError> {
+        let total = self.count_with_filter(query).await?;
+        let data = self.list_with_filter(query).await?;
+
+        let total = if query.page_size == 0 {
+            data.len() as i64
+        } else {
+            total
+        };
+        Ok(PaginatedResult { data, total })
+    }
+
+    async fn delete_by_chapter_id(&self, chapter_id: &Uuid) -> Result<(), DbError> {
+        sqlx::query("DELETE FROM chapter_term_relations WHERE chapter_id = ?1")
+            .bind(chapter_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn delete_by_term_id(&self, term_id: &Uuid) -> Result<(), DbError> {
+        sqlx::query("DELETE FROM chapter_term_relations WHERE term_id = ?1")
+            .bind(term_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+}
+
+impl SqliteChapterTermRelationRepository {
+    /// 计算符合条件的总数
+    async fn count_with_filter(&self, query: &ChapterTermRelationQuery) -> Result<i64, DbError> {
+        let mut builder: QueryBuilder<Sqlite> =
+            QueryBuilder::new("SELECT COUNT(*) FROM chapter_term_relations");
+        self.push_where_clause(&mut builder, query);
+
+        let total: (i64,) = builder.build_query_as().fetch_one(&self.pool).await?;
+        Ok(total.0)
+    }
+
+    /// 查询列表（支持筛选、排序、分页）
+    async fn list_with_filter(
+        &self,
+        query: &ChapterTermRelationQuery,
+    ) -> Result<Vec<ChapterTermRelation>, DbError> {
+        let mut builder: QueryBuilder<Sqlite> =
+            QueryBuilder::new("SELECT * FROM chapter_term_relations");
+        self.push_where_clause(&mut builder, query);
+
+        // 添加排序
+        let sort_by = query.sort_by.as_deref().unwrap_or("created_at");
+        let sort_order = query.sort_order.as_deref().unwrap_or("desc");
+
+        // 验证排序字段，防止 SQL 注入
+        let valid_sort_fields = ["created_at", "updated_at"];
+        let sort_field = if valid_sort_fields.contains(&sort_by) {
+            sort_by
+        } else {
+            "created_at"
+        };
+
+        let order = if sort_order.to_lowercase() == "asc" {
+            "ASC"
+        } else {
+            "DESC"
+        };
+
+        builder.push(" ORDER BY ");
+        builder.push(sort_field);
+        builder.push(" ");
+        builder.push(order);
+
+        // 添加分页
+        if query.page_size > 0 {
+            let page = if query.page < 1 { 1 } else { query.page };
+            let offset = (page - 1) * query.page_size;
+            builder.push(" LIMIT ");
+            builder.push_bind(query.page_size);
+            builder.push(" OFFSET ");
+            builder.push_bind(offset);
+        }
+
+        let data = builder
+            .build_query_as::<ChapterTermRelation>()
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(data)
+    }
+
+    /// 构建 WHERE 子句
+    fn push_where_clause<'a>(
+        &self,
+        builder: &mut QueryBuilder<'a, Sqlite>,
+        query: &'a ChapterTermRelationQuery,
+    ) {
+        let mut needs_and = false;
+
+        if let Some(chapter_id) = query.chapter_id {
+            if needs_and {
+                builder.push(" AND");
+            }
+            builder.push(" chapter_id = ");
+            builder.push_bind(chapter_id);
+            needs_and = true;
+        }
+
+        if let Some(term_id) = query.term_id {
+            if needs_and {
+                builder.push(" AND");
+            }
+            builder.push(" term_id = ");
+            builder.push_bind(term_id);
+        }
+    }
+}

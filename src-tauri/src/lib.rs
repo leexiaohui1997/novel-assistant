@@ -58,10 +58,11 @@ use config::paths::{get_template_root, get_templates_base};
 use database::pool::init_pool;
 use database::repositories::{
     AiCallLogRepository, AiConversationMessageRepository, AiConversationRepository,
-    ChapterOutlineRepository, ChapterRepository, ChapterVersionRepository, CharacterRepository,
-    CreationStateRepository, ModelRepository, NovelRepository, NovelTermRepository,
-    ProviderRepository, SqliteAiCallLogRepository, SqliteAiConversationMessageRepository,
-    SqliteAiConversationRepository, SqliteChapterOutlineRepository, SqliteChapterRepository,
+    ChapterOutlineRepository, ChapterRepository, ChapterTermRelationRepository,
+    ChapterVersionRepository, CharacterRepository, CreationStateRepository, ModelRepository,
+    NovelRepository, NovelTermRepository, ProviderRepository, SqliteAiCallLogRepository,
+    SqliteAiConversationMessageRepository, SqliteAiConversationRepository,
+    SqliteChapterOutlineRepository, SqliteChapterRepository, SqliteChapterTermRelationRepository,
     SqliteChapterVersionRepository, SqliteCharacterRepository, SqliteCreationStateRepository,
     SqliteModelRepository, SqliteNovelRepository, SqliteNovelTermRepository,
     SqliteProviderRepository, SqliteTagRepository, TagRepository,
@@ -74,6 +75,8 @@ pub struct AppState {
     pub chapter_version_repo: Arc<RwLock<Box<dyn ChapterVersionRepository + Send + Sync>>>,
     pub character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
     pub novel_term_repo: Arc<RwLock<Box<dyn NovelTermRepository + Send + Sync>>>,
+    pub chapter_term_relation_repo:
+        Arc<RwLock<Box<dyn ChapterTermRelationRepository + Send + Sync>>>,
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
     pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
     pub provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
@@ -238,6 +241,9 @@ pub async fn run() {
                 novel_term_repo: Arc::new(RwLock::new(Box::new(SqliteNovelTermRepository::new(
                     pool.clone(),
                 )))),
+                chapter_term_relation_repo: Arc::new(RwLock::new(Box::new(
+                    SqliteChapterTermRelationRepository::new(pool.clone()),
+                ))),
                 tag_repo: Arc::new(RwLock::new(Box::new(SqliteTagRepository::new(
                     pool.clone(),
                 )))),

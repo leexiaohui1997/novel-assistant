@@ -3,6 +3,7 @@ pub mod ai_conversation;
 pub mod ai_conversation_message;
 pub mod chapter;
 pub mod chapter_outline;
+pub mod chapter_term_relation;
 pub mod chapter_version;
 pub mod character;
 pub mod creation_state;
