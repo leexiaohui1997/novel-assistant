@@ -75,6 +75,7 @@ export default function CreationDetailCharacter() {
             }}
             emptyDescription="暂无角色"
             fetchList={fetchList}
+            pageSize={9}
             renderItem={(itemInfo, _, order) => (
               <CharacterCard
                 key={itemInfo.id}

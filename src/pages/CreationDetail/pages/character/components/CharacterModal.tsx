@@ -17,7 +17,7 @@ import { logger } from '@/utils/logger'
 /**
  * AI 生成的角色数据结构
  */
-interface GeneratedCharacter {
+export interface GeneratedCharacter {
   name: string
   gender: CharacterGender
   character_type?: CharacterType
@@ -88,6 +88,8 @@ const buildOptimizeCharacterPayload = (values?: Record<string, unknown>) => ({
 interface CharacterModalProps {
   /** 弹窗是否可见 */
   open: boolean
+  /** AI 一键生成角色资料的结果 */
+  aiCharacter?: GeneratedCharacter
   /** 待编辑的角色数据；不传则为创建模式 */
   character?: Character
   /** 所属小说 ID */
@@ -95,7 +97,7 @@ interface CharacterModalProps {
   /** 弹窗关闭回调（点击取消 / 提交成功后） */
   onClose?: () => void
   /** 创建 / 更新成功后的回调，通常用于外层刷新列表 */
-  onSuccess?: () => void
+  onSuccess?: (character: Character) => void
   /** 弹窗完全关闭（动画结束）后的回调 */
   afterClose?: () => void
 }
@@ -110,6 +112,7 @@ interface CharacterModalProps {
  */
 export function CharacterModal({
   open,
+  aiCharacter,
   character,
   novelId,
   onClose,
@@ -170,21 +173,29 @@ export function CharacterModal({
   )
 
   /** 表单初始值：编辑模式取自 character，创建模式为空 */
-  const initialValues = useMemo(
-    () =>
-      character
-        ? {
-            name: character.name,
-            gender: character.gender,
-            characterType: character.characterType ?? undefined,
-            background: character.background,
-            appearance: character.appearance,
-            personality: character.personality,
-            additionalInfo: character.additionalInfo,
-          }
-        : {},
-    [character],
-  )
+  const initialValues = useMemo(() => {
+    const sourceData =
+      character ||
+      (aiCharacter && {
+        ...aiCharacter,
+        characterType: aiCharacter.character_type,
+        additionalInfo: aiCharacter.additional_info,
+      })
+
+    if (sourceData) {
+      return {
+        name: sourceData.name,
+        gender: sourceData.gender,
+        characterType: sourceData.characterType ?? undefined,
+        background: sourceData.background,
+        appearance: sourceData.appearance,
+        personality: sourceData.personality,
+        additionalInfo: sourceData.additionalInfo,
+      }
+    }
+
+    return {}
+  }, [character, aiCharacter])
 
   /** AI 单字段优化结果回调：若 AI 返回了对应字段则回填，否则提示无需优化 */
   const handleOptimizeResult = useCallback(
@@ -255,10 +266,9 @@ export function CharacterModal({
     async (values: Record<string, unknown>) => {
       const payload = buildPayload(values)
       if (isEdit && character) {
-        await updateCharacter({ id: character.id, ...payload })
-        return
+        return await updateCharacter({ id: character.id, ...payload })
       }
-      await createCharacter({ novelId, ...payload })
+      return await createCharacter({ novelId, ...payload })
     },
     [isEdit, character, novelId, buildPayload],
   )
@@ -281,10 +291,10 @@ export function CharacterModal({
     const actionText = isEdit ? '更新' : '创建'
     setLoading(true)
     try {
-      await submitCharacter(values)
+      const result = await submitCharacter(values)
       message.success(`${actionText}角色成功`)
       onClose?.()
-      onSuccess?.()
+      onSuccess?.(result)
     } catch (error) {
       message.error(`${actionText}角色失败: ${getErrorMsg(error)}`)
     } finally {

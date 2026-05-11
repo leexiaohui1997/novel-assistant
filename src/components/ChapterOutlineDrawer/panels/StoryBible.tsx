@@ -7,7 +7,8 @@ import { PositioningAction } from '../actions/Positioning'
 
 import { ChapterOutlinePanelHandle } from './common'
 
-import { CharacterSelect } from '@/components/CharacterSelect'
+import { CharacterSelect, CharacterSelectHandle } from '@/components/CharacterSelect'
+import CharacterSuggest, { CharacterSuggestHandle } from '@/components/CharacterSuggest'
 import {
   ChapterOutline,
   editChapterOutline,
@@ -25,6 +26,8 @@ export type StoryBibleProps = {
 export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
   const { message } = App.useApp()
   const formRef = useRef<FormInstance>(null)
+  const characterSuggestRef = useRef<CharacterSuggestHandle>(null)
+  const characterSelectRef = useRef<CharacterSelectHandle>(null)
 
   const [outline, setOutline] = useState<ChapterOutline>()
   const [loading, setLoading] = useState(false)
@@ -60,6 +63,7 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
     },
     [novelId, chapterId, message],
   )
+
   useImperativeHandle(ref, () => ({ save }))
 
   useEffect(() => {
@@ -78,6 +82,7 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
 
     fetchOutline()
   }, [novelId, chapterId, message])
+
   useEffect(() => {
     formRef.current?.setFieldsValue({
       positioning: outline?.positioning || '',
@@ -119,10 +124,29 @@ export function StoryBible({ novelId, chapterId, ref }: StoryBibleProps) {
           <Input.TextArea placeholder="请输入本章剧情" rows={4} maxLength={200} showCount />
         </Form.Item>
         <Form.Item
-          label={<CharactersAction novelId={novelId} chapterId={chapterId} formRef={formRef} />}
+          label={
+            <CharactersAction
+              novelId={novelId}
+              chapterId={chapterId}
+              formRef={formRef}
+              suggestRef={characterSuggestRef}
+            />
+          }
           name="characterIds"
+          extra={
+            <CharacterSuggest
+              ref={characterSuggestRef}
+              novelId={novelId}
+              classNames={{ root: 'mt-2' }}
+              afterCreated={(data) => characterSelectRef.current?.addNewCharacter(data)}
+            />
+          }
         >
-          <CharacterSelect novelId={novelId} placeholder="请选择本章出场角色" />
+          <CharacterSelect
+            ref={characterSelectRef}
+            novelId={novelId}
+            placeholder="请选择本章出场角色"
+          />
         </Form.Item>
       </Form>
     </>

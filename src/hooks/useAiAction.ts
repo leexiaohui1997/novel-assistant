@@ -3,9 +3,11 @@ import { useCallback, useState } from 'react'
 
 import { logger } from '@/utils/logger'
 
-export type ExecuteParams = {
+export type ExecuteParams<T = unknown> = {
   modelId?: string
   userFeedback?: string
+  onSuccess?: (result: T) => void
+  onError?: (error: Error) => void
 }
 
 export type UseAiActionProps = {
@@ -45,7 +47,7 @@ export function useAiAction<T = unknown>(options: UseAiActionProps) {
    * @returns Promise<T> Action 返回结果
    */
   const execute = useCallback(
-    async (executeParams: ExecuteParams = {}): Promise<T> => {
+    async (executeParams: ExecuteParams<T> = {}): Promise<T> => {
       try {
         setLoading(true)
         setError(null)
@@ -64,11 +66,13 @@ export function useAiAction<T = unknown>(options: UseAiActionProps) {
 
         logger.debug(`AI Action 返回结果: ${actionName}`, response)
         setResult(response)
+        executeParams.onSuccess?.(response)
         return response
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err))
         logger.error(`AI Action 执行失败: ${actionName}`, error)
         setError(error)
+        executeParams.onError?.(error)
         throw err
       } finally {
         setLoading(false)

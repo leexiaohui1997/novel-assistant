@@ -1,5 +1,6 @@
-import { App, FormInstance } from 'antd'
+import { FormInstance } from 'antd'
 
+import { CharacterSuggestHandle } from '@/components/CharacterSuggest'
 import { WithAiAction } from '@/components/WithAiAction'
 import { useEditorForm } from '@/providers/EditorFormContext'
 
@@ -13,6 +14,7 @@ export type CharactersActionProps = {
   novelId: string
   chapterId?: string
   formRef?: React.RefObject<FormInstance | null>
+  suggestRef?: React.RefObject<CharacterSuggestHandle | null>
 }
 
 export function CharactersAction({
@@ -20,9 +22,9 @@ export function CharactersAction({
   novelId,
   chapterId,
   formRef,
+  suggestRef,
 }: CharactersActionProps) {
   const { title, content } = useEditorForm()
-  const { message } = App.useApp()
 
   const handleResult = (result: unknown) => {
     const data = result as CharactersResult
@@ -34,17 +36,15 @@ export function CharactersAction({
 
   const mergeExistingCharacterIds = (data: CharactersResult) => {
     if (!data.existing_character_ids?.length) return
-    const current = (formRef?.current?.getFieldValue('characterIds') as string[]) || []
-    const merged = Array.from(new Set([...current, ...data.existing_character_ids]))
-    formRef?.current?.setFieldsValue({ characterIds: merged })
+    if (formRef?.current) {
+      const current = (formRef.current.getFieldValue('characterIds') as string[]) || []
+      const merged = Array.from(new Set([...current, ...data.existing_character_ids]))
+      formRef.current.setFieldsValue({ characterIds: merged })
+    }
   }
 
   const showNewCharacterDescriptions = (data: CharactersResult) => {
-    if (!data.new_character_descriptions?.length) return
-    const descriptions = data.new_character_descriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')
-    message.info(
-      `AI 识别到 ${data.new_character_descriptions.length} 个尚未创建的角色，相关描写：\n${descriptions}`,
-    )
+    suggestRef?.current?.setSuggests(data.new_character_descriptions || [])
   }
 
   return (
