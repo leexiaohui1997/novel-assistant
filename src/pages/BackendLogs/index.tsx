@@ -11,12 +11,11 @@ export default function BackendLogs() {
     <Card
       title="后端日志"
       classNames={{
-        root: 'flex-1 flex flex-col gap-px',
+        root: 'flex-1 flex flex-col gap-px h-0',
         body: 'flex-1 h-0 overflow-hidden flex p-0!',
       }}
     >
-      <Splitter>
-        {/* 目录树 */}
+      <Splitter className="flex-1 h-0 overflow-hidden">
         <Splitter.Panel defaultSize={200} min={200}>
           <LogFileTree value={selectedFileName} onChange={setSelectedFileName} />
         </Splitter.Panel>

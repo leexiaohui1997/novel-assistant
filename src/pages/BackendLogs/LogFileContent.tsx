@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 
 import { useLogContent } from './hooks/useLogContent'
 
+import { MarkdownContent } from '@/components/Markdown/MarkdownContent'
+
 export type LogFileContentProps = {
   filename?: string
 }
@@ -15,5 +17,9 @@ export function LogFileContent({ filename }: LogFileContentProps) {
     }
   }, [filename, loadContent])
 
-  return <div>{content}</div>
+  return (
+    <div>
+      <MarkdownContent content={'```log\n' + content?.trim() + '\n```'} />
+    </div>
+  )
 }

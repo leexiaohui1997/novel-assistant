@@ -117,6 +117,10 @@ export const ROUTES_CONFIG: RouteObject[] = [
         element: lazyElement(() => import('@/pages/BackendLogs/index')),
         handle: {
           title: '后端日志',
+          layoutClassNames: {
+            wrapper: 'h-0 relative',
+            content: 'h-full',
+          },
         } satisfies RouteHandle,
       },
     ],
