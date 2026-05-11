@@ -12,6 +12,7 @@ pub mod character_repo;
 pub mod creation_state_repo;
 pub mod model_repo;
 pub mod novel_repo;
+pub mod novel_term_repo;
 pub mod provider_repo;
 pub mod tag_repo;
 
@@ -29,5 +30,6 @@ pub use character_repo::{CharacterRepository, SqliteCharacterRepository};
 pub use creation_state_repo::{CreationStateRepository, SqliteCreationStateRepository};
 pub use model_repo::{ModelRepository, SqliteModelRepository};
 pub use novel_repo::{NovelRepository, QueryOptions, SqliteNovelRepository};
+pub use novel_term_repo::{NovelTermQuery, NovelTermRepository, SqliteNovelTermRepository};
 pub use provider_repo::{ProviderRepository, SqliteProviderRepository};
 pub use tag_repo::{SqliteTagRepository, TagRepository};

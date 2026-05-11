@@ -43,6 +43,9 @@ use commands::novel_commands::{
     create_novel, delete_novel, get_novel_by_id, get_novel_stats, get_novels,
     get_novels_with_pagination, update_novel,
 };
+use commands::novel_term_commands::{
+    create_novel_term, delete_novel_term, get_novel_term_by_id, get_novel_terms, update_novel_term,
+};
 use commands::provider_commands::{
     create_provider, delete_provider, get_providers_with_pagination, update_provider,
 };
@@ -55,12 +58,12 @@ use database::pool::init_pool;
 use database::repositories::{
     AiCallLogRepository, AiConversationMessageRepository, AiConversationRepository,
     ChapterOutlineRepository, ChapterRepository, ChapterVersionRepository, CharacterRepository,
-    CreationStateRepository, ModelRepository, NovelRepository, ProviderRepository,
-    SqliteAiCallLogRepository, SqliteAiConversationMessageRepository,
+    CreationStateRepository, ModelRepository, NovelRepository, NovelTermRepository,
+    ProviderRepository, SqliteAiCallLogRepository, SqliteAiConversationMessageRepository,
     SqliteAiConversationRepository, SqliteChapterOutlineRepository, SqliteChapterRepository,
     SqliteChapterVersionRepository, SqliteCharacterRepository, SqliteCreationStateRepository,
-    SqliteModelRepository, SqliteNovelRepository, SqliteProviderRepository, SqliteTagRepository,
-    TagRepository,
+    SqliteModelRepository, SqliteNovelRepository, SqliteNovelTermRepository,
+    SqliteProviderRepository, SqliteTagRepository, TagRepository,
 };
 use tauri::{Builder, Manager};
 
@@ -69,6 +72,7 @@ pub struct AppState {
     pub chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
     pub chapter_version_repo: Arc<RwLock<Box<dyn ChapterVersionRepository + Send + Sync>>>,
     pub character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
+    pub novel_term_repo: Arc<RwLock<Box<dyn NovelTermRepository + Send + Sync>>>,
     pub tag_repo: Arc<RwLock<Box<dyn TagRepository + Send + Sync>>>,
     pub creation_state_repo: Arc<RwLock<Box<dyn CreationStateRepository + Send + Sync>>>,
     pub provider_repo: Arc<RwLock<Box<dyn ProviderRepository + Send + Sync>>>,
@@ -229,6 +233,9 @@ pub async fn run() {
                 character_repo: Arc::new(RwLock::new(Box::new(SqliteCharacterRepository::new(
                     pool.clone(),
                 )))),
+                novel_term_repo: Arc::new(RwLock::new(Box::new(SqliteNovelTermRepository::new(
+                    pool.clone(),
+                )))),
                 tag_repo: Arc::new(RwLock::new(Box::new(SqliteTagRepository::new(
                     pool.clone(),
                 )))),
@@ -305,6 +312,11 @@ pub async fn run() {
             get_character_by_id,
             update_character,
             delete_character,
+            create_novel_term,
+            update_novel_term,
+            delete_novel_term,
+            get_novel_term_by_id,
+            get_novel_terms,
             get_tags_by_audience,
             get_tags_by_ids,
             get_creation_state,

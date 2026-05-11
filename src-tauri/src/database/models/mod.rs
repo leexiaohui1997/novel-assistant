@@ -8,5 +8,6 @@ pub mod character;
 pub mod creation_state;
 pub mod model;
 pub mod novel;
+pub mod novel_term;
 pub mod provider;
 pub mod tag;

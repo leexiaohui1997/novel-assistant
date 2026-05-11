@@ -8,6 +8,7 @@ pub mod creation_state_commands;
 pub mod log_commands;
 pub mod model_commands;
 pub mod novel_commands;
+pub mod novel_term_commands;
 pub mod provider_commands;
 pub mod tag_commands;
 pub mod tokens_dashboard_commands;
