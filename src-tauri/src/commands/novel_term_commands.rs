@@ -1,10 +1,12 @@
 use tauri::State;
 use uuid::Uuid;
 
+use crate::database::models::chapter_term_relation::ChapterTermRelationWithTerm;
 use crate::database::models::novel_term::{NovelTerm, TermType, ALL_TERM_TYPES};
 use crate::database::repositories::NovelTermQuery;
 use crate::utils::pagination::PaginatedResult;
 use crate::AppState;
+use serde::{Deserialize, Serialize};
 
 /// 将前端传入的 UUID 字符串解析为 `Uuid`
 fn parse_uuid(field_label: &str, raw: &str) -> Result<Uuid, String> {
@@ -170,4 +172,148 @@ pub async fn get_novel_terms(
         tracing::error!(op = "get_novel_terms", novel_id = %novel_uuid, error = %e);
         format!("查询名词失败: {}", e)
     })
+}
+
+/// 名词输入结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TermInput {
+    pub id: Option<String>,
+    pub name: String,
+    pub term_type: String,
+    pub description: Option<String>,
+}
+
+/// 批量更新名词列表入参
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateChapterTermsInput {
+    pub novel_id: String,
+    pub chapter_id: Option<String>,
+    pub terms: Vec<TermInput>,
+}
+
+/// 按小说ID和章节ID查询名词列表
+#[tauri::command]
+pub async fn get_chapter_terms(
+    novel_id: String,
+    chapter_id: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<Vec<ChapterTermRelationWithTerm>, String> {
+    let novel_uuid = parse_uuid("novelId", &novel_id)?;
+    let chapter_uuid = chapter_id
+        .map(|id| parse_uuid("chapterId", &id))
+        .transpose()?;
+
+    let repo = state.chapter_term_relation_repo.read().await;
+    repo.find_terms_by_novel_and_chapter(&novel_uuid, chapter_uuid.as_ref())
+        .await
+        .map_err(|e| {
+            tracing::error!(op = "get_chapter_terms", novel_id = %novel_uuid, error = %e);
+            format!("查询名词列表失败: {}", e)
+        })
+}
+
+/// 批量更新名词列表
+#[tauri::command]
+pub async fn update_chapter_terms(
+    input: UpdateChapterTermsInput,
+    state: State<'_, AppState>,
+) -> Result<Vec<ChapterTermRelationWithTerm>, String> {
+    let novel_uuid = parse_uuid("novelId", &input.novel_id)?;
+    let chapter_uuid = input
+        .chapter_id
+        .map(|id| parse_uuid("chapterId", &id))
+        .transpose()?;
+
+    // 开启事务
+    let mut tx = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| format!("开启事务失败: {}", e))?;
+
+    // 1. 创建所有 id 为空的新名词
+    let mut term_ids = Vec::new();
+    for term_input in &input.terms {
+        if term_input.id.is_none() || term_input.id.as_ref().unwrap().is_empty() {
+            // 解析 term_type
+            let term_type = parse_term_type(&term_input.term_type)?;
+
+            // 在事务中创建新名词
+            let created = sqlx::query_as::<_, NovelTerm>(
+                "INSERT INTO novel_terms (id, novel_id, term_type, name, description, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                 RETURNING *",
+            )
+            .bind(Uuid::new_v4())
+            .bind(novel_uuid)
+            .bind(term_type.as_str())
+            .bind(&term_input.name)
+            .bind(&term_input.description)
+            .bind(chrono::Utc::now())
+            .bind(chrono::Utc::now())
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(|e| format!("创建名词失败: {}", e))?;
+
+            term_ids.push(created.id);
+        } else {
+            // 解析已有名词ID
+            let term_id = parse_uuid("termId", term_input.id.as_ref().unwrap())?;
+            term_ids.push(term_id);
+        }
+    }
+
+    // 2. 按小说ID+章节ID删除旧关联
+    let delete_sql = if chapter_uuid.is_some() {
+        "DELETE FROM chapter_term_relations WHERE novel_id = ?1 AND chapter_id = ?2"
+    } else {
+        "DELETE FROM chapter_term_relations WHERE novel_id = ?1 AND chapter_id IS NULL"
+    };
+
+    let mut delete_query = sqlx::query(delete_sql);
+    delete_query = delete_query.bind(novel_uuid);
+    if let Some(cid) = chapter_uuid {
+        delete_query = delete_query.bind(cid);
+    }
+
+    delete_query
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| format!("删除旧关联失败: {}", e))?;
+
+    // 3. 创建新的关联数据
+    for (idx, term_id) in term_ids.iter().enumerate() {
+        let term_input = &input.terms[idx];
+        let relation_id = Uuid::new_v4();
+        let now = chrono::Utc::now();
+
+        sqlx::query(
+            "INSERT INTO chapter_term_relations (id, novel_id, chapter_id, term_id, description, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        )
+        .bind(relation_id)
+        .bind(novel_uuid)
+        .bind(chapter_uuid)
+        .bind(term_id)
+        .bind(&term_input.description)
+        .bind(now)
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| format!("创建关联失败: {}", e))?;
+    }
+
+    // 提交事务
+    tx.commit()
+        .await
+        .map_err(|e| format!("提交事务失败: {}", e))?;
+
+    // 4. 查询并返回创建的关联
+    let repo = state.chapter_term_relation_repo.read().await;
+    let relations = repo
+        .find_terms_by_novel_and_chapter(&novel_uuid, chapter_uuid.as_ref())
+        .await
+        .map_err(|e| format!("查询关联失败: {}", e))?;
+
+    Ok(relations)
 }

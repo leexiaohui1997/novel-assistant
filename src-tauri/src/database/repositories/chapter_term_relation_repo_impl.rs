@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::database::error::DbError;
 use crate::database::models::chapter_term_relation::{
-    ChapterTermRelation, ChapterTermRelationQuery, NewChapterTermRelation,
-    UpdateChapterTermRelation,
+    ChapterTermRelation, ChapterTermRelationQuery, ChapterTermRelationWithTerm,
+    NewChapterTermRelation, UpdateChapterTermRelation,
 };
 use crate::utils::pagination::PaginatedResult;
 
@@ -189,6 +189,68 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
         .execute(&self.pool)
         .await?;
 
+        Ok(result.rows_affected())
+    }
+
+    async fn find_terms_by_novel_and_chapter(
+        &self,
+        novel_id: &Uuid,
+        chapter_id: Option<&Uuid>,
+    ) -> Result<Vec<ChapterTermRelationWithTerm>, DbError> {
+        let mut sql = String::from(
+            "SELECT 
+                ctr.id as relation_id,
+                ctr.chapter_id,
+                ctr.term_id,
+                ctr.description,
+                ctr.created_at,
+                ctr.updated_at,
+                nt.name as term_name,
+                nt.term_type,
+                nt.description as term_description
+             FROM chapter_term_relations ctr
+             INNER JOIN novel_terms nt ON ctr.term_id = nt.id
+             WHERE ctr.novel_id = ?1",
+        );
+
+        if chapter_id.is_some() {
+            sql.push_str(" AND ctr.chapter_id = ?2");
+        } else {
+            sql.push_str(" AND ctr.chapter_id IS NULL");
+        }
+
+        sql.push_str(" ORDER BY ctr.created_at DESC");
+
+        let mut query = sqlx::query_as::<_, ChapterTermRelationWithTerm>(&sql);
+        query = query.bind(novel_id);
+
+        if let Some(cid) = chapter_id {
+            query = query.bind(cid);
+        }
+
+        let results = query.fetch_all(&self.pool).await?;
+        Ok(results)
+    }
+
+    async fn delete_by_novel_and_chapter(
+        &self,
+        novel_id: &Uuid,
+        chapter_id: Option<&Uuid>,
+    ) -> Result<u64, DbError> {
+        let sql = if chapter_id.is_some() {
+            "DELETE FROM chapter_term_relations WHERE novel_id = ?1 AND chapter_id = ?2"
+        } else {
+            "DELETE FROM chapter_term_relations WHERE novel_id = ?1 AND chapter_id IS NULL"
+        };
+
+        let mut query = sqlx::query(sql);
+        query = query.bind(novel_id);
+
+        if let Some(cid) = chapter_id {
+            query = query.bind(cid);
+        }
+
+        let result = query.execute(&self.pool).await?;
         Ok(result.rows_affected())
     }
 }

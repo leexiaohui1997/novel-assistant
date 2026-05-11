@@ -45,7 +45,8 @@ use commands::novel_commands::{
     get_novels_with_pagination, update_novel,
 };
 use commands::novel_term_commands::{
-    create_novel_term, delete_novel_term, get_novel_term_by_id, get_novel_terms, update_novel_term,
+    create_novel_term, delete_novel_term, get_chapter_terms, get_novel_term_by_id, get_novel_terms,
+    update_chapter_terms, update_novel_term,
 };
 use commands::provider_commands::{
     create_provider, delete_provider, get_providers_with_pagination, update_provider,
@@ -70,6 +71,7 @@ use database::repositories::{
 use tauri::{Builder, Manager};
 
 pub struct AppState {
+    pub pool: sqlx::SqlitePool,
     pub novel_repo: Arc<RwLock<Box<dyn NovelRepository + Send + Sync>>>,
     pub chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
     pub chapter_version_repo: Arc<RwLock<Box<dyn ChapterVersionRepository + Send + Sync>>>,
@@ -226,6 +228,7 @@ pub async fn run() {
             ));
 
             let state = AppState {
+                pool: pool.clone(),
                 novel_repo: Arc::new(RwLock::new(Box::new(SqliteNovelRepository::new(
                     pool.clone(),
                 )))),
@@ -328,6 +331,8 @@ pub async fn run() {
             delete_novel_term,
             get_novel_term_by_id,
             get_novel_terms,
+            get_chapter_terms,
+            update_chapter_terms,
             get_tags_by_audience,
             get_tags_by_ids,
             get_creation_state,

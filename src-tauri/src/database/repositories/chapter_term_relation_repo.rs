@@ -3,8 +3,8 @@ use uuid::Uuid;
 
 use crate::database::error::DbError;
 use crate::database::models::chapter_term_relation::{
-    ChapterTermRelation, ChapterTermRelationQuery, NewChapterTermRelation,
-    UpdateChapterTermRelation,
+    ChapterTermRelation, ChapterTermRelationQuery, ChapterTermRelationWithTerm,
+    NewChapterTermRelation, UpdateChapterTermRelation,
 };
 use crate::utils::pagination::PaginatedResult;
 
@@ -52,4 +52,18 @@ pub trait ChapterTermRelationRepository {
     /// 同步章节ID：将指定小说下 chapter_id 为空的记录更新为新章节ID
     async fn sync_chapter_id(&self, novel_id: &Uuid, new_chapter_id: &Uuid)
         -> Result<u64, DbError>;
+
+    /// 按小说ID和可选章节ID查询名词列表（带关联信息）
+    async fn find_terms_by_novel_and_chapter(
+        &self,
+        novel_id: &Uuid,
+        chapter_id: Option<&Uuid>,
+    ) -> Result<Vec<ChapterTermRelationWithTerm>, DbError>;
+
+    /// 批量删除指定小说和章节的关联
+    async fn delete_by_novel_and_chapter(
+        &self,
+        novel_id: &Uuid,
+        chapter_id: Option<&Uuid>,
+    ) -> Result<u64, DbError>;
 }

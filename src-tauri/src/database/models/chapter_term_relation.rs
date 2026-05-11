@@ -47,3 +47,19 @@ pub struct ChapterTermRelationQuery {
     /// 排序方向：asc 或 desc（默认desc）
     pub sort_order: Option<String>,
 }
+
+/// 名词-章节关联与名词详情的联合查询结果
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct ChapterTermRelationWithTerm {
+    pub relation_id: Uuid,
+    pub chapter_id: Option<Uuid>,
+    pub term_id: Uuid,
+    pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    // 名词详情
+    pub term_name: String,
+    pub term_type: String,
+    pub term_description: Option<String>,
+}
