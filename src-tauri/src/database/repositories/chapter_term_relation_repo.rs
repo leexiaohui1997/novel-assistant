@@ -48,4 +48,8 @@ pub trait ChapterTermRelationRepository {
 
     /// 删除指定名词的所有关联
     async fn delete_by_term_id(&self, term_id: &Uuid) -> Result<(), DbError>;
+
+    /// 同步章节ID：将指定小说下 chapter_id 为空的记录更新为新章节ID
+    async fn sync_chapter_id(&self, novel_id: &Uuid, new_chapter_id: &Uuid)
+        -> Result<u64, DbError>;
 }

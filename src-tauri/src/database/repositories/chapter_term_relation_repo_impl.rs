@@ -33,10 +33,11 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
         let id = Uuid::new_v4();
 
         sqlx::query(
-            "INSERT INTO chapter_term_relations (id, chapter_id, term_id, description, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO chapter_term_relations (id, novel_id, chapter_id, term_id, description, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         )
         .bind(id)
+        .bind(relation.novel_id)
         .bind(relation.chapter_id)
         .bind(relation.term_id)
         .bind(&relation.description)
@@ -67,16 +68,40 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
     ) -> Result<ChapterTermRelation, DbError> {
         let now = Utc::now();
 
-        let result = sqlx::query(
-            "UPDATE chapter_term_relations
-             SET description = ?2, updated_at = ?3
-             WHERE id = ?1",
-        )
-        .bind(id)
-        .bind(&update.description)
-        .bind(now)
-        .execute(&self.pool)
-        .await?;
+        // 动态构建 UPDATE SQL
+        let mut query_parts = vec!["updated_at = ?1".to_string()];
+        let mut param_index = 2;
+
+        if update.chapter_id.is_some() {
+            query_parts.push(format!("chapter_id = ?{}", param_index));
+            param_index += 1;
+        }
+
+        if update.description.is_some() {
+            query_parts.push(format!("description = ?{}", param_index));
+            param_index += 1;
+        }
+
+        let set_clause = query_parts.join(", ");
+        let sql = format!(
+            "UPDATE chapter_term_relations SET {} WHERE id = ?{}",
+            set_clause, param_index
+        );
+
+        let mut query = sqlx::query(&sql);
+        query = query.bind(now);
+
+        if let Some(chapter_id) = update.chapter_id {
+            query = query.bind(chapter_id);
+        }
+
+        if let Some(description) = &update.description {
+            query = query.bind(description);
+        }
+
+        query = query.bind(id);
+
+        let result = query.execute(&self.pool).await?;
 
         if result.rows_affected() == 0 {
             return Err(DbError::Business(format!("关联 {} 不存在，无法更新", id)));
@@ -143,6 +168,28 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    async fn sync_chapter_id(
+        &self,
+        novel_id: &Uuid,
+        new_chapter_id: &Uuid,
+    ) -> Result<u64, DbError> {
+        let now = Utc::now();
+
+        // 更新指定小说下所有 chapter_id 为空的记录
+        let result = sqlx::query(
+            "UPDATE chapter_term_relations 
+             SET chapter_id = ?1, updated_at = ?2 
+             WHERE novel_id = ?3 AND chapter_id IS NULL",
+        )
+        .bind(new_chapter_id)
+        .bind(now)
+        .bind(novel_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result.rows_affected())
     }
 }
 

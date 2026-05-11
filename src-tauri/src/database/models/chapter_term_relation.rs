@@ -7,7 +7,8 @@ use uuid::Uuid;
 #[serde(rename_all = "camelCase")]
 pub struct ChapterTermRelation {
     pub id: Uuid,
-    pub chapter_id: Uuid,
+    pub novel_id: Uuid,
+    pub chapter_id: Option<Uuid>,
     pub term_id: Uuid,
     pub description: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -17,14 +18,16 @@ pub struct ChapterTermRelation {
 /// 新建关联入参
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewChapterTermRelation {
-    pub chapter_id: Uuid,
+    pub novel_id: Uuid,
+    pub chapter_id: Option<Uuid>,
     pub term_id: Uuid,
     pub description: Option<String>,
 }
 
-/// 更新关联入参（仅更新描述）
+/// 更新关联入参（支持更新 chapter_id）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateChapterTermRelation {
+    pub chapter_id: Option<Uuid>,
     pub description: Option<String>,
 }
 
