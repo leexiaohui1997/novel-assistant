@@ -12,8 +12,9 @@ use tokio::sync::RwLock;
 
 use ai::actions::builtin::{
     EditChapterCharactersAction, EditChapterPlotAction, EditChapterPositioningAction,
-    EditChapterTitleAction, GenerateChapterContentAction, GenerateCharacterAction,
-    GenerateIntroductionAction, GenerateTitleAction, OptimizeCharacterAction, RecommendTagsAction,
+    EditChapterTitleAction, ExtractTermsAction, GenerateChapterContentAction,
+    GenerateCharacterAction, GenerateIntroductionAction, GenerateTitleAction,
+    OptimizeCharacterAction, RecommendTagsAction,
 };
 use ai::actions::{ActionExecutor, ActionRouter};
 use ai::model_fetchers::FetcherRegistry;
@@ -119,6 +120,7 @@ pub async fn run() {
     action_router.register(Arc::new(EditChapterCharactersAction));
     action_router.register(Arc::new(EditChapterTitleAction));
     action_router.register(Arc::new(GenerateChapterContentAction));
+    action_router.register(Arc::new(ExtractTermsAction));
     let action_router = Arc::new(RwLock::new(action_router));
 
     // 供 setup 闭包捕获使用
@@ -274,6 +276,9 @@ pub async fn run() {
                         pool.clone(),
                     )))),
                     Arc::new(RwLock::new(Box::new(SqliteChapterOutlineRepository::new(
+                        pool.clone(),
+                    )))),
+                    Arc::new(RwLock::new(Box::new(SqliteNovelTermRepository::new(
                         pool.clone(),
                     )))),
                     templates_root_v1,

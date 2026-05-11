@@ -6,7 +6,8 @@ mod edit_chapter_characters;
 mod edit_chapter_plot;
 mod edit_chapter_positioning;
 mod edit_chapter_title;
-mod fragments;
+mod extract_terms;
+pub mod fragments;
 mod generate_chapter_content;
 mod generate_character;
 mod generate_introduction;
@@ -22,6 +23,7 @@ pub use edit_chapter_characters::EditChapterCharactersContext;
 pub use edit_chapter_plot::EditChapterPlotContext;
 pub use edit_chapter_positioning::EditChapterPositioningContext;
 pub use edit_chapter_title::EditChapterTitleContext;
+pub use extract_terms::ExtractTermsContext;
 pub use fragments::{render_novel_terms_fragment, PromptFragmentError};
 pub use generate_chapter_content::GenerateChapterContentContext;
 pub use generate_character::CharacterTypeOption;
@@ -170,5 +172,14 @@ impl PromptTemplates {
     pub fn render_novel_terms(&self, context: &NovelTermsContext) -> Result<String, tera::Error> {
         let tera_context = Context::from_serialize(context)?;
         self.tera.render("novel_terms", &tera_context)
+    }
+
+    /// 渲染 extract_terms 提示词
+    pub fn render_extract_terms(
+        &self,
+        context: &ExtractTermsContext,
+    ) -> Result<String, tera::Error> {
+        let tera_context = Context::from_serialize(context)?;
+        self.tera.render("extract_terms", &tera_context)
     }
 }

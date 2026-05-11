@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 use crate::ai::service::AiService;
 use crate::database::repositories::{
     ChapterOutlineRepository, ChapterRepository, CharacterRepository, NovelRepository,
-    TagRepository,
+    NovelTermRepository, TagRepository,
 };
 
 /// Action 执行上下文
@@ -38,6 +38,9 @@ pub struct ActionContext {
     /// 章节大纲仓储引用（用于查询大纲信息）
     pub chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
 
+    /// 小说名词仓储引用（用于查询名词列表）
+    pub novel_term_repo: Arc<RwLock<Box<dyn NovelTermRepository + Send + Sync>>>,
+
     /// 模板根目录（`templates/`），用于构建 `PromptTemplates`
     pub templates_root: Arc<PathBuf>,
 
@@ -61,6 +64,7 @@ impl ActionContext {
         character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
         chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
         chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
+        novel_term_repo: Arc<RwLock<Box<dyn NovelTermRepository + Send + Sync>>>,
         templates_root: Arc<PathBuf>,
     ) -> Self {
         Self {
@@ -71,6 +75,7 @@ impl ActionContext {
             character_repo,
             chapter_repo,
             chapter_outline_repo,
+            novel_term_repo,
             templates_root,
             model_id: None,
             user_feedback: None,

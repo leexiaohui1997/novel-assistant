@@ -12,7 +12,7 @@ use super::router::ActionRouter;
 use crate::ai::service::AiService;
 use crate::database::repositories::{
     ChapterOutlineRepository, ChapterRepository, CharacterRepository, NovelRepository,
-    TagRepository,
+    NovelTermRepository, TagRepository,
 };
 
 /// Action 执行器
@@ -41,6 +41,9 @@ pub struct ActionExecutor {
     /// 章节大纲仓储引用
     chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
 
+    /// 小说名词仓储引用
+    novel_term_repo: Arc<RwLock<Box<dyn NovelTermRepository + Send + Sync>>>,
+
     /// 模板根目录（共享只读）
     templates_root: Arc<PathBuf>,
 }
@@ -55,6 +58,7 @@ impl ActionExecutor {
         character_repo: Arc<RwLock<Box<dyn CharacterRepository + Send + Sync>>>,
         chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
         chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
+        novel_term_repo: Arc<RwLock<Box<dyn NovelTermRepository + Send + Sync>>>,
         templates_root: Arc<PathBuf>,
     ) -> Self {
         Self {
@@ -65,6 +69,7 @@ impl ActionExecutor {
             character_repo,
             chapter_repo,
             chapter_outline_repo,
+            novel_term_repo,
             templates_root,
         }
     }
@@ -113,6 +118,7 @@ impl ActionExecutor {
             self.character_repo.clone(),
             self.chapter_repo.clone(),
             self.chapter_outline_repo.clone(),
+            self.novel_term_repo.clone(),
             self.templates_root.clone(),
         );
 
