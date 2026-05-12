@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::novel_term::{NovelTerm, TermType};
+
 /// 小说名词-章节关联实体
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
@@ -48,18 +50,58 @@ pub struct ChapterTermRelationQuery {
     pub sort_order: Option<String>,
 }
 
-/// 名词-章节关联与名词详情的联合查询结果
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+/// 名词-章节关联与名词详情的联合查询结果（对外结构）
+///
+/// 名词信息以嵌套的 `NovelTerm` 形式表达，避免与关联自身字段命名冲突。
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChapterTermRelationWithTerm {
     pub relation_id: Uuid,
     pub chapter_id: Option<Uuid>,
-    pub term_id: Uuid,
     pub description: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    // 名词详情
+    /// 关联的名词主表完整信息
+    pub term: NovelTerm,
+}
+
+/// JOIN 查询的扁平行结构（仅 repo 内部使用）
+///
+/// 用于配合 `sqlx::FromRow` 反序列化 JOIN 结果，
+/// 通过 `From` 转换为对外的 `ChapterTermRelationWithTerm`。
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub(crate) struct ChapterTermRelationWithTermRow {
+    pub relation_id: Uuid,
+    pub chapter_id: Option<Uuid>,
+    pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub term_id: Uuid,
+    pub term_novel_id: Uuid,
+    pub term_type: TermType,
     pub term_name: String,
-    pub term_type: String,
     pub term_description: Option<String>,
+    pub term_created_at: DateTime<Utc>,
+    pub term_updated_at: DateTime<Utc>,
+}
+
+impl From<ChapterTermRelationWithTermRow> for ChapterTermRelationWithTerm {
+    fn from(row: ChapterTermRelationWithTermRow) -> Self {
+        Self {
+            relation_id: row.relation_id,
+            chapter_id: row.chapter_id,
+            description: row.description,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            term: NovelTerm {
+                id: row.term_id,
+                novel_id: row.term_novel_id,
+                term_type: row.term_type,
+                name: row.term_name,
+                description: row.term_description,
+                created_at: row.term_created_at,
+                updated_at: row.term_updated_at,
+            },
+        }
+    }
 }

@@ -246,7 +246,7 @@ pub async fn update_chapter_terms(
             )
             .bind(Uuid::new_v4())
             .bind(novel_uuid)
-            .bind(term_type.as_str())
+            .bind(term_type)
             .bind(&term_input.name)
             .bind(&term_input.description)
             .bind(chrono::Utc::now())

@@ -144,7 +144,7 @@ impl AiService {
             "model": model.model_id,
             "messages": messages_json,
             "temperature": 0.7,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "thinking": {"type": "enabled"}
         });
 

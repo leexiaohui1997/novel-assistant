@@ -3,6 +3,7 @@ import { useCallback, useImperativeHandle, useRef, useState } from 'react'
 
 import { ChapterOutlinePanelHandle } from './panels/common'
 import { StoryBible } from './panels/StoryBible'
+import TermsBible from './panels/TermsBible'
 
 import { Chapter } from '@/services/chapterService'
 import { Novel } from '@/services/novelService'
@@ -59,6 +60,11 @@ export function ChapterOutlineDrawer({ novel, chapter, ref }: ChapterOutlineDraw
             key: 'story-bible',
             label: '设定集',
             children: <StoryBible novelId={novel.id} chapterId={chapter?.id} ref={panelRef} />,
+          },
+          {
+            key: 'terms-bible',
+            label: '名词集',
+            children: <TermsBible novelId={novel.id} chapterId={chapter?.id} ref={panelRef} />,
           },
         ]}
         classNames={{

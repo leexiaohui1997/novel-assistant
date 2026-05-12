@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::database::error::DbError;
 use crate::database::models::chapter_term_relation::{
     ChapterTermRelation, ChapterTermRelationQuery, ChapterTermRelationWithTerm,
-    NewChapterTermRelation, UpdateChapterTermRelation,
+    ChapterTermRelationWithTermRow, NewChapterTermRelation, UpdateChapterTermRelation,
 };
 use crate::utils::pagination::PaginatedResult;
 
@@ -201,13 +201,16 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
             "SELECT 
                 ctr.id as relation_id,
                 ctr.chapter_id,
-                ctr.term_id,
                 ctr.description,
                 ctr.created_at,
                 ctr.updated_at,
-                nt.name as term_name,
+                nt.id as term_id,
+                nt.novel_id as term_novel_id,
                 nt.term_type,
-                nt.description as term_description
+                nt.name as term_name,
+                nt.description as term_description,
+                nt.created_at as term_created_at,
+                nt.updated_at as term_updated_at
              FROM chapter_term_relations ctr
              INNER JOIN novel_terms nt ON ctr.term_id = nt.id
              WHERE ctr.novel_id = ?1",
@@ -219,17 +222,17 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
             sql.push_str(" AND ctr.chapter_id IS NULL");
         }
 
-        sql.push_str(" ORDER BY ctr.created_at DESC");
+        sql.push_str(" ORDER BY ctr.created_at ASC");
 
-        let mut query = sqlx::query_as::<_, ChapterTermRelationWithTerm>(&sql);
+        let mut query = sqlx::query_as::<_, ChapterTermRelationWithTermRow>(&sql);
         query = query.bind(novel_id);
 
         if let Some(cid) = chapter_id {
             query = query.bind(cid);
         }
 
-        let results = query.fetch_all(&self.pool).await?;
-        Ok(results)
+        let rows = query.fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn delete_by_novel_and_chapter(
@@ -277,7 +280,7 @@ impl SqliteChapterTermRelationRepository {
 
         // 添加排序
         let sort_by = query.sort_by.as_deref().unwrap_or("created_at");
-        let sort_order = query.sort_order.as_deref().unwrap_or("desc");
+        let sort_order = query.sort_order.as_deref().unwrap_or("asc");
 
         // 验证排序字段，防止 SQL 注入
         let valid_sort_fields = ["created_at", "updated_at"];
