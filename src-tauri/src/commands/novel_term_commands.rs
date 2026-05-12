@@ -1,7 +1,9 @@
 use tauri::State;
 use uuid::Uuid;
 
-use crate::database::models::chapter_term_relation::ChapterTermRelationWithTerm;
+use crate::database::models::chapter_term_relation::{
+    ChapterTermRelationWithChapter, ChapterTermRelationWithTerm,
+};
 use crate::database::models::novel_term::{NovelTerm, TermType, ALL_TERM_TYPES};
 use crate::database::repositories::NovelTermQuery;
 use crate::utils::pagination::PaginatedResult;
@@ -210,6 +212,24 @@ pub async fn get_chapter_terms(
             tracing::error!(op = "get_chapter_terms", novel_id = %novel_uuid, error = %e);
             format!("查询名词列表失败: {}", e)
         })
+}
+
+/// 按名词 ID 反查其在各章节中的引用列表
+///
+/// 返回项含章节标题、章节序号与所属分卷序号，
+/// 按「分卷序号 ASC + 章节序号 ASC」双重升序。
+#[tauri::command]
+pub async fn get_chapter_relations_by_term(
+    term_id: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<ChapterTermRelationWithChapter>, String> {
+    let term_uuid = parse_uuid("termId", &term_id)?;
+
+    let repo = state.chapter_term_relation_repo.read().await;
+    repo.find_chapters_by_term(&term_uuid).await.map_err(|e| {
+        tracing::error!(op = "get_chapter_relations_by_term", term_id = %term_uuid, error = %e);
+        format!("查询名词关联章节列表失败: {}", e)
+    })
 }
 
 /// 批量更新名词列表

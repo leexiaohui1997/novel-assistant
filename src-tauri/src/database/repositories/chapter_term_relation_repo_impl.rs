@@ -5,8 +5,9 @@ use uuid::Uuid;
 
 use crate::database::error::DbError;
 use crate::database::models::chapter_term_relation::{
-    ChapterTermRelation, ChapterTermRelationQuery, ChapterTermRelationWithTerm,
-    ChapterTermRelationWithTermRow, NewChapterTermRelation, UpdateChapterTermRelation,
+    ChapterTermRelation, ChapterTermRelationQuery, ChapterTermRelationWithChapter,
+    ChapterTermRelationWithChapterRow, ChapterTermRelationWithTerm, ChapterTermRelationWithTermRow,
+    NewChapterTermRelation, UpdateChapterTermRelation,
 };
 use crate::utils::pagination::PaginatedResult;
 
@@ -255,6 +256,35 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
 
         let result = query.execute(&self.pool).await?;
         Ok(result.rows_affected())
+    }
+
+    async fn find_chapters_by_term(
+        &self,
+        term_id: &Uuid,
+    ) -> Result<Vec<ChapterTermRelationWithChapter>, DbError> {
+        let sql = "SELECT
+                ctr.id          AS relation_id,
+                ctr.novel_id    AS novel_id,
+                ctr.chapter_id  AS chapter_id,
+                ctr.description AS description,
+                ctr.created_at  AS created_at,
+                ctr.updated_at  AS updated_at,
+                c.title         AS chapter_title,
+                c.sequence      AS chapter_sequence,
+                COALESCE(v.sequence, 1) AS volume_sequence
+             FROM chapter_term_relations ctr
+             INNER JOIN chapters c ON ctr.chapter_id = c.id
+             LEFT JOIN volume_chapters vc ON vc.chapter_id = c.id
+             LEFT JOIN volumes v ON v.id = vc.volume_id
+             WHERE ctr.term_id = ?1
+               AND ctr.chapter_id IS NOT NULL
+             ORDER BY volume_sequence ASC, c.sequence ASC, c.created_at ASC";
+
+        let rows = sqlx::query_as::<_, ChapterTermRelationWithChapterRow>(sql)
+            .bind(term_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 }
 

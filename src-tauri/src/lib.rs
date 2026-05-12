@@ -26,7 +26,8 @@ use commands::ai_commands::test_model;
 use commands::ai_execute_commands::execute_ai;
 use commands::chapter_commands::{
     batch_update_volumes, create_chapter, create_volume, delete_chapter, delete_volume,
-    get_chapter_versions, get_chapters_with_pagination, get_volumes, update_chapter, update_volume,
+    get_chapter_by_id, get_chapter_versions, get_chapters_with_pagination, get_volumes,
+    update_chapter, update_volume,
 };
 use commands::chapter_outline_commands::{edit_chapter_outline, get_chapter_outline};
 use commands::character_commands::{
@@ -45,8 +46,8 @@ use commands::novel_commands::{
     get_novels_with_pagination, update_novel,
 };
 use commands::novel_term_commands::{
-    create_novel_term, delete_novel_term, get_chapter_terms, get_novel_term_by_id, get_novel_terms,
-    update_chapter_terms, update_novel_term,
+    create_novel_term, delete_novel_term, get_chapter_relations_by_term, get_chapter_terms,
+    get_novel_term_by_id, get_novel_terms, update_chapter_terms, update_novel_term,
 };
 use commands::provider_commands::{
     create_provider, delete_provider, get_providers_with_pagination, update_provider,
@@ -318,6 +319,7 @@ pub async fn run() {
             delete_chapter,
             get_chapters_with_pagination,
             get_chapter_versions,
+            get_chapter_by_id,
             edit_chapter_outline,
             get_chapter_outline,
             create_character,
@@ -332,6 +334,7 @@ pub async fn run() {
             get_novel_term_by_id,
             get_novel_terms,
             get_chapter_terms,
+            get_chapter_relations_by_term,
             update_chapter_terms,
             get_tags_by_audience,
             get_tags_by_ids,

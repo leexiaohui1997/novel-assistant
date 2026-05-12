@@ -37,6 +37,7 @@ export function useRefresh<T = unknown>({
   useEffect(() => {
     let cancelled = false
 
+    // eslint-disable-next-line complexity
     const loader = async () => {
       try {
         setLoading(true)
@@ -45,6 +46,9 @@ export function useRefresh<T = unknown>({
           setData(data)
           onSuccess?.(data)
           refreshPromise?.resolve(data)
+          if (actionName) {
+            logger.info(`${actionName}成功`, data)
+          }
         }
       } catch (err) {
         if (!cancelled) {

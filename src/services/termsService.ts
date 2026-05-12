@@ -83,6 +83,26 @@ export type ChapterTerm = {
 }
 
 /**
+ * 名词在某章节中的引用记录（含章节展示信息）
+ *
+ * 由后端 `ChapterTermRelationWithChapter` 适配而来，仅出现在
+ * 「按名词 ID 反查章节关联列表」场景，因此 `chapterId` 必非空。
+ *
+ * `id` 取自后端 `relationId`，便于前端做 React key / 列表选中态。
+ */
+export type TermChapterRelation = {
+  id: string
+  novelId: string
+  chapterId: string
+  description: string
+  createdAt: string
+  updatedAt: string
+  chapterTitle: string
+  chapterSequence: number
+  volumeSequence: number
+}
+
+/**
  * AI 生成的名词
  */
 export type AiTerm = {
@@ -115,6 +135,23 @@ interface BackendChapterTermRelationWithTerm {
   createdAt: string
   updatedAt: string
   term: BackendNovelTerm
+}
+
+/**
+ * 后端 `ChapterTermRelationWithChapter` 的原始结构（仅本文件内部使用）
+ *
+ * 与 Rust 侧 `serde(rename_all = "camelCase")` 输出严格对齐。
+ */
+interface BackendChapterTermRelationWithChapter {
+  relationId: string
+  novelId: string
+  chapterId: string
+  description: string | null
+  createdAt: string
+  updatedAt: string
+  chapterTitle: string
+  chapterSequence: number
+  volumeSequence: number
 }
 
 /**
@@ -191,6 +228,29 @@ function mapRelationToChapterTerm(
 }
 
 /**
+ * 适配后端 `ChapterTermRelationWithChapter` → 前端 `TermChapterRelation`。
+ *
+ * - `id` 取自 `relationId`
+ * - `description` 走 `normalizeText` 归一化
+ * - 其余字段直透
+ */
+function mapBackendTermChapterRelation(
+  backend: BackendChapterTermRelationWithChapter,
+): TermChapterRelation {
+  return {
+    id: backend.relationId,
+    novelId: backend.novelId,
+    chapterId: backend.chapterId,
+    description: normalizeText(backend.description),
+    createdAt: backend.createdAt,
+    updatedAt: backend.updatedAt,
+    chapterTitle: backend.chapterTitle,
+    chapterSequence: backend.chapterSequence,
+    volumeSequence: backend.volumeSequence,
+  }
+}
+
+/**
  * 查询小说（可选指定章节）下的名词关联列表。
  *
  * @param params.novelId  - 小说 ID（必填）
@@ -216,6 +276,41 @@ export async function getChapterTerms(params: {
     return result.map((relation) => mapRelationToChapterTerm(relation, novelId))
   } catch (error) {
     logger.error('查询章节名词列表失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 按名词 ID 反查其在各章节中的引用列表。
+ *
+ * 后端命令 `get_chapter_relations_by_term` 已保证：
+ * - 仅返回 `chapter_id` 非空的关联记录
+ * - 已级联补齐 `chapterTitle / chapterSequence / volumeSequence`
+ * - 排序为「分卷序号 ASC + 章节序号 ASC」
+ *
+ * 调用方拿到的是开箱即用的渲染数据，无需再做二次查询。
+ *
+ * @param params.termId - 名词 ID（必填，falsy 时记录 warn 并返回空数组）
+ * @returns 适配后的 `TermChapterRelation[]`，保留后端排序
+ */
+export async function getChapterRelationsByTerm(params: {
+  termId: string
+}): Promise<TermChapterRelation[]> {
+  const { termId } = params
+
+  if (!termId) {
+    logger.warn('getChapterRelationsByTerm 调用被忽略：termId 不能为空')
+    return []
+  }
+
+  try {
+    const result = await invoke<BackendChapterTermRelationWithChapter[]>(
+      'get_chapter_relations_by_term',
+      { termId },
+    )
+    return result.map(mapBackendTermChapterRelation)
+  } catch (error) {
+    logger.error('查询名词关联章节列表失败:', error)
     throw error
   }
 }

@@ -105,3 +105,63 @@ impl From<ChapterTermRelationWithTermRow> for ChapterTermRelationWithTerm {
         }
     }
 }
+
+/// 名词-章节关联与章节定位信息的联合查询结果（对外结构）
+///
+/// 仅用于"按名词 ID 反查章节关联列表"的场景，因此 `chapter_id` 必非空，
+/// 同时附带章节标题、章节序号与所属分卷序号，方便前端直接渲染可跳转列表。
+///
+/// 排序约定：先按 `volume_sequence` 升序，再按 `chapter_sequence` 升序。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChapterTermRelationWithChapter {
+    /// 关联记录主键
+    pub relation_id: Uuid,
+    /// 所属小说 ID
+    pub novel_id: Uuid,
+    /// 关联的章节 ID（本场景必非空）
+    pub chapter_id: Uuid,
+    /// 关联自身的描述（可空）
+    pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    /// 章节标题
+    pub chapter_title: String,
+    /// 章节业务序号（草稿为 -1）
+    pub chapter_sequence: i64,
+    /// 所属分卷的业务序号；若未关联分卷则按"默认归属首卷"约定取 1
+    pub volume_sequence: i64,
+}
+
+/// JOIN 查询的扁平行结构（仅 repo 内部使用）
+///
+/// 用于配合 `sqlx::FromRow` 反序列化三表 JOIN 结果，
+/// 通过 `From` 转换为对外的 `ChapterTermRelationWithChapter`。
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub(crate) struct ChapterTermRelationWithChapterRow {
+    pub relation_id: Uuid,
+    pub novel_id: Uuid,
+    pub chapter_id: Uuid,
+    pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub chapter_title: String,
+    pub chapter_sequence: i64,
+    pub volume_sequence: i64,
+}
+
+impl From<ChapterTermRelationWithChapterRow> for ChapterTermRelationWithChapter {
+    fn from(row: ChapterTermRelationWithChapterRow) -> Self {
+        Self {
+            relation_id: row.relation_id,
+            novel_id: row.novel_id,
+            chapter_id: row.chapter_id,
+            description: row.description,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            chapter_title: row.chapter_title,
+            chapter_sequence: row.chapter_sequence,
+            volume_sequence: row.volume_sequence,
+        }
+    }
+}

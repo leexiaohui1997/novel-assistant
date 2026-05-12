@@ -175,3 +175,24 @@ pub async fn get_chapter_versions(
     let repo = state.chapter_version_repo.read().await;
     repo.list_by_chapter(uuid).await.map_err(|e| e.to_string())
 }
+
+/// 按章节 ID 查询单条章节。
+///
+/// 返回 `ChapterResponse`；单条查询场景与"分卷下最后一个非草稿章节"的列表上下文
+/// 无关，因此 `deletable` 固定为 `false`，删除前可由列表 API 确认。
+///
+/// 章节不存在时返回业务错误（字符串）。
+#[tauri::command]
+pub async fn get_chapter_by_id(
+    state: State<'_, AppState>,
+    chapter_id: String,
+) -> Result<ChapterResponse, String> {
+    let uuid = Uuid::parse_str(&chapter_id).map_err(|e| e.to_string())?;
+    let repo = state.chapter_repo.read().await;
+    let chapter = repo
+        .find_by_id(uuid)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("章节不存在: {}", chapter_id))?;
+    Ok(ChapterResponse::from_chapter(chapter, false))
+}

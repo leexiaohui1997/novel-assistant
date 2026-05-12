@@ -99,6 +99,30 @@ export async function getChaptersWithPagination(
 }
 
 /**
+ * 按章节 ID 查询单条章节
+ *
+ * 单条查询场景与「分卷下最后一个非草稿章节」的列表上下文无关，
+ * 因此后端固定返回 `deletable=false`；如需准确的删除可见性，
+ * 请通过列表 API 获取。
+ *
+ * @param chapterId - 章节 ID
+ * @returns 章节实体
+ */
+export async function getChapterById(chapterId: string): Promise<Chapter> {
+  try {
+    logger.debug('调用按 ID 查询章节 API:', chapterId)
+
+    const result = await invoke<Chapter>('get_chapter_by_id', { chapterId })
+
+    logger.debug('章节查询成功:', result.id)
+    return result
+  } catch (error) {
+    logger.error('按 ID 查询章节失败:', error)
+    throw error
+  }
+}
+
+/**
  * 删除章节
  */
 export async function deleteChapter(novelId: string, chapterId: string): Promise<void> {

@@ -3,8 +3,8 @@ use uuid::Uuid;
 
 use crate::database::error::DbError;
 use crate::database::models::chapter_term_relation::{
-    ChapterTermRelation, ChapterTermRelationQuery, ChapterTermRelationWithTerm,
-    NewChapterTermRelation, UpdateChapterTermRelation,
+    ChapterTermRelation, ChapterTermRelationQuery, ChapterTermRelationWithChapter,
+    ChapterTermRelationWithTerm, NewChapterTermRelation, UpdateChapterTermRelation,
 };
 use crate::utils::pagination::PaginatedResult;
 
@@ -66,4 +66,12 @@ pub trait ChapterTermRelationRepository {
         novel_id: &Uuid,
         chapter_id: Option<&Uuid>,
     ) -> Result<u64, DbError>;
+
+    /// 按名词 ID 反查其在各章节中的引用列表（带章节标题、章节序号、分卷序号）
+    ///
+    /// 仅返回 `chapter_id IS NOT NULL` 的关联，按 `volume_sequence ASC, chapter_sequence ASC` 排序。
+    async fn find_chapters_by_term(
+        &self,
+        term_id: &Uuid,
+    ) -> Result<Vec<ChapterTermRelationWithChapter>, DbError>;
 }

@@ -1,4 +1,5 @@
-import { Card, Table, Tooltip } from 'antd'
+import { SyncOutlined } from '@ant-design/icons'
+import { Button, Card, Table, Tooltip } from 'antd'
 import { useCallback } from 'react'
 
 import TermChapterDesc from '../components/TermChapterDesc'
@@ -17,20 +18,34 @@ export default function CreationDetailTerms() {
   const { novelId } = useCreationState()
 
   const refreshFn = useCallback(() => getTermsByNovel({ novelId }), [novelId])
-  const { data, loading } = useRefresh({
+  const { data, loading, refresh } = useRefresh({
+    actionName: '获取名词列表',
     refreshFn,
     initialData: [],
   })
 
   return (
     <div className="p-6">
-      <Card title="名词管理">
+      <Card
+        title="名词管理"
+        extra={
+          <Button
+            color="default"
+            variant="outlined"
+            loading={loading}
+            icon={<SyncOutlined />}
+            onClick={refresh}
+          >
+            刷新
+          </Button>
+        }
+      >
         <Table
           rowKey="id"
           loading={loading}
           dataSource={data}
           expandable={{
-            expandedRowRender: ({ id }) => <TermChapterDesc termId={id} />,
+            expandedRowRender: ({ id }) => <TermChapterDesc termId={id} refresh={refresh} />,
           }}
           pagination={{
             showSizeChanger: true,
