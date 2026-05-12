@@ -85,6 +85,11 @@ export const ROUTES_CONFIG: RouteObject[] = [
             path: 'character',
             element: lazyElement(() => import('@/pages/CreationDetail/pages/character')),
           },
+          {
+            id: 'creation-terms',
+            path: 'terms',
+            element: lazyElement(() => import('@/pages/CreationDetail/pages/terms')),
+          },
         ],
       },
       {

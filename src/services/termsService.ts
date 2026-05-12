@@ -118,6 +118,19 @@ interface BackendChapterTermRelationWithTerm {
 }
 
 /**
+ * 后端 `PaginatedResult<T>` 的原始结构（仅本文件内部使用）
+ *
+ * 与 Rust 侧 `utils::pagination::PaginatedResult` 对齐：`data` 是当前页数据，
+ * `total` 为命中总数；`page` / `pageSize` 由后端回显，前端通常无需关心。
+ */
+interface BackendPaginatedResult<T> {
+  data: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+/**
  * 文本归一化：null/undefined/纯空白 一律返回空字符串。
  */
 function normalizeText(value: string | null | undefined): string {
@@ -141,22 +154,30 @@ function parseTermType(raw: string): TermType {
 }
 
 /**
+ * 适配后端 `NovelTerm` → 前端 `Term`。
+ *
+ * 统一处理：`description` 走 `normalizeText`、`termType` 走 `parseTermType`。
+ */
+function mapBackendTerm(backend: BackendNovelTerm): Term {
+  return {
+    id: backend.id,
+    novelId: backend.novelId,
+    termType: parseTermType(backend.termType),
+    name: backend.name,
+    description: normalizeText(backend.description),
+    createdAt: backend.createdAt,
+    updatedAt: backend.updatedAt,
+  }
+}
+
+/**
  * 适配后端 `ChapterTermRelationWithTerm` → 前端 `ChapterTerm`。
  */
 function mapRelationToChapterTerm(
   relation: BackendChapterTermRelationWithTerm,
   novelId: string,
 ): ChapterTerm {
-  const backendTerm = relation.term
-  const term: Term = {
-    id: backendTerm.id,
-    novelId: backendTerm.novelId,
-    termType: parseTermType(backendTerm.termType),
-    name: backendTerm.name,
-    description: normalizeText(backendTerm.description),
-    createdAt: backendTerm.createdAt,
-    updatedAt: backendTerm.updatedAt,
-  }
+  const term = mapBackendTerm(relation.term)
 
   return {
     id: relation.relationId,
@@ -195,6 +216,62 @@ export async function getChapterTerms(params: {
     return result.map((relation) => mapRelationToChapterTerm(relation, novelId))
   } catch (error) {
     logger.error('查询章节名词列表失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 按小说 ID 一次性获取该小说下的全部名词列表（封装"全量获取"语义）。
+ *
+ * 内部固定走后端 `get_novel_terms` 命令并传 `page: 1`、`pageSize: 0`
+ * （后端约定 `pageSize=0` 表示返回全部、不分页）；调用方无需关心
+ * 分页或后端契约细节，拿到的就是干净的 `Term[]`。
+ *
+ * 适用场景：名词总览页、AI 上下文构建、重复名词校验等。
+ *
+ * @param params.novelId - 小说 ID（必填，falsy 时记录 warn 并返回空数组）
+ * @param params.termType - 可选，按名词类型精确过滤
+ * @param params.name - 可选，按名词名称精确过滤
+ * @param params.descriptionKeyword - 可选，按描述模糊匹配（后端使用 LIKE）
+ * @returns 适配后的 `Term[]`；不暴露 `total` 等分页元数据
+ *
+ * @example
+ * // 全量
+ * const terms = await getTermsByNovel({ novelId })
+ *
+ * @example
+ * // 仅取某类名词 + 描述模糊匹配
+ * const items = await getTermsByNovel({
+ *   novelId,
+ *   termType: TermType.Item,
+ *   descriptionKeyword: '玄铁',
+ * })
+ */
+export async function getTermsByNovel(params: {
+  novelId: string
+  termType?: TermType
+  name?: string
+  descriptionKeyword?: string
+}): Promise<Term[]> {
+  const { novelId, termType, name, descriptionKeyword } = params
+
+  if (!novelId) {
+    logger.warn('getTermsByNovel 调用被忽略：novelId 不能为空')
+    return []
+  }
+
+  try {
+    const result = await invoke<BackendPaginatedResult<BackendNovelTerm>>('get_novel_terms', {
+      novelId,
+      termType,
+      name,
+      descriptionKeyword,
+      page: 1,
+      pageSize: 0,
+    })
+    return result.data.map(mapBackendTerm)
+  } catch (error) {
+    logger.error('查询小说名词列表失败:', error)
     throw error
   }
 }

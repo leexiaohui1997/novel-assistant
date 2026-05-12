@@ -1,4 +1,4 @@
-import { FileOutlined, IdcardOutlined, ProjectOutlined } from '@ant-design/icons'
+import { FileOutlined, IdcardOutlined, ProfileOutlined, ProjectOutlined } from '@ant-design/icons'
 import React from 'react'
 import { NavigateFunction } from 'react-router-dom'
 
@@ -34,6 +34,13 @@ export const CREATION_TABS: CreationTab[] = [
     clickHandler: (navigate) => navigate('./basic', { replace: true }),
   },
   {
+    id: 'article',
+    title: '文章',
+    icon: <FileOutlined />,
+    checkActive: (ctx) => ctx.currentMatch.id === 'creation-article',
+    clickHandler: (navigate) => navigate('./article', { replace: true }),
+  },
+  {
     id: 'character',
     title: '角色',
     icon: <IdcardOutlined />,
@@ -41,10 +48,10 @@ export const CREATION_TABS: CreationTab[] = [
     clickHandler: (navigate) => navigate('./character', { replace: true }),
   },
   {
-    id: 'article',
-    title: '文章',
-    icon: <FileOutlined />,
-    checkActive: (ctx) => ctx.currentMatch.id === 'creation-article',
-    clickHandler: (navigate) => navigate('./article', { replace: true }),
+    id: 'terms',
+    title: '名词',
+    icon: <ProfileOutlined />,
+    checkActive: (ctx) => ctx.currentMatch.id === 'creation-terms',
+    clickHandler: (navigate) => navigate('./terms', { replace: true }),
   },
 ]
