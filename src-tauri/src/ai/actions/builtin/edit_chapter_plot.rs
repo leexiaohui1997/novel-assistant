@@ -57,6 +57,7 @@ impl ActionHandler for EditChapterPlotAction {
         let chapter_content = fetch_content(&ctx, &input).await?;
         let chapter_location = fetch_location(&ctx, &input).await?;
         let previous_plots = fetch_prev_plots(&ctx, &input).await?;
+        let existing_terms_md = fetch_existing_terms_md(&ctx, &input).await?;
 
         let prompt = render_prompt(
             ctx.templates_root.as_path(),
@@ -66,6 +67,7 @@ impl ActionHandler for EditChapterPlotAction {
             &chapter_content,
             &chapter_location,
             &previous_plots,
+            &existing_terms_md,
             &input.user_feedback,
         )?;
 
@@ -160,6 +162,7 @@ async fn fetch_location(
 }
 
 /// 渲染提示词
+#[allow(clippy::too_many_arguments)]
 fn render_prompt(
     templates_root: &std::path::Path,
     novel_info: &context_helpers::NovelInfo,
@@ -168,6 +171,7 @@ fn render_prompt(
     chapter_content: &Option<context_helpers::ChapterContentInfo>,
     chapter_location: &context_helpers::ChapterLocationInfo,
     previous_plots: &str,
+    existing_terms_md: &str,
     user_feedback: &Option<String>,
 ) -> Result<String, ActionError> {
     let templates = PromptTemplates::new(templates_root)
@@ -220,6 +224,11 @@ fn render_prompt(
             Some(previous_plots.to_string())
         },
         user_feedback: user_feedback.clone(),
+        existing_terms_md: if existing_terms_md.is_empty() {
+            None
+        } else {
+            Some(existing_terms_md.to_string())
+        },
     };
 
     templates
@@ -246,4 +255,31 @@ async fn call_ai(ctx: ActionContext, prompt: String) -> Result<String, ActionErr
         .map_err(|e| ActionError::ExecutionFailed(format!("AI 调用失败: {}", e)))?;
 
     Ok(ai_response.content.trim().to_string())
+}
+
+/// 装配该小说下的全量名词 Markdown 片段
+///
+/// 复用 `render_novel_terms_fragment`：
+/// - `show_id = false`：AI 仅需参考名词语义，无需 ID；
+/// - `with_full_description = true`：使用按卷序/章序拼接的完整描述，
+///   提升世界观感知度。
+async fn fetch_existing_terms_md(
+    ctx: &ActionContext,
+    input: &EditChapterPlotInput,
+) -> Result<String, ActionError> {
+    use crate::ai::prompts::fragments::render_novel_terms_fragment;
+
+    let term_repo = ctx.novel_term_repo.read().await;
+    let relation_repo = ctx.chapter_term_relation_repo.read().await;
+
+    render_novel_terms_fragment(
+        input.novel_id,
+        false,
+        true,
+        term_repo.as_ref(),
+        relation_repo.as_ref(),
+        ctx.templates_root.as_path(),
+    )
+    .await
+    .map_err(|e| ActionError::ExecutionFailed(format!("生成名词列表失败: {}", e)))
 }

@@ -63,4 +63,11 @@ pub struct EditChapterPositioningContext {
     /// 用户意见（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_feedback: Option<String>,
+
+    /// 已有名词列表 Markdown 片段（可选）
+    ///
+    /// 由 `render_novel_terms_fragment` 装配后写入；在主模板的
+    /// `## 名词列表` 小节直接渲染。空字符串/缺失时由模板兜底为"暂无名词"。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub existing_terms_md: Option<String>,
 }

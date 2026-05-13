@@ -29,6 +29,14 @@
 暂无角色信息
 {%- endif %}
 
+## 名词列表
+
+{%- if existing_terms_md %}
+{{ existing_terms_md }}
+{%- else %}
+暂无名词
+{%- endif %}
+
 ## 前情介绍
 
 {%- if previous_plots %}

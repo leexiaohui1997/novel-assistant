@@ -71,6 +71,7 @@ impl ActionHandler for GenerateChapterContentAction {
         let chapter_content = fetch_content(&ctx, &input).await?;
         let chapter_location = fetch_location(&ctx, &input).await?;
         let previous_plots = fetch_prev_plots(&ctx, &input).await?;
+        let existing_terms_md = fetch_existing_terms_md(&ctx, &input).await?;
         let target_word_count = read_target_word_count();
 
         let prompt = render_prompt(
@@ -81,6 +82,7 @@ impl ActionHandler for GenerateChapterContentAction {
             &chapter_content,
             &chapter_location,
             &previous_plots,
+            &existing_terms_md,
             &input.references,
             target_word_count,
             &input.user_feedback,
@@ -184,6 +186,33 @@ fn read_target_word_count() -> i64 {
         .unwrap_or(DEFAULT_TARGET_WORD_COUNT)
 }
 
+/// 装配该小说下的全量名词 Markdown 片段
+///
+/// 复用 `render_novel_terms_fragment`：
+/// - `show_id = false`：生成正文时 AI 不需名词 ID；
+/// - `with_full_description = true`：使用按卷序/章序拼接的完整描述，
+///   提升世界观感知度。
+async fn fetch_existing_terms_md(
+    ctx: &ActionContext,
+    input: &GenerateChapterContentInput,
+) -> Result<String, ActionError> {
+    use crate::ai::prompts::fragments::render_novel_terms_fragment;
+
+    let term_repo = ctx.novel_term_repo.read().await;
+    let relation_repo = ctx.chapter_term_relation_repo.read().await;
+
+    render_novel_terms_fragment(
+        input.novel_id,
+        false,
+        true,
+        term_repo.as_ref(),
+        relation_repo.as_ref(),
+        ctx.templates_root.as_path(),
+    )
+    .await
+    .map_err(|e| ActionError::ExecutionFailed(format!("生成名词列表失败: {}", e)))
+}
+
 /// 渲染提示词
 #[allow(clippy::too_many_arguments)]
 fn render_prompt(
@@ -194,6 +223,7 @@ fn render_prompt(
     chapter_content: &Option<context_helpers::ChapterContentInfo>,
     chapter_location: &context_helpers::ChapterLocationInfo,
     previous_plots: &str,
+    existing_terms_md: &str,
     references: &Option<Vec<String>>,
     target_word_count: i64,
     user_feedback: &Option<String>,
@@ -250,6 +280,11 @@ fn render_prompt(
         references: references.as_ref().filter(|r| !r.is_empty()).cloned(),
         target_word_count,
         user_feedback: user_feedback.clone(),
+        existing_terms_md: if existing_terms_md.is_empty() {
+            None
+        } else {
+            Some(existing_terms_md.to_string())
+        },
     };
 
     templates
