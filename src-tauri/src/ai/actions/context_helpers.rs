@@ -420,3 +420,76 @@ fn collect_previous_plots(
         None => plots.into_iter().map(|(_, plot)| plot).collect(),
     }
 }
+
+/// 查询"上一章正文"。
+///
+/// 用于 `generate_chapter_content` 模板新增的 `## 上一章正文` 小节，
+/// 作为"前情介绍（大纲剧情汇总）"的细粒度补充：紧邻一章完整正文，
+/// 帮助 AI 在开篇过渡、情节延续、人物状态等微观细节上自然衔接。
+///
+/// 排序规则：
+/// - 复用 `chapter_repo.list_chapter_outline`，按 `(volume_sequence, chapter_sequence)` 升序，
+///   仅含非草稿章节，孤儿章节卷序归 1。
+///
+/// 返回值规则：
+/// - 当 `chapter_id` 非空：在排序后的列表中定位到当前章节，取**前一项**作为上一章；
+///   若当前章为首项或不在列表中（异常容错）则返回 `None`。
+/// - 当 `chapter_id` 为空（新建章节场景）：取列表**最后一项**作为上一章；
+///   列表为空则返回 `None`。
+/// - 上一章正文为空白字符串时同样返回 `None`，由模板兜底为"暂无上一章正文"。
+pub async fn fetch_previous_chapter_content(
+    chapter_repo: &Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
+    novel_id: Uuid,
+    chapter_id: Option<Uuid>,
+) -> Result<Option<String>, DbError> {
+    let repo = chapter_repo.read().await;
+    let outline_rows = repo.list_chapter_outline(novel_id).await?;
+
+    let prev_id = match locate_previous_chapter_id(&outline_rows, chapter_id) {
+        Some(id) => id,
+        None => return Ok(None),
+    };
+
+    load_chapter_content_by_id(&repo, prev_id).await
+}
+
+/// 在已按 (卷序、章序) 升序排好的章节大纲列表中定位"上一章 ID"。
+fn locate_previous_chapter_id(
+    rows: &[ChapterOutlineRow],
+    chapter_id: Option<Uuid>,
+) -> Option<Uuid> {
+    if rows.is_empty() {
+        return None;
+    }
+
+    let target_id = match chapter_id {
+        Some(id) => id,
+        // 新建章节：取最后一项作为上一章
+        None => return rows.last().map(|r| r.chapter_id),
+    };
+
+    let idx = rows.iter().position(|r| r.chapter_id == target_id)?;
+    if idx == 0 {
+        None
+    } else {
+        Some(rows[idx - 1].chapter_id)
+    }
+}
+
+/// 通过章节 ID 加载章节正文；正文为空白则返回 `None`。
+async fn load_chapter_content_by_id(
+    repo: &Box<dyn ChapterRepository + Send + Sync>,
+    chapter_id: Uuid,
+) -> Result<Option<String>, DbError> {
+    let chapter = repo.find_by_id(chapter_id).await?;
+    let content = match chapter {
+        Some(c) => c.content,
+        None => return Ok(None),
+    };
+
+    if content.trim().is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(content))
+    }
+}

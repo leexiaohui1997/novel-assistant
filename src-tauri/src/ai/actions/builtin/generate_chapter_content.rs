@@ -71,6 +71,7 @@ impl ActionHandler for GenerateChapterContentAction {
         let chapter_content = fetch_content(&ctx, &input).await?;
         let chapter_location = fetch_location(&ctx, &input).await?;
         let previous_plots = fetch_prev_plots(&ctx, &input).await?;
+        let previous_chapter_content = fetch_prev_chapter_content(&ctx, &input).await?;
         let existing_terms_md = fetch_existing_terms_md(&ctx, &input).await?;
         let target_word_count = read_target_word_count();
 
@@ -82,6 +83,7 @@ impl ActionHandler for GenerateChapterContentAction {
             &chapter_content,
             &chapter_location,
             &previous_plots,
+            &previous_chapter_content,
             &existing_terms_md,
             &input.references,
             target_word_count,
@@ -168,6 +170,22 @@ async fn fetch_prev_plots(
     .map_err(|e| ActionError::ExecutionFailed(format!("查询前情介绍失败: {}", e)))
 }
 
+/// 查询上一章正文
+///
+/// 上一章不存在或正文为空时返回 `None`，由模板兜底为"暂无上一章正文"。
+async fn fetch_prev_chapter_content(
+    ctx: &ActionContext,
+    input: &GenerateChapterContentInput,
+) -> Result<Option<String>, ActionError> {
+    context_helpers::fetch_previous_chapter_content(
+        &ctx.chapter_repo,
+        input.novel_id,
+        input.chapter_id,
+    )
+    .await
+    .map_err(|e| ActionError::ExecutionFailed(format!("查询上一章正文失败: {}", e)))
+}
+
 /// 查询章节位置信息（卷名、卷序号、章节序号）
 async fn fetch_location(
     ctx: &ActionContext,
@@ -223,6 +241,7 @@ fn render_prompt(
     chapter_content: &Option<context_helpers::ChapterContentInfo>,
     chapter_location: &context_helpers::ChapterLocationInfo,
     previous_plots: &str,
+    previous_chapter_content: &Option<String>,
     existing_terms_md: &str,
     references: &Option<Vec<String>>,
     target_word_count: i64,
@@ -254,6 +273,7 @@ fn render_prompt(
         } else {
             Some(previous_plots.to_string())
         },
+        previous_chapter_content: previous_chapter_content.clone(),
         chapter_sequence: Some(chapter_location.chapter_sequence),
         volume_sequence: chapter_location.volume.as_ref().map(|v| v.sequence),
         volume_name: chapter_location.volume.as_ref().map(|v| v.name.clone()),

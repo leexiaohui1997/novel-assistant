@@ -979,7 +979,8 @@ impl ChapterRepository for SqliteChapterRepository {
     ) -> Result<Vec<ChapterOutlineRow>, DbError> {
         // 单条 SQL 完成：左连接卷关联表与卷表；孤儿章节卷序归 1；按卷序、章序升序。
         let rows = sqlx::query_as::<_, ChapterOutlineRow>(
-            "SELECT COALESCE(v.sequence, 1) AS volume_sequence,
+            "SELECT c.id AS chapter_id,
+                    COALESCE(v.sequence, 1) AS volume_sequence,
                     c.sequence AS chapter_sequence,
                     c.title AS title
              FROM chapters c

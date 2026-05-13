@@ -45,6 +45,14 @@
 暂无前情介绍
 {%- endif %}
 
+## 上一章正文
+
+{%- if previous_chapter_content %}
+{{ previous_chapter_content }}
+{%- else %}
+暂无上一章正文
+{%- endif %}
+
 ## 本章信息
 
 本章是小说中的{%- if volume_sequence %}第{{ volume_sequence }}卷的{%- endif %}第{{ chapter_sequence }}章：

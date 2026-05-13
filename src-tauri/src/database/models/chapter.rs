@@ -143,10 +143,11 @@ pub struct VolumeUpsert {
 /// 章节大纲行（仓储层 DTO）
 ///
 /// 用于按"卷序、章序"顺序拉取全书非草稿章节标题，
-/// 服务于 AI 提示词上下文的"全书章节标题"小节。
+/// 服务于 AI 提示词上下文的"全书章节标题"小节，以及"上一章正文"定位等。
 /// 孤儿章节（未关联任何分卷）的 `volume_sequence` 归首卷=1。
 #[derive(Debug, Clone, FromRow)]
 pub struct ChapterOutlineRow {
+    pub chapter_id: Uuid,
     pub volume_sequence: i64,
     pub chapter_sequence: i64,
     pub title: String,

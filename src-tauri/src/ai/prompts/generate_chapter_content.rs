@@ -31,6 +31,15 @@ pub struct GenerateChapterContentContext {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub previous_plots: Option<String>,
 
+    /// 上一章正文（可选）
+    ///
+    /// 紧邻上一章的完整正文文本，作为"前情介绍（大纲剧情汇总）"
+    /// 的细粒度补充，帮助 AI 在开篇过渡、情节延续、人物状态等
+    /// 微观细节上自然衔接。
+    /// 上一章不存在或正文为空时为 `None`，由模板兜底为"暂无上一章正文"。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous_chapter_content: Option<String>,
+
     /// 章节序号（1-based，用于显示"第N章"）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chapter_sequence: Option<i64>,
