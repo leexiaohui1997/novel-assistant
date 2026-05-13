@@ -173,7 +173,10 @@ fn build_template_context(
 ///
 /// `full_desc_map` 中存在且非空的条目优先使用"完整描述"覆盖。
 fn to_template_item(term: NovelTerm, full_desc_map: &HashMap<Uuid, String>) -> NovelTermItem {
-    let full = full_desc_map.get(&term.id).map(String::as_str).unwrap_or("");
+    let full = full_desc_map
+        .get(&term.id)
+        .map(String::as_str)
+        .unwrap_or("");
     let description = if !full.is_empty() {
         full.to_string()
     } else {

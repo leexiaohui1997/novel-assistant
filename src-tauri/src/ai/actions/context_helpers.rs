@@ -6,9 +6,9 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::ai::prompts::CharacterInfo;
+use crate::ai::prompts::{ChapterOutlineItem, CharacterInfo};
 use crate::database::error::DbError;
-use crate::database::models::chapter::Chapter;
+use crate::database::models::chapter::{Chapter, ChapterOutlineRow};
 use crate::database::models::chapter_outline::ChapterOutlineWithCharacters;
 use crate::database::models::character::CharacterType;
 use crate::database::models::tag::{Tag, TagType};
@@ -325,6 +325,28 @@ async fn fetch_new_chapter_location(
         chapter_sequence: max_seq.unwrap_or(0) + 1,
         volume: volume_info,
     })
+}
+
+/// 查询全书章节标题大纲（按卷序、章序升序）
+///
+/// 供 AI 提示词上下文渲染“全书章节标题”小节。
+/// 仅返回非草稿章节；孤儿章节归首卷=1。
+pub async fn fetch_chapter_outline_list(
+    chapter_repo: &Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
+    novel_id: Uuid,
+) -> Result<Vec<ChapterOutlineItem>, DbError> {
+    let repo = chapter_repo.read().await;
+    let rows = repo.list_chapter_outline(novel_id).await?;
+    Ok(rows.into_iter().map(outline_row_to_item).collect())
+}
+
+/// 仓储层 `ChapterOutlineRow` 转换为提示词层 `ChapterOutlineItem`
+fn outline_row_to_item(row: ChapterOutlineRow) -> ChapterOutlineItem {
+    ChapterOutlineItem {
+        volume_sequence: row.volume_sequence,
+        chapter_sequence: row.chapter_sequence,
+        title: row.title,
+    }
 }
 
 /// 根据 novel_id + chapter_id 查询前情介绍（此章节之前所有大纲的剧情汇总）

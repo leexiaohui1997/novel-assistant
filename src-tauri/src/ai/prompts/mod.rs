@@ -33,7 +33,7 @@ pub use generate_title::GenerateTitleContext;
 pub use novel_terms::{NovelTermGroup, NovelTermItem, NovelTermsContext};
 pub use optimize_character::OptimizeCharacterContext;
 pub use recommend_tags::RecommendTagsContext;
-pub use types::{CharacterDetail, CharacterInfo, CharacterWithIdInfo};
+pub use types::{ChapterOutlineItem, CharacterDetail, CharacterInfo, CharacterWithIdInfo};
 
 /// 提示词模板管理器
 pub struct PromptTemplates {

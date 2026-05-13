@@ -97,3 +97,20 @@ pub struct CharacterWithIdInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_info: Option<String>,
 }
+
+/// 章节大纲条目（用于提示词上下文中渲染"全书章节标题"列表）
+///
+/// 每项代表小说中一个非草稿章节，按 (volumeSequence, chapterSequence) 升序输出。
+/// 字段使用 camelCase 序列化以与既有提示词上下文风格保持一致。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChapterOutlineItem {
+    /// 所属分卷的业务序号（孤儿章节归首卷=1）
+    pub volume_sequence: i64,
+
+    /// 章节业务序号（同卷内）
+    pub chapter_sequence: i64,
+
+    /// 章节标题
+    pub title: String,
+}

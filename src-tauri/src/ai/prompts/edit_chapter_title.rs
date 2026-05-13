@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use super::types::CharacterInfo;
+use super::types::{ChapterOutlineItem, CharacterInfo};
 
 /// edit_chapter_title 模板的上下文数据
 ///
@@ -62,6 +62,10 @@ pub struct EditChapterTitleContext {
     /// 前情介绍（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub previous_plots: Option<String>,
+
+    /// 全书章节标题大纲（可选，按 (volumeSequence, chapterSequence) 升序）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chapter_outline: Option<Vec<ChapterOutlineItem>>,
 
     /// 用户意见（可选）
     #[serde(skip_serializing_if = "Option::is_none")]

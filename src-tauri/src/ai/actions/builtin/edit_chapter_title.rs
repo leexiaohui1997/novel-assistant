@@ -57,6 +57,7 @@ impl ActionHandler for EditChapterTitleAction {
         let chapter_content = fetch_content(&ctx, &input).await?;
         let chapter_location = fetch_location(&ctx, &input).await?;
         let previous_plots = fetch_prev_plots(&ctx, &input).await?;
+        let chapter_outline = fetch_outline_list(&ctx, &input).await?;
 
         let prompt = render_prompt(
             ctx.templates_root.as_path(),
@@ -66,6 +67,7 @@ impl ActionHandler for EditChapterTitleAction {
             &chapter_content,
             &chapter_location,
             &previous_plots,
+            &chapter_outline,
             &input.user_feedback,
         )?;
 
@@ -159,7 +161,18 @@ async fn fetch_prev_plots(
     .map_err(|e| ActionError::ExecutionFailed(format!("查询前情介绍失败: {}", e)))
 }
 
+/// 查询全书章节标题大纲
+async fn fetch_outline_list(
+    ctx: &ActionContext,
+    input: &EditChapterTitleInput,
+) -> Result<Vec<crate::ai::prompts::ChapterOutlineItem>, ActionError> {
+    context_helpers::fetch_chapter_outline_list(&ctx.chapter_repo, input.novel_id)
+        .await
+        .map_err(|e| ActionError::ExecutionFailed(format!("查询章节大纲失败: {}", e)))
+}
+
 /// 渲染提示词
+#[allow(clippy::too_many_arguments)]
 fn render_prompt(
     templates_root: &std::path::Path,
     novel_info: &context_helpers::NovelInfo,
@@ -168,6 +181,7 @@ fn render_prompt(
     chapter_content: &Option<context_helpers::ChapterContentInfo>,
     chapter_location: &context_helpers::ChapterLocationInfo,
     previous_plots: &str,
+    chapter_outline: &[crate::ai::prompts::ChapterOutlineItem],
     user_feedback: &Option<String>,
 ) -> Result<String, ActionError> {
     let templates = PromptTemplates::new(templates_root)
@@ -218,6 +232,11 @@ fn render_prompt(
             None
         } else {
             Some(previous_plots.to_string())
+        },
+        chapter_outline: if chapter_outline.is_empty() {
+            None
+        } else {
+            Some(chapter_outline.to_vec())
         },
         user_feedback: user_feedback.clone(),
     };

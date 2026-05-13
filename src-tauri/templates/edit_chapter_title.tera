@@ -37,6 +37,17 @@
 暂无前情介绍
 {%- endif %}
 
+## 全书章节标题
+
+{%- if chapter_outline %}
+{% for item in chapter_outline -%}
+- 第{{ item.volumeSequence }}卷第{{ item.chapterSequence }}章 - {{ item.title }}
+{%- if volume_sequence and chapter_sequence and item.volumeSequence == volume_sequence and item.chapterSequence == chapter_sequence %}（当前章节）{%- endif %}
+{% endfor %}
+{%- else %}
+暂无章节
+{%- endif %}
+
 ## 本章信息
 
 本章是小说中的{%- if volume_sequence %}第{{ volume_sequence }}卷的{%- endif %}第{{ chapter_sequence }}章：

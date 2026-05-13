@@ -7,7 +7,8 @@ use uuid::Uuid;
 
 use crate::database::error::DbError;
 use crate::database::models::chapter::{
-    Chapter, ChapterQuery, NewChapter, NewVolume, UpdateChapter, UpdateVolume, Volume, VolumeUpsert,
+    Chapter, ChapterOutlineRow, ChapterQuery, NewChapter, NewVolume, UpdateChapter, UpdateVolume,
+    Volume, VolumeUpsert,
 };
 use crate::database::repositories::chapter_version_repo::SqliteChapterVersionRepository;
 use crate::utils::pagination::{PaginatedResult, PaginationParams};
@@ -98,6 +99,15 @@ pub trait ChapterRepository {
 
     /// 根据章节 ID 查询其所属分卷，无关联时返回 None
     async fn find_volume_by_chapter(&self, chapter_id: Uuid) -> Result<Option<Volume>, DbError>;
+
+    /// 按 (卷序、章序) 升序拉取全书非草稿章节标题大纲。
+    ///
+    /// 业务约束：
+    /// - 仅返回非草稿章节（sequence >= 0）；
+    /// - 未关联任何分卷的孤儿章节，`volume_sequence` 归首卷=1；
+    /// - 结果先按 `volume_sequence` 升序，再按 `chapter_sequence` 升序。
+    async fn list_chapter_outline(&self, novel_id: Uuid)
+        -> Result<Vec<ChapterOutlineRow>, DbError>;
 }
 
 pub struct SqliteChapterRepository {
@@ -961,5 +971,26 @@ impl ChapterRepository for SqliteChapterRepository {
         .fetch_optional(&self.pool)
         .await?;
         Ok(volume)
+    }
+
+    async fn list_chapter_outline(
+        &self,
+        novel_id: Uuid,
+    ) -> Result<Vec<ChapterOutlineRow>, DbError> {
+        // 单条 SQL 完成：左连接卷关联表与卷表；孤儿章节卷序归 1；按卷序、章序升序。
+        let rows = sqlx::query_as::<_, ChapterOutlineRow>(
+            "SELECT COALESCE(v.sequence, 1) AS volume_sequence,
+                    c.sequence AS chapter_sequence,
+                    c.title AS title
+             FROM chapters c
+             LEFT JOIN volume_chapters vc ON vc.chapter_id = c.id
+             LEFT JOIN volumes v ON v.id = vc.volume_id
+             WHERE c.novel_id = ?1 AND c.sequence >= 0
+             ORDER BY COALESCE(v.sequence, 1) ASC, c.sequence ASC",
+        )
+        .bind(novel_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
     }
 }
