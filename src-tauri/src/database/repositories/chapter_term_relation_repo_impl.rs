@@ -265,6 +265,7 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
         let sql = "SELECT
                 ctr.id          AS relation_id,
                 ctr.novel_id    AS novel_id,
+                ctr.term_id     AS term_id,
                 ctr.chapter_id  AS chapter_id,
                 ctr.description AS description,
                 ctr.created_at  AS created_at,
@@ -282,6 +283,36 @@ impl super::chapter_term_relation_repo::ChapterTermRelationRepository
 
         let rows = sqlx::query_as::<_, ChapterTermRelationWithChapterRow>(sql)
             .bind(term_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+
+    async fn find_term_chapter_relations_by_novel(
+        &self,
+        novel_id: &Uuid,
+    ) -> Result<Vec<ChapterTermRelationWithChapter>, DbError> {
+        let sql = "SELECT
+                ctr.id          AS relation_id,
+                ctr.novel_id    AS novel_id,
+                ctr.term_id     AS term_id,
+                ctr.chapter_id  AS chapter_id,
+                ctr.description AS description,
+                ctr.created_at  AS created_at,
+                ctr.updated_at  AS updated_at,
+                c.title         AS chapter_title,
+                c.sequence      AS chapter_sequence,
+                COALESCE(v.sequence, 1) AS volume_sequence
+             FROM chapter_term_relations ctr
+             INNER JOIN chapters c ON ctr.chapter_id = c.id
+             LEFT JOIN volume_chapters vc ON vc.chapter_id = c.id
+             LEFT JOIN volumes v ON v.id = vc.volume_id
+             WHERE ctr.novel_id = ?1
+               AND ctr.chapter_id IS NOT NULL
+             ORDER BY volume_sequence ASC, c.sequence ASC, c.created_at ASC";
+
+        let rows = sqlx::query_as::<_, ChapterTermRelationWithChapterRow>(sql)
+            .bind(novel_id)
             .fetch_all(&self.pool)
             .await?;
         Ok(rows.into_iter().map(Into::into).collect())

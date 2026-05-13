@@ -119,6 +119,8 @@ pub struct ChapterTermRelationWithChapter {
     pub relation_id: Uuid,
     /// 所属小说 ID
     pub novel_id: Uuid,
+    /// 关联的名词 ID
+    pub term_id: Uuid,
     /// 关联的章节 ID（本场景必非空）
     pub chapter_id: Uuid,
     /// 关联自身的描述（可空）
@@ -141,6 +143,7 @@ pub struct ChapterTermRelationWithChapter {
 pub(crate) struct ChapterTermRelationWithChapterRow {
     pub relation_id: Uuid,
     pub novel_id: Uuid,
+    pub term_id: Uuid,
     pub chapter_id: Uuid,
     pub description: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -155,6 +158,7 @@ impl From<ChapterTermRelationWithChapterRow> for ChapterTermRelationWithChapter 
         Self {
             relation_id: row.relation_id,
             novel_id: row.novel_id,
+            term_id: row.term_id,
             chapter_id: row.chapter_id,
             description: row.description,
             created_at: row.created_at,

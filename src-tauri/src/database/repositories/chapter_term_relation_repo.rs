@@ -74,4 +74,18 @@ pub trait ChapterTermRelationRepository {
         &self,
         term_id: &Uuid,
     ) -> Result<Vec<ChapterTermRelationWithChapter>, DbError>;
+
+    /// 按小说 ID 全量反查所有名词的章节关联记录（带章节标题、章节序号、分卷序号）
+    ///
+    /// 用于"完整描述"装配场景：一次 SQL 拉回该小说下所有名词在所有章节中的描述记录，
+    /// 上层在 Rust 侧按 `term_id` 分组拼接，避免逐名词调用 [`Self::find_chapters_by_term`]
+    /// 引发的 N+1 查询。
+    ///
+    /// - 仅返回 `chapter_id IS NOT NULL` 的关联；
+    /// - 排序为 `volume_sequence ASC, chapter_sequence ASC, c.created_at ASC`，
+    ///   与 [`Self::find_chapters_by_term`] 一致，保证后续拼接顺序稳定。
+    async fn find_term_chapter_relations_by_novel(
+        &self,
+        novel_id: &Uuid,
+    ) -> Result<Vec<ChapterTermRelationWithChapter>, DbError>;
 }

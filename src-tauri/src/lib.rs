@@ -291,6 +291,9 @@ pub async fn run() {
                     Arc::new(RwLock::new(Box::new(SqliteNovelTermRepository::new(
                         pool.clone(),
                     )))),
+                    Arc::new(RwLock::new(Box::new(
+                        SqliteChapterTermRelationRepository::new(pool.clone()),
+                    ))),
                     templates_root_v1,
                 )),
                 template_manager,

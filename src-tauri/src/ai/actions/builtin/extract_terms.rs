@@ -77,14 +77,18 @@ impl ActionHandler for ExtractTermsAction {
         use crate::ai::prompts::fragments::render_novel_terms_fragment;
 
         let term_repo = ctx.novel_term_repo.read().await;
+        let relation_repo = ctx.chapter_term_relation_repo.read().await;
         let existing_terms_md = render_novel_terms_fragment(
             novel_uuid,
-            true, // 显示 ID，方便 AI 匹配已有名词
+            true,  // 显示 ID，方便 AI 匹配已有名词
+            false, // 此处沿用主表 description 即可，无需完整描述
             term_repo.as_ref(),
+            relation_repo.as_ref(),
             ctx.templates_root.as_path(),
         )
         .await
         .map_err(|e| ActionError::ExecutionFailed(format!("生成现有名词列表失败: {}", e)))?;
+        drop(relation_repo);
         drop(term_repo);
 
         // 4. 构建可用名词类型列表

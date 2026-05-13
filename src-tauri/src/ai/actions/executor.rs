@@ -11,8 +11,8 @@ use super::error::ActionError;
 use super::router::ActionRouter;
 use crate::ai::service::AiService;
 use crate::database::repositories::{
-    ChapterOutlineRepository, ChapterRepository, CharacterRepository, NovelRepository,
-    NovelTermRepository, TagRepository,
+    ChapterOutlineRepository, ChapterRepository, ChapterTermRelationRepository,
+    CharacterRepository, NovelRepository, NovelTermRepository, TagRepository,
 };
 
 /// Action 执行器
@@ -44,6 +44,9 @@ pub struct ActionExecutor {
     /// 小说名词仓储引用
     novel_term_repo: Arc<RwLock<Box<dyn NovelTermRepository + Send + Sync>>>,
 
+    /// 名词-章节关联仓储引用
+    chapter_term_relation_repo: Arc<RwLock<Box<dyn ChapterTermRelationRepository + Send + Sync>>>,
+
     /// 模板根目录（共享只读）
     templates_root: Arc<PathBuf>,
 }
@@ -59,6 +62,9 @@ impl ActionExecutor {
         chapter_repo: Arc<RwLock<Box<dyn ChapterRepository + Send + Sync>>>,
         chapter_outline_repo: Arc<RwLock<Box<dyn ChapterOutlineRepository + Send + Sync>>>,
         novel_term_repo: Arc<RwLock<Box<dyn NovelTermRepository + Send + Sync>>>,
+        chapter_term_relation_repo: Arc<
+            RwLock<Box<dyn ChapterTermRelationRepository + Send + Sync>>,
+        >,
         templates_root: Arc<PathBuf>,
     ) -> Self {
         Self {
@@ -70,6 +76,7 @@ impl ActionExecutor {
             chapter_repo,
             chapter_outline_repo,
             novel_term_repo,
+            chapter_term_relation_repo,
             templates_root,
         }
     }
@@ -119,6 +126,7 @@ impl ActionExecutor {
             self.chapter_repo.clone(),
             self.chapter_outline_repo.clone(),
             self.novel_term_repo.clone(),
+            self.chapter_term_relation_repo.clone(),
             self.templates_root.clone(),
         );
 

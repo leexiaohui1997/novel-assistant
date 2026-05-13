@@ -2,9 +2,12 @@
 （暂无名词）
 {%- else %}
 {%- for group in groups %}
-{{ loop.index }}. {{ group.type_label }}
+### {{ loop.index }}. {{ group.type_label }}
 {%- for item in group.items %}
-- {{ item.name }}{% if show_id %} [ID: {{ item.id }}]{% endif %}{% if item.description %} - {{ item.description }}{% endif %}
+- **{{ item.name }}**{% if show_id %} [ID: {{ item.id }}]{% endif %}
+{% if item.description %}
+  描述：{{ item.description }}
+{% endif %}
 {%- endfor %}
 {%- endfor %}
 {%- endif %}
