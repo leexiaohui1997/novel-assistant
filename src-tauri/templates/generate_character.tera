@@ -33,6 +33,12 @@
 暂无角色
 {%- endif %}
 
+{%- if reference_content %}
+## 相关文章内容
+
+{{ reference_content }}
+{%- endif %}
+
 {%- if user_feedback %}
 ## 用户意见
 
@@ -41,7 +47,7 @@
 
 ## 任务要求
 
-请根据以上小说信息和已有角色{%- if user_feedback %}并结合用户意见{%- endif %}，设计一个新的角色。
+请根据以上小说信息和已有角色{%- if reference_content %}并参考相关文章内容{%- endif %}{%- if user_feedback %}并结合用户意见{%- endif %}，设计一个新的角色。
 
 ## 重要规则
 

@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 
 import { useAiAction } from '@/hooks/useAiAction'
 import { GeneratedCharacter } from '@/pages/CreationDetail/pages/character/components/CharacterModal'
+import { useEditorForm } from '@/providers/EditorFormContext'
 
 export type CreateActionProps = {
   novelId: string
@@ -13,11 +14,18 @@ export type CreateActionProps = {
 }
 
 export default function CreateAction({ novelId, modelId, suggest, onResult }: CreateActionProps) {
+  const { content } = useEditorForm()
+  const getParams = useCallback(
+    () => ({
+      novel_id: novelId,
+      reference_content: content,
+    }),
+    [novelId, content],
+  )
+
   const { execute, loading, result } = useAiAction<GeneratedCharacter>({
     actionName: 'generate_character',
-    getParams: () => ({
-      novel_id: novelId,
-    }),
+    getParams,
   })
 
   const handleClick = useCallback(() => {

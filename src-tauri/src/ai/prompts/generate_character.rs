@@ -27,6 +27,13 @@ pub struct GenerateCharacterContext {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_feedback: Option<String>,
 
+    /// 相关文章内容（可选）
+    ///
+    /// 用户提供的一段参考文本（如已有作品的相关原文片段、设定文档节选等），
+    /// 在模板中以 `## 相关文章内容` 段落渲染；空白或未提供时不渲染。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reference_content: Option<String>,
+
     /// 角色类型枚举定义（用于动态注入模板）
     pub character_type_options: Vec<CharacterTypeOption>,
 }

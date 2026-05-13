@@ -13,6 +13,13 @@ use crate::ai::actions::{
 pub struct GenerateCharacterInput {
     /// 小说 ID
     pub novel_id: String,
+
+    /// 相关文章内容（可选）
+    ///
+    /// 用户提供的一段参考文本，将原样传入模板的 `## 相关文章内容` 段落。
+    /// 缺省、`null` 或空白字符串时视为未提供。
+    #[serde(default)]
+    pub reference_content: Option<String>,
 }
 
 /// AI 返回的角色数据结构
@@ -42,6 +49,19 @@ pub struct GeneratedCharacter {
     /// 其他描述（可选）
     #[serde(default)]
     pub additional_info: Option<String>,
+}
+
+/// 将可选字符串归一化：trim 后为空则返回 `None`，否则保留 trim 后的字符串。
+///
+/// 用于在写入提示词上下文前消除空白字段，避免模板渲染出空段落。
+fn normalize_optional_text(value: Option<String>) -> Option<String> {
+    let raw = value?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
 }
 
 /// 校验 AI 返回的性别字段
@@ -169,6 +189,7 @@ impl ActionHandler for GenerateCharacterAction {
             },
             existing_characters,
             user_feedback: ctx.user_feedback.clone(),
+            reference_content: normalize_optional_text(input.reference_content.clone()),
             character_type_options: context_helpers::get_character_type_options(),
         };
 
